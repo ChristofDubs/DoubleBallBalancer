@@ -1,6 +1,6 @@
 """Dynamic model of 2D version of Double Ball Balancer
 
-This module contains the class DynamicModel for simulating the non-linear dynamics of the 2D Double Ball Balancer and a corresponding class ModelParam containing the relevant parameters. The control input is the motor's torque.
+This module contains the class DynamicModel for simulating the non-linear dynamics of the 2D Double Ball Balancer and a corresponding class ModelParam containing the relevant parameters. The control input is the angular velocity command for the motor's speed controller.
 
 author: Christof Dubs
 """
@@ -27,6 +27,7 @@ class ModelParam:
         m3: Mass of lever arm [kg]
         r1: Radius of lower ball [m]
         r2: Radius of upper ball [m]
+        tau: time constant of speed controlled motor [s]
         theta1: Mass moment of inertia of lower ball wrt. its center of mass [kg*m^2]
         theta2: Mass moment of inertia of upper ball wrt. its center of mass [kg*m^2]
         theta3: Mass moment of inertia of lever arm wrt. its center of mass [kg*m^2]
@@ -41,6 +42,7 @@ class ModelParam:
         self.m3 = 1
         self.r1 = 1
         self.r2 = 1
+        self.tau = 0.001
         self.theta1 = 1
         self.theta2 = 1
         self.theta3 = 1
@@ -51,7 +53,7 @@ class ModelParam:
         Returns:
             bool: True if valid, False if invalid.
         """
-        return self.g > 0 and self.l > 0 and self.m1 > 0 and self.m2 > 0 and self.m3 > 0 and self.r1 > 0 and self.r2 > 0 and self.theta1 > 0 and self.theta2 > 0 and self.theta3 > 0
+        return self.g > 0 and self.l > 0 and self.m1 > 0 and self.m2 > 0 and self.m3 > 0 and self.r1 > 0 and self.r2 > 0 and self.tau > 0 and self.theta1 > 0 and self.theta2 > 0 and self.theta3 > 0
 
 
 class DynamicModel:
@@ -107,17 +109,17 @@ class DynamicModel:
         self.x = x0_flat
         return True
 
-    def simulate_step(self, delta_t, T):
+    def simulate_step(self, delta_t, omega_cmd):
         """Simulate one time step
 
         Simulates the changes of the state over a time interval.
 
         args:
             delta_t: time step [s]
-            T: torque command for lever motor [Nm]
+            omega_cmd: angular velocity command for lever motor [rad/s]
         """
         t = np.array([0, delta_t])
-        self.x = odeint(self._x_dot, self.x, t, args=(T,))[-1]
+        self.x = odeint(self._x_dot, self.x, t, args=(omega_cmd,))[-1]
 
     def is_irrecoverable(self, x=None):
         """Checks if system is recoverable
@@ -195,13 +197,13 @@ class DynamicModel:
         if self.is_irrecoverable():
             return np.concatenate([x[3:], -100 * x[3:]])
 
-        A = self._compute_mass_matrix(x)
+        A = self._compute_acc_jacobian_matrix(x)
         b = self._compute_rhs(x, u)
         omega_dot = np.linalg.solve(A, b)
         return np.concatenate([x[3:], omega_dot])
 
-    def _compute_mass_matrix(self, x):
-        """computes angular acceleration matrix of system dynamics
+    def _compute_acc_jacobian_matrix(self, x):
+        """computes angular acceleration matrix of system dynamics (equal to jacobian matrix since dynamics are linear in angular accelerations)
 
         The non-linear dynamics are of the form
 
@@ -219,25 +221,28 @@ class DynamicModel:
         phi = x[1]
         psi = x[2]
 
-        M = np.zeros([3, 3])
+        A = np.zeros([3, 3])
 
         # auto-generated symbolic expressions
-        M[0, 0] = self.p.m1 * self.p.r2**2 + self.p.m2 * self.p.r2**2 + self.p.m3 * \
-            self.p.r2**2 + self.p.theta2 + self.p.r2**2 * self.p.theta1 / self.p.r1**2
-        M[0, 1] = self.p.l * self.p.m3 * self.p.r2 * cos(phi)
-        M[0, 2] = -self.p.r2 * (self.p.r1**2 * (self.p.m1 * (self.p.r1 + self.p.r2) + self.p.m2 * (self.p.r1 + self.p.r2 + (self.p.r1 + self.p.r2) * cos(
+        A[0, 0] = self.p.l * self.p.m3 * self.p.r2 * cos(phi) + self.p.m1 * self.p.r2**2 + self.p.m2 * \
+            self.p.r2**2 + self.p.m3 * self.p.r2**2 + self.p.theta2 + self.p.r2**2 * self.p.theta1 / self.p.r1**2
+        A[0, 1] = self.p.l**2 * self.p.m3 + self.p.l * \
+            self.p.m3 * self.p.r2 * cos(phi) + self.p.theta3
+        A[0, 2] = -(self.p.r1**2 * (self.p.l * self.p.m3 * (self.p.r1 * cos(phi) + self.p.r1 * cos(phi - psi) + self.p.r2 * cos(phi) + self.p.r2 * cos(phi - psi)) + self.p.m1 * self.p.r2 * (self.p.r1 + self.p.r2) + self.p.m2 * self.p.r2 * \
+                    (self.p.r1 + self.p.r2 + (self.p.r1 + self.p.r2) * cos(psi)) + self.p.m3 * self.p.r2 * (self.p.r1 + self.p.r2 + (self.p.r1 + self.p.r2) * cos(psi))) + self.p.r2 * self.p.theta1 * (self.p.r1 + self.p.r2)) / self.p.r1**2
+        A[1, 0] = -self.p.r2 * (self.p.r1**2 * (self.p.m1 * (self.p.r1 + self.p.r2) + self.p.m2 * (self.p.r1 + self.p.r2 + (self.p.r1 + self.p.r2) * cos(
             psi)) + self.p.m3 * (self.p.r1 + self.p.r2 + (self.p.r1 + self.p.r2) * cos(psi))) + self.p.theta1 * (self.p.r1 + self.p.r2)) / self.p.r1**2
-        M[1, 0] = M[0, 1]
-        M[1, 1] = self.p.l**2 * self.p.m3 + self.p.theta3
-        M[1, 2] = -self.p.l * self.p.m3 * (self.p.r1 * cos(phi) + self.p.r1 *
-                                           cos(phi - psi) + self.p.r2 * cos(phi) + self.p.r2 * cos(phi - psi))
-        M[2, 0] = M[0, 2]
-        M[2, 1] = M[1, 2]
-        M[2, 2] = (self.p.r1 + self.p.r2)**2 * (self.p.r1**2 * (self.p.m1 + 2 * self.p.m2 * cos(psi) + \
+        A[1, 1] = -self.p.l * self.p.m3 * ((self.p.r1 + self.p.r2) * sin(phi) * sin(
+            psi) + (self.p.r1 + self.p.r2 + (self.p.r1 + self.p.r2) * cos(psi)) * cos(phi))
+        A[1, 2] = (self.p.r1 + self.p.r2)**2 * (self.p.r1**2 * (self.p.m1 + 2 * self.p.m2 * cos(psi) + \
                    2 * self.p.m2 + 2 * self.p.m3 * cos(psi) + 2 * self.p.m3) + self.p.theta1) / self.p.r1**2
-        return M
+        A[2, 0] = -1
+        A[2, 1] = 1
+        A[2, 2] = 0
 
-    def _compute_rhs(self, x, T):
+        return A
+
+    def _compute_rhs(self, x, omega_cmd):
         """computes state and input terms of system dynamics
 
         The non-linear dynamics are of the form
@@ -257,17 +262,16 @@ class DynamicModel:
 
         phi = x[1]
         psi = x[2]
+        beta_dot = x[3]
         phi_dot = x[4]
         psi_dot = x[5]
 
         # auto-generated symbolic expressions
-        b[0] = -T + phi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi) - psi_dot**2 * self.p.m2 * self.p.r1 * self.p.r2 * sin(
-            psi) - psi_dot**2 * self.p.m2 * self.p.r2**2 * sin(psi) - psi_dot**2 * self.p.m3 * self.p.r1 * self.p.r2 * sin(psi) - psi_dot**2 * self.p.m3 * self.p.r2**2 * sin(psi)
-        b[1] = T + psi_dot**2 * self.p.l * self.p.m3 * self.p.r1 * sin(
-            phi - psi) + psi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(
-            phi - psi) - self.p.g * self.p.l * self.p.m3 * sin(phi)
-        b[2] = -phi_dot**2 * self.p.l * self.p.m3 * self.p.r1 * sin(phi) - phi_dot**2 * self.p.l * self.p.m3 * self.p.r1 * sin(phi - psi) - phi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi) - phi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi - psi) + psi_dot**2 * self.p.m2 * self.p.r1**2 * sin(psi) + 2 * psi_dot**2 * self.p.m2 * self.p.r1 * self.p.r2 * sin(
+        b[0] = phi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi) + psi_dot**2 * self.p.l * self.p.m3 * self.p.r1 * sin(phi - psi) + psi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi - psi) - psi_dot**2 * self.p.m2 * self.p.r1 * self.p.r2 * sin(
+            psi) - psi_dot**2 * self.p.m2 * self.p.r2**2 * sin(psi) - psi_dot**2 * self.p.m3 * self.p.r1 * self.p.r2 * sin(psi) - psi_dot**2 * self.p.m3 * self.p.r2**2 * sin(psi) - self.p.g * self.p.l * self.p.m3 * sin(phi)
+        b[1] = -phi_dot**2 * self.p.l * self.p.m3 * self.p.r1 * sin(phi) - phi_dot**2 * self.p.l * self.p.m3 * self.p.r1 * sin(phi - psi) - phi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi) - phi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi - psi) + psi_dot**2 * self.p.m2 * self.p.r1**2 * sin(psi) + 2 * psi_dot**2 * self.p.m2 * self.p.r1 * self.p.r2 * sin(
             psi) + psi_dot**2 * self.p.m2 * self.p.r2**2 * sin(psi) + psi_dot**2 * self.p.m3 * self.p.r1**2 * sin(psi) + 2 * psi_dot**2 * self.p.m3 * self.p.r1 * self.p.r2 * sin(psi) + psi_dot**2 * self.p.m3 * self.p.r2**2 * sin(psi) + self.p.g * self.p.m2 * self.p.r1 * sin(psi) + self.p.g * self.p.m2 * self.p.r2 * sin(psi) + self.p.g * self.p.m3 * self.p.r1 * sin(psi) + self.p.g * self.p.m3 * self.p.r2 * sin(psi)
+        b[2] = -(-beta_dot - omega_cmd + phi_dot) / self.p.tau
 
         return b
 

@@ -4,25 +4,29 @@ Derivation of the rigid multi-body dynamics using the Projected Newton-Euler met
 """
 from sympy import *
 
-# states
-alpha, alpha_dot = symbols('alpha alpha_d')
-beta, beta_dot = symbols('beta beta_dot')
-phi, phi_dot = symbols('phi phi_dot')
-psi, psi_dot = symbols('psi psi_dot')
+# angles
+alpha, beta, phi, psi = symbols('alpha beta phi psi')
+ang = Matrix([beta, phi, psi])
+
+# angular velocities
+alpha_dot, beta_dot, phi_dot, psi_dot = symbols('alpha_d beta_dot phi_dot psi_dot')
+omega = Matrix([beta_dot, phi_dot, psi_dot])
+
+# angular accelerations
+beta_ddot, phi_ddot, psi_ddot = symbols('beta_dd phi_dd psi_dd')
+omega_dot = Matrix([beta_ddot, phi_ddot, psi_ddot])
 
 # parameter
-l, m1, m2, m3, r1, r2, theta1, theta2, theta3 = symbols(
-    'l, m1, m2, m3, r1, r2, theta1, theta2, theta3')
+l, m1, m2, m3, r1, r2, tau, theta1, theta2, theta3 = symbols(
+    'l, m1, m2, m3, r1, r2, tau, theta1, theta2, theta3')
 
 # constants
 g = symbols('g')
 
 # inputs
-T = symbols('T')
+omega_cmd, T = symbols('omega_cmd T')
 
 # parameter lists:
-ang = Matrix([beta, phi, psi])
-omega = Matrix([beta_dot, phi_dot, psi_dot])
 m = [m1, m2, m3]
 theta = [theta1, theta2, theta3]
 
@@ -52,9 +56,6 @@ constraint2 = simplify(solve([v_P1[1] - v_P2[1]], [alpha_dot]))
 # print(constraint1[alpha_dot])
 
 # calculate Jacobians
-ang = Matrix([beta, phi, psi])
-omega = Matrix([beta_dot, phi_dot, psi_dot])
-
 v_OS1 = v_OS1.subs(alpha_dot, constraint1[alpha_dot])
 om1 = om1.subs(alpha_dot, constraint1[alpha_dot])
 v_OS2 = v_OS2.subs(alpha_dot, constraint1[alpha_dot])
@@ -78,8 +79,6 @@ F_i = [Matrix([0, -mi * g, 0]) for mi in m]
 M_i = [Matrix([0, 0, 0]), M2, M3]
 
 # Impulse
-omega_dot = Matrix(symbols('beta_dd phi_dd psi_dd'))
-
 p_i = [m[i] * v_i[i] for i in range(3)]
 p_dot_i = [p.jacobian(omega) * omega_dot + p.jacobian(ang) * omega for p in p_i]
 
@@ -92,17 +91,28 @@ dyn = Matrix([0, 0, 0])
 for i in range(3):
     dyn += simplify(J_i[i].T * (p_dot_i[i] - F_i[i])) + simplify(JR_i[i].T * (NS_dot_i[i] - M_i[i]))
 
-M = simplify(dyn.jacobian(omega_dot))
+# eliminate torque T by inspection
+dyn_new = Matrix([0, 0, 0])
+dyn_new[0] = dyn[0] + dyn[1]
+dyn_new[1] = dyn[2]
+
+# add motor dynamics
+gamma_ddot = phi_ddot - beta_ddot
+gamma_dot = phi_dot - beta_dot
+
+dyn_new[2] = gamma_ddot - 1 / tau * (omega_cmd - gamma_dot)
+
+A = simplify(dyn_new.jacobian(omega_dot))
 
 sub_list = [(x, 'self.p.' + x)
-            for x in ['g', 'l', 'm1', 'm2', 'm3', 'r1', 'r2', 'theta1', 'theta2', 'theta3']]
-for row in range(M.rows):
-    for col in range(M.cols):
-        if row > col and simplify(M[row, col] - M[col, row]) == 0:
-            print('M[{},{}]=M[{},{}]'.format(row, col, col, row))
+            for x in ['g', 'l', 'm1', 'm2', 'm3', 'r1', 'r2', 'tau', 'theta1', 'theta2', 'theta3']]
+for row in range(A.rows):
+    for col in range(A.cols):
+        if row > col and simplify(A[row, col] - A[col, row]) == 0:
+            print('A[{},{}]=A[{},{}]'.format(row, col, col, row))
         else:
-            print('M[{},{}] = {}'.format(row, col, M[row, col].subs(sub_list)))
+            print('A[{},{}] = {}'.format(row, col, A[row, col].subs(sub_list)))
 
-b = simplify(dyn - M * omega_dot)
+b = simplify(dyn_new - A * omega_dot)
 for row in range(b.rows):
     print('b[{}] = {}'.format(row, -b[row].subs(sub_list)))

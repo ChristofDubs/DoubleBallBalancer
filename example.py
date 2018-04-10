@@ -12,12 +12,13 @@ param.m2 = 1
 param.m3 = 1
 param.r1 = 3
 param.r2 = 2
+param.tau = 0.100
 param.theta1 = 1
 param.theta2 = 1
 param.theta3 = 1
 
 # initial state
-x0 = np.array([0, 1, 0, 0, 0, 0])
+x0 = np.array([0, 0.8, 0, 0, 0, 0])
 
 # instantiate model
 model = DynamicModel(param, x0)
@@ -25,15 +26,15 @@ model = DynamicModel(param, x0)
 # simulation time step
 dt = 0.05
 
-# torque
-T = 0
+# speed command
+u = -1
 
 plt.figure()
 
 # simulate until system is irrecoverable
 while not model.is_irrecoverable():
     # simulate
-    model.simulate_step(dt, T)
+    model.simulate_step(dt, u)
 
     # get visualization
     vis = model.get_visualization()
