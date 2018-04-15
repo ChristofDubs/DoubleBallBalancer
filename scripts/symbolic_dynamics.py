@@ -116,3 +116,12 @@ for row in range(A.rows):
 b = simplify(dyn_new - A * omega_dot)
 for row in range(b.rows):
     print('b[{}] = {}'.format(row, -b[row].subs(sub_list)))
+
+# linearize system around equilibrium [beta, 0, 0, 0, 0, 0]
+eq = [(x, 0) for x in ['phi', 'psi', 'beta_dot', 'phi_dot', 'psi_dot', 'beta_dd', 'phi_dd', 'psi_dd']]
+
+dyn_lin = dyn_new.subs(eq)
+for vec in [ang, omega, omega_dot]:
+    dyn_lin += dyn_new.jacobian(vec).subs(eq) * vec
+
+print(simplify(dyn_lin))
