@@ -23,7 +23,8 @@ param.theta2 = 1
 param.theta3 = 1
 
 # initial state
-x0 = np.array([0, 0, 0.2, 0, 0, 0])
+x0 = np.zeros(DynamicModel.STATE_SIZE)
+x0[DynamicModel.PSI_IDX] = 0.2
 
 # instantiate model
 model = DynamicModel(param, x0)
@@ -32,10 +33,13 @@ model = DynamicModel(param, x0)
 dt = 0.05
 
 # define control law
+
+
 def lqr_control_law(x):
     K = np.array([[2.67619260e-15, 1.03556079e+01, -4.73012271e+01,
                    3.23606798e+00, 6.05877477e-01, -3.53469304e+01]])
     return -np.dot(K, x)
+
 
 # prepare simulation
 max_sim_time = 10
@@ -51,7 +55,7 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
 
         # get visualization
         vis = model.get_visualization()
-    
+
         # plot
         plt.cla()
         plt.plot(*vis['lower_ball'])
@@ -63,7 +67,7 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
         plt.show(block=False)
         time_passed = time.time() - start_time
         plt.pause(max(dt - time_passed, 0.001))
-    
+
         start_time = time.time()
 
     # get control input
@@ -76,24 +80,24 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
     # save states as matrix
     state_vec = np.concatenate([state_vec, [model.x]])
     sim_time_vec.append(sim_time)
-    
+
     if print_sim_time:
         print('sim_time: {0:.3f} s'.format(sim_time))
 
 if plot_states:
     plt.figure()
-    plt.plot(sim_time_vec, state_vec[:,0], label='beta')
-    plt.plot(sim_time_vec, state_vec[:,1], label='phi')
-    plt.plot(sim_time_vec, state_vec[:,2], label='psi')
+    plt.plot(sim_time_vec, state_vec[:, model.BETA_IDX], label='beta')
+    plt.plot(sim_time_vec, state_vec[:, model.PHI_IDX], label='phi')
+    plt.plot(sim_time_vec, state_vec[:, model.PSI_IDX], label='psi')
     plt.xlabel('time [s]')
     plt.ylabel('angles [rad]')
     plt.legend()
     plt.title('angles')
-    
+
     plt.figure()
-    plt.plot(sim_time_vec, state_vec[:,3], label='beta_dot')
-    plt.plot(sim_time_vec, state_vec[:,4], label='phi_dot')
-    plt.plot(sim_time_vec, state_vec[:,5], label='psi_dot')
+    plt.plot(sim_time_vec, state_vec[:, model.BETA_DOT_IDX], label='beta_dot')
+    plt.plot(sim_time_vec, state_vec[:, model.PHI_DOT_IDX], label='phi_dot')
+    plt.plot(sim_time_vec, state_vec[:, model.PSI_DOT_IDX], label='psi_dot')
     plt.xlabel('time [s]')
     plt.ylabel('omega [rad]')
     plt.legend()

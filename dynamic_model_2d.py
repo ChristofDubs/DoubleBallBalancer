@@ -68,6 +68,13 @@ class DynamicModel:
 
     STATE_SIZE = 6
 
+    BETA_IDX = 0
+    PHI_IDX = 1
+    PSI_IDX = 2
+    BETA_DOT_IDX = 3
+    PHI_DOT_IDX = 4
+    PSI_DOT_IDX = 5
+
     def __init__(self, param, x0=np.zeros(STATE_SIZE)):
         """Initializes attributes to default values
 
@@ -133,7 +140,7 @@ class DynamicModel:
         if x is None:
             x = self.x
 
-        psi = x[2]
+        psi = x[self.PSI_IDX]
 
         # upper ball falling off the lower ball
         if psi < -np.pi / 2 or psi > np.pi / 2:
@@ -166,9 +173,9 @@ class DynamicModel:
             x = self.x
 
         vis = {}
-        beta = x[0]
-        phi = x[1]
-        psi = x[2]
+        beta = x[self.BETA_IDX]
+        phi = x[self.PHI_IDX]
+        psi = x[self.PSI_IDX]
 
         # rolling constraint
         alpha = psi + (self.p.r2 / self.p.r1) * (psi - beta)
@@ -218,8 +225,8 @@ class DynamicModel:
 
         Returns: 3x3 angular acceleration matrix
         """
-        phi = x[1]
-        psi = x[2]
+        phi = x[self.PHI_IDX]
+        psi = x[self.PSI_IDX]
 
         A = np.zeros([3, 3])
 
@@ -260,11 +267,11 @@ class DynamicModel:
         """
         b = np.zeros(3)
 
-        phi = x[1]
-        psi = x[2]
-        beta_dot = x[3]
-        phi_dot = x[4]
-        psi_dot = x[5]
+        phi = x[self.PHI_IDX]
+        psi = x[self.PSI_IDX]
+        beta_dot = x[self.BETA_DOT_IDX]
+        phi_dot = x[self.PHI_DOT_IDX]
+        psi_dot = x[self.PSI_DOT_IDX]
 
         # auto-generated symbolic expressions
         b[0] = phi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi) + psi_dot**2 * self.p.l * self.p.m3 * self.p.r1 * sin(phi - psi) + psi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi - psi) - psi_dot**2 * self.p.m2 * self.p.r1 * self.p.r2 * sin(
@@ -283,9 +290,9 @@ class DynamicModel:
 
         Returns: list of x/y coordinates of center of mass of lower ball, upper ball, and lever arm.
         """
-        beta = x[0]
-        phi = x[1]
-        psi = x[2]
+        beta = x[self.BETA_IDX]
+        phi = x[self.PHI_IDX]
+        psi = x[self.PSI_IDX]
 
         # upper ball on lower ball rolling constraint
         alpha = psi + (self.p.r2 / self.p.r1) * (psi - beta)
