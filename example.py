@@ -3,6 +3,11 @@
 from dynamic_model_2d import ModelParam, DynamicModel
 import matplotlib.pyplot as plt
 import numpy as np
+import time
+
+print_sim_time = False
+plot_visualization = True
+plot_states = True
 
 # create parameter struct
 param = ModelParam()
@@ -18,7 +23,7 @@ param.theta2 = 1
 param.theta3 = 1
 
 # initial state
-x0 = np.array([0, 0.8, 0, 0, 0, 0])
+x0 = np.array([0, 0, 0.2, 0, 0, 0])
 
 # instantiate model
 model = DynamicModel(param, x0)
@@ -26,24 +31,71 @@ model = DynamicModel(param, x0)
 # simulation time step
 dt = 0.05
 
-# speed command
-u = -1
+# define control law
+def lqr_control_law(x):
+    K = np.array([[2.67619260e-15, 1.03556079e+01, -4.73012271e+01,
+                   3.23606798e+00, 6.05877477e-01, -3.53469304e+01]])
+    return -np.dot(K, x)
 
-plt.figure()
+# prepare simulation
+max_sim_time = 10
+sim_time = 0
+sim_time_vec = [sim_time]
+state_vec = [model.x]
+start_time = time.time()
 
-# simulate until system is irrecoverable
-while not model.is_irrecoverable():
-    # simulate
+# simulate until system is irrecoverable or max_sim_time reached
+while not model.is_irrecoverable() and sim_time < max_sim_time:
+    if plot_visualization:
+        plt.figure(0)
+
+        # get visualization
+        vis = model.get_visualization()
+    
+        # plot
+        plt.cla()
+        plt.plot(*vis['lower_ball'])
+        plt.plot(*vis['upper_ball'])
+        plt.plot(*vis['lever_arm'])
+        plt.xlabel('x [m]')
+        plt.ylabel('y [m]')
+        plt.axis('equal')
+        plt.show(block=False)
+        time_passed = time.time() - start_time
+        plt.pause(max(dt - time_passed, 0.001))
+    
+        start_time = time.time()
+
+    # get control input
+    u = lqr_control_law(model.x)
+
+    # simulate one time step
     model.simulate_step(dt, u)
+    sim_time += dt
 
-    # get visualization
-    vis = model.get_visualization()
+    # save states as matrix
+    state_vec = np.concatenate([state_vec, [model.x]])
+    sim_time_vec.append(sim_time)
+    
+    if print_sim_time:
+        print('sim_time: {0:.3f} s'.format(sim_time))
 
-    # plot
-    plt.cla()
-    plt.plot(*vis['lower_ball'])
-    plt.plot(*vis['upper_ball'])
-    plt.plot(*vis['lever_arm'])
-    plt.axis('equal')
-    plt.show(block=False)
-    plt.pause(dt)
+if plot_states:
+    plt.figure()
+    plt.plot(sim_time_vec, state_vec[:,0], label='beta')
+    plt.plot(sim_time_vec, state_vec[:,1], label='phi')
+    plt.plot(sim_time_vec, state_vec[:,2], label='psi')
+    plt.xlabel('time [s]')
+    plt.ylabel('angles [rad]')
+    plt.legend()
+    plt.title('angles')
+    
+    plt.figure()
+    plt.plot(sim_time_vec, state_vec[:,3], label='beta_dot')
+    plt.plot(sim_time_vec, state_vec[:,4], label='phi_dot')
+    plt.plot(sim_time_vec, state_vec[:,5], label='psi_dot')
+    plt.xlabel('time [s]')
+    plt.ylabel('omega [rad]')
+    plt.legend()
+    plt.title('omega')
+    plt.show(block=True)
