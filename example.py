@@ -24,7 +24,6 @@ param.theta3 = 1
 
 # initial state
 x0 = np.zeros(DynamicModel.STATE_SIZE)
-x0[DynamicModel.PSI_IDX] = 0.2
 
 # instantiate model
 model = DynamicModel(param, x0)
@@ -33,16 +32,16 @@ model = DynamicModel(param, x0)
 dt = 0.05
 
 # define control law
-
-
-def lqr_control_law(x):
+def lqr_control_law(x, beta_dot_cmd):
     K = np.array([[2.67619260e-15, 1.03556079e+01, -4.73012271e+01,
                    3.23606798e+00, 6.05877477e-01, -3.53469304e+01]])
-    return -np.dot(K, x)
+    return -np.dot(K,x) + (K[0,3]-1)*beta_dot_cmd
 
+# commands
+beta_dot_cmd = 1
 
 # prepare simulation
-max_sim_time = 10
+max_sim_time = 15
 sim_time = 0
 sim_time_vec = [sim_time]
 state_vec = [model.x]
@@ -71,7 +70,7 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
         start_time = time.time()
 
     # get control input
-    u = lqr_control_law(model.x)
+    u = lqr_control_law(model.x, beta_dot_cmd)
 
     # simulate one time step
     model.simulate_step(dt, u)
