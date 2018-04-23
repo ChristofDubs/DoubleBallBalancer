@@ -1,9 +1,11 @@
 """Simple test script for 2D Double Ball Balancer
 """
-from dynamic_model_2d import ModelParam, DynamicModel
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+
+from dynamic_model_2d import ModelParam, DynamicModel
+from definitions_2d import *
 
 print_sim_time = False
 plot_visualization = True
@@ -23,7 +25,7 @@ param.theta2 = 1
 param.theta3 = 1
 
 # initial state
-x0 = np.zeros(DynamicModel.STATE_SIZE)
+x0 = np.zeros(STATE_SIZE)
 
 # instantiate model
 model = DynamicModel(param, x0)
@@ -99,18 +101,18 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
 
 if plot_states:
     plt.figure()
-    plt.plot(sim_time_vec, state_vec[:, model.BETA_IDX], label='beta')
-    plt.plot(sim_time_vec, state_vec[:, model.PHI_IDX], label='phi')
-    plt.plot(sim_time_vec, state_vec[:, model.PSI_IDX], label='psi')
+    plt.plot(sim_time_vec, state_vec[:, BETA_IDX], label='beta')
+    plt.plot(sim_time_vec, state_vec[:, PHI_IDX], label='phi')
+    plt.plot(sim_time_vec, state_vec[:, PSI_IDX], label='psi')
     plt.xlabel('time [s]')
     plt.ylabel('angles [rad]')
     plt.legend()
     plt.title('angles')
 
     plt.figure()
-    plt.plot(sim_time_vec, state_vec[:, model.BETA_DOT_IDX], label='beta_dot')
-    plt.plot(sim_time_vec, state_vec[:, model.PHI_DOT_IDX], label='phi_dot')
-    plt.plot(sim_time_vec, state_vec[:, model.PSI_DOT_IDX], label='psi_dot')
+    plt.plot(sim_time_vec, state_vec[:, BETA_DOT_IDX], label='beta_dot')
+    plt.plot(sim_time_vec, state_vec[:, PHI_DOT_IDX], label='phi_dot')
+    plt.plot(sim_time_vec, state_vec[:, PSI_DOT_IDX], label='psi_dot')
     plt.xlabel('time [s]')
     plt.ylabel('omega [rad]')
     plt.legend()

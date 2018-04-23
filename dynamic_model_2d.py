@@ -8,6 +8,8 @@ import numpy as np
 from numpy import sin, cos
 from scipy.integrate import odeint
 
+from definitions_2d import *
+
 
 class ModelParam:
     """Physical parameters of 2D Double Ball Balancer
@@ -66,15 +68,6 @@ class DynamicModel:
     Functions that are not meant to be called from outside the class (private methods) are prefixed with a single underline.
     """
 
-    STATE_SIZE = 6
-
-    BETA_IDX = 0
-    PHI_IDX = 1
-    PSI_IDX = 2
-    BETA_DOT_IDX = 3
-    PHI_DOT_IDX = 4
-    PSI_DOT_IDX = 5
-
     def __init__(self, param, x0=np.zeros(STATE_SIZE)):
         """Initializes attributes to default values
 
@@ -87,7 +80,7 @@ class DynamicModel:
             print('Warning: not all parameters set!')
 
         if not self.set_state(x0):
-            self.x = np.zeros(self.STATE_SIZE)
+            self.x = np.zeros(STATE_SIZE)
 
     def set_state(self, x0):
         """Set the state.
@@ -108,10 +101,10 @@ class DynamicModel:
 
         # make 1D version of x0
         x0_flat = x0.flatten()
-        if len(x0_flat) != self.STATE_SIZE:
+        if len(x0_flat) != STATE_SIZE:
             print(
                 'called set_state with array of length {} instead of {}. Ignoring.'.format(
-                    len(x0_flat), self.STATE_SIZE))
+                    len(x0_flat), STATE_SIZE))
             return False
         self.x = x0_flat
         return True
@@ -140,7 +133,7 @@ class DynamicModel:
         if x is None:
             x = self.x
 
-        psi = x[self.PSI_IDX]
+        psi = x[PSI_IDX]
 
         # upper ball falling off the lower ball
         if psi < -np.pi / 2 or psi > np.pi / 2:
@@ -173,9 +166,9 @@ class DynamicModel:
             x = self.x
 
         vis = {}
-        beta = x[self.BETA_IDX]
-        phi = x[self.PHI_IDX]
-        psi = x[self.PSI_IDX]
+        beta = x[BETA_IDX]
+        phi = x[PHI_IDX]
+        psi = x[PSI_IDX]
 
         # rolling constraint
         alpha = psi + (self.p.r2 / self.p.r1) * (psi - beta)
@@ -225,8 +218,8 @@ class DynamicModel:
 
         Returns: 3x3 angular acceleration matrix
         """
-        phi = x[self.PHI_IDX]
-        psi = x[self.PSI_IDX]
+        phi = x[PHI_IDX]
+        psi = x[PSI_IDX]
 
         A = np.zeros([3, 3])
 
@@ -267,11 +260,11 @@ class DynamicModel:
         """
         b = np.zeros(3)
 
-        phi = x[self.PHI_IDX]
-        psi = x[self.PSI_IDX]
-        beta_dot = x[self.BETA_DOT_IDX]
-        phi_dot = x[self.PHI_DOT_IDX]
-        psi_dot = x[self.PSI_DOT_IDX]
+        phi = x[PHI_IDX]
+        psi = x[PSI_IDX]
+        beta_dot = x[BETA_DOT_IDX]
+        phi_dot = x[PHI_DOT_IDX]
+        psi_dot = x[PSI_DOT_IDX]
 
         # auto-generated symbolic expressions
         b[0] = phi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi) + psi_dot**2 * self.p.l * self.p.m3 * self.p.r1 * sin(phi - psi) + psi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi - psi) - psi_dot**2 * self.p.m2 * self.p.r1 * self.p.r2 * sin(
@@ -290,9 +283,9 @@ class DynamicModel:
 
         Returns: list of x/y coordinates of center of mass of lower ball, upper ball, and lever arm.
         """
-        beta = x[self.BETA_IDX]
-        phi = x[self.PHI_IDX]
-        psi = x[self.PSI_IDX]
+        beta = x[BETA_IDX]
+        phi = x[PHI_IDX]
+        psi = x[PSI_IDX]
 
         # upper ball on lower ball rolling constraint
         alpha = psi + (self.p.r2 / self.p.r1) * (psi - beta)
