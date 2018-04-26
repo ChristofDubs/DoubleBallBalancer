@@ -35,13 +35,43 @@ class Controller:
         self.kd = 0.2
         self.beta_dot_max = 2
 
-    def compute_ctrl_input(self, x, beta_cmd):
-        beta_dot_cmd = self.compute_beta_dot_cmd(x, beta_cmd)
-        psi_cmd = self.compute_psi_cmd(x, beta_dot_cmd)
-        psi_dot_cmd = self.compute_psi_dot_cmd(x, psi_cmd)
-        phi_cmd = self.compute_phi_cmd(x, psi_dot_cmd)
-        phi_dot_cmd = self.compute_phi_dot_cmd(x, phi_cmd)
-        return self.compute_motor_cmd(x, phi_dot_cmd)
+    def compute_ctrl_input(self, x, u, mode=BETA_IDX):
+
+        beta_dot_cmd = None
+        if mode is BETA_IDX:
+            beta_dot_cmd = self.compute_beta_dot_cmd(x, u)
+        elif mode is BETA_DOT_IDX:
+            beta_dot_cmd = u
+
+        psi_cmd = None
+        if beta_dot_cmd is not None:
+            psi_cmd = self.compute_psi_cmd(x, beta_dot_cmd)
+        elif mode is PSI_IDX:
+            psi_cmd = u
+
+        psi_dot_cmd = None
+        if psi_cmd is not None:
+            psi_dot_cmd = self.compute_psi_dot_cmd(x, psi_cmd)
+        elif mode is PSI_DOT_IDX:
+            psi_dot_cmd = u
+
+        phi_cmd = None
+        if psi_dot_cmd is not None:
+            phi_cmd = self.compute_phi_cmd(x, psi_dot_cmd)
+        elif mode is PHI_IDX:
+            phi_cmd = u
+
+        phi_dot_cmd = None
+        if phi_cmd is not None:
+            phi_dot_cmd = self.compute_phi_dot_cmd(x, phi_cmd)
+        elif mode is PHI_DOT_IDX:
+            phi_dot_cmd = u
+
+        if phi_dot_cmd is not None:
+            return self.compute_motor_cmd(x, phi_dot_cmd)
+
+        print('unknown mode: {} is not in [0,{}]'.format(mode, STATE_SIZE - 1))
+        return 0
 
     def compute_beta_dot_cmd(self, x, beta_cmd):
         return saturate(
