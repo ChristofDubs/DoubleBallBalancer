@@ -78,13 +78,14 @@ class Controller:
             self.kp * (beta_cmd - x[BETA_IDX]) - self.kd * x[BETA_DOT_IDX], self.beta_dot_max)
 
     def compute_psi_cmd(self, x, beta_dot_cmd):
-        return (self.K[BETA_DOT_IDX] - 1) / self.K[PSI_IDX] * (beta_dot_cmd - x[BETA_DOT_IDX])
+        return 3 * (self.K[BETA_DOT_IDX] - 1) / self.K[PSI_IDX] * (beta_dot_cmd - x[BETA_DOT_IDX])
 
     def compute_psi_dot_cmd(self, x, psi_cmd):
-        return self.K[PSI_IDX] / self.K[PSI_DOT_IDX] * (psi_cmd - x[PSI_IDX])
+        return 1.0 / 3 * self.K[PSI_IDX] / self.K[PSI_DOT_IDX] * (psi_cmd - x[PSI_IDX])
 
     def compute_phi_cmd(self, x, psi_dot_cmd):
-        return self.K[PSI_DOT_IDX] / self.K[PHI_IDX] * (psi_dot_cmd - x[PSI_DOT_IDX])
+        return self.K[PSI_DOT_IDX] / self.K[PHI_IDX] * \
+            (psi_dot_cmd - x[PSI_DOT_IDX]) - 2.0 / 3 * self.K[PSI_IDX] / self.K[PHI_IDX] * x[PSI_IDX]
 
     def compute_phi_dot_cmd(self, x, phi_cmd):
         return self.K[PHI_IDX] * (phi_cmd - x[PHI_IDX]) - self.K[PHI_DOT_IDX] * x[PHI_DOT_IDX]
