@@ -38,7 +38,7 @@ controller = Controller()
 dt = 0.05
 
 # commands
-beta_cmd = 6 * np.pi
+beta_cmd = 16 * np.pi
 
 # prepare simulation
 max_sim_time = 30

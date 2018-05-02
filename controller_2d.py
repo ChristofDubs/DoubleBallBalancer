@@ -35,6 +35,9 @@ class Controller:
         self.kd = 0.2
         self.beta_dot_max = 2
 
+        self.psi_max = 0.2
+        self.beta_ddot_max = 2 * self.psi_max
+
     def compute_ctrl_input(self, x, u, mode=BETA_IDX):
 
         beta_dot_cmd = None
@@ -74,13 +77,29 @@ class Controller:
         return 0
 
     def compute_beta_dot_cmd(self, x, beta_cmd):
-        return saturate(
-            self.kp * (beta_cmd - x[BETA_IDX]) - self.kd * x[BETA_DOT_IDX], self.beta_dot_max)
+        delta_beta = beta_cmd - x[BETA_IDX]
+        beta_dot_cmd = self.kp * delta_beta - self.kd * x[BETA_DOT_IDX]
+
+        # limit beta_dot_max to beta_dot on maximum deceleration trajectory:
+        # beta_dot_max(delta_beta) = sqrt(2 * beta_ddot_max * delta_beta)
+        beta_dot_cmd_max = np.sqrt(2 * self.beta_ddot_max * abs(delta_beta))
+
+        # augment beta_dot_max such that if beta_dot = beta_dot_max, psi_cmd = psi_cmd_max
+        beta_dot_cmd_max += self.psi_max * self.K[PSI_IDX] / (3 * (self.K[BETA_DOT_IDX] - 1))
+
+        # only crop beta_dot_command if the full deceleration feed-forward still
+        # leads to a positive beta_dot_cmd
+        if beta_dot_cmd_max > 0 and abs(beta_dot_cmd) > beta_dot_cmd_max:
+            beta_dot_cmd = np.sign(beta_dot_cmd) * beta_dot_cmd_max
+
+        return beta_dot_cmd
 
     def compute_psi_cmd(self, x, beta_dot_cmd):
         return 3 * (self.K[BETA_DOT_IDX] - 1) / self.K[PSI_IDX] * (beta_dot_cmd - x[BETA_DOT_IDX])
 
     def compute_psi_dot_cmd(self, x, psi_cmd):
+        # prevent irrecoverable state by limiting psi
+        psi_cmd = saturate(psi_cmd, self.psi_max)
         return 1.0 / 3 * self.K[PSI_IDX] / self.K[PSI_DOT_IDX] * (psi_cmd - x[PSI_IDX])
 
     def compute_phi_cmd(self, x, psi_dot_cmd):
@@ -88,6 +107,8 @@ class Controller:
             (psi_dot_cmd - x[PSI_DOT_IDX]) - 2.0 / 3 * self.K[PSI_IDX] / self.K[PHI_IDX] * x[PSI_IDX]
 
     def compute_phi_dot_cmd(self, x, phi_cmd):
+        # prevent phi commands outside [-pi/2, pi/2]
+        phi_cmd = saturate(phi_cmd, np.pi / 2)
         return self.K[PHI_IDX] * (phi_cmd - x[PHI_IDX]) - self.K[PHI_DOT_IDX] * x[PHI_DOT_IDX]
 
     def compute_motor_cmd(self, x, phi_dot_cmd):
