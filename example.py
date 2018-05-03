@@ -45,6 +45,7 @@ max_sim_time = 30
 sim_time = 0
 sim_time_vec = [sim_time]
 state_vec = [model.x]
+input_vec = []
 start_time = time.time()
 
 # simulate until system is irrecoverable or max_sim_time reached
@@ -76,9 +77,10 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
     model.simulate_step(dt, u)
     sim_time += dt
 
-    # save states as matrix
+    # save states as matrix, sim_time and inputs as lists
     state_vec = np.concatenate([state_vec, [model.x]])
     sim_time_vec.append(sim_time)
+    input_vec.append(u)
 
     if print_sim_time:
         print('sim_time: {0:.3f} s'.format(sim_time))
@@ -97,6 +99,7 @@ if plot_states:
     plt.plot(sim_time_vec, state_vec[:, BETA_DOT_IDX], label='beta_dot')
     plt.plot(sim_time_vec, state_vec[:, PHI_DOT_IDX], label='phi_dot')
     plt.plot(sim_time_vec, state_vec[:, PSI_DOT_IDX], label='psi_dot')
+    plt.plot(sim_time_vec[:-1], input_vec, label='motor_cmd')
     plt.xlabel('time [s]')
     plt.ylabel('omega [rad]')
     plt.legend()
