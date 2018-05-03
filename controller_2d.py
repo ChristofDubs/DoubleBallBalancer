@@ -84,12 +84,19 @@ class Controller:
         # beta_dot_max(delta_beta) = sqrt(2 * beta_ddot_max * delta_beta)
         beta_dot_cmd_max = np.sqrt(2 * self.beta_ddot_max * abs(delta_beta))
 
-        # augment beta_dot_max such that if beta_dot = beta_dot_max, psi_cmd = psi_cmd_max
-        beta_dot_cmd_max += self.psi_max * self.K[PSI_IDX] / (3 * (self.K[BETA_DOT_IDX] - 1))
+        # beta_dot command that results in psi_cmd = psi_cmd_max for beta_dot = 0
+        beta_dot_ff = -self.psi_max * self.K[PSI_IDX] / (3 * (self.K[BETA_DOT_IDX] - 1))
 
-        # only crop beta_dot_command if the full deceleration feed-forward still
-        # leads to a positive beta_dot_cmd
-        if beta_dot_cmd_max > 0 and abs(beta_dot_cmd) > beta_dot_cmd_max:
+        # augment beta_dot_max such that if beta_dot = beta_dot_max, psi_cmd = psi_cmd_max
+        beta_dot_cmd_max -= beta_dot_ff
+
+        # use beta_dot_ff as lower limit for beta_dot_max such that beta_dot
+        # commands below beta_dot_ff are not cropped (since they will generally
+        # not lead to psi saturation)
+        beta_dot_cmd_max = max(beta_dot_cmd_max, beta_dot_ff)
+
+        # crop beta_dot_command
+        if abs(beta_dot_cmd) > beta_dot_cmd_max:
             beta_dot_cmd = np.sign(beta_dot_cmd) * beta_dot_cmd_max
 
         return beta_dot_cmd
