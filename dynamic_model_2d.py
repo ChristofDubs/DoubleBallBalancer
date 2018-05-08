@@ -39,15 +39,15 @@ class ModelParam:
         """Initializes the parameters to default values"""
         self.g = 9.81
         self.l = 0.5
-        self.m1 = 1
-        self.m2 = 1
-        self.m3 = 1
-        self.r1 = 1
-        self.r2 = 1
+        self.m1 = 1.0
+        self.m2 = 1.0
+        self.m3 = 1.0
+        self.r1 = 1.0
+        self.r2 = 1.0
         self.tau = 0.001
-        self.theta1 = 1
-        self.theta2 = 1
-        self.theta3 = 1
+        self.theta1 = 1.0
+        self.theta2 = 1.0
+        self.theta3 = 1.0
 
     def is_valid(self,):
         """Checks validity of parameter configuration
