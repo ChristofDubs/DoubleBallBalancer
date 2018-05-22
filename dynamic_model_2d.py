@@ -125,7 +125,7 @@ class DynamicModel:
         """Checks if system is recoverable
 
         args:
-            x0 (numpy.ndarray, optional): state. If not specified, the internal state is checked
+            x (numpy.ndarray, optional): state. If not specified, the internal state is checked
 
         Returns:
             bool: True if state is irrecoverable, False otherwise.
@@ -191,7 +191,7 @@ class DynamicModel:
         args:
             x (numpy.ndarray): initial state
             t: time [s]. Since this system is time invariant, this argument is unused.
-            u: input torque command for lever motor [Nm]
+            u: input motor speed command for lever motor [rad/s]
         """
         # freeze system if state is irrecoverable
         if self.is_irrecoverable():
