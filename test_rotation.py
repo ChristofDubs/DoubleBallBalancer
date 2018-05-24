@@ -70,10 +70,10 @@ class TestRotation(unittest.TestCase):
 
         axis *= 1 / np.linalg.norm(axis)
 
-        self.assertAlmostEqual(q.w(), np.cos(0.5 * angle))
-        self.assertAlmostEqual(q.x(), axis[0] * np.sin(0.5 * angle))
-        self.assertAlmostEqual(q.y(), axis[1] * np.sin(0.5 * angle))
-        self.assertAlmostEqual(q.z(), axis[2] * np.sin(0.5 * angle))
+        self.assertAlmostEqual(q.w, np.cos(0.5 * angle))
+        self.assertAlmostEqual(q.x, axis[0] * np.sin(0.5 * angle))
+        self.assertAlmostEqual(q.y, axis[1] * np.sin(0.5 * angle))
+        self.assertAlmostEqual(q.z, axis[2] * np.sin(0.5 * angle))
 
     def quat_from_angle_vector(self):
         omega = np.array([-1, 5, 3.4])
@@ -166,10 +166,10 @@ class TestRotation(unittest.TestCase):
         # check valid sign
         self.assertEqual(np.abs(sgn), 1)
 
-        self.assertAlmostEqual(q1.w(), sgn * q2.w(), n_digits)
-        self.assertAlmostEqual(q1.x(), sgn * q2.x(), n_digits)
-        self.assertAlmostEqual(q1.y(), sgn * q2.y(), n_digits)
-        self.assertAlmostEqual(q1.z(), sgn * q2.z(), n_digits)
+        self.assertAlmostEqual(q1.w, sgn * q2.w, n_digits)
+        self.assertAlmostEqual(q1.x, sgn * q2.x, n_digits)
+        self.assertAlmostEqual(q1.y, sgn * q2.y, n_digits)
+        self.assertAlmostEqual(q1.z, sgn * q2.z, n_digits)
 
     def check_rot_equal(self, rot1, rot2):
         # calculate difference in rotation (should be identity if rot1==rot2)

@@ -44,19 +44,23 @@ class Quaternion:
         self.q = q_flat
         self.normalize()
 
-    def w(self,):
+    @property
+    def w(self):
         """access w element of the quaternion"""
         return self.q[0]
 
-    def x(self,):
+    @property
+    def x(self):
         """access x element of the quaternion"""
         return self.q[1]
 
-    def y(self,):
+    @property
+    def y(self):
         """access y element of the quaternion"""
         return self.q[2]
 
-    def z(self,):
+    @property
+    def z(self):
         """access z element of the quaternion"""
         return self.q[3]
 
@@ -83,10 +87,10 @@ class Quaternion:
         Example: q1*q2 = M(q1)*q2 where M(q1) is the left multiplication matrix
         """
         return np.array([
-            [self.w(), -self.x(), -self.y(), -self.z()],
-            [self.x(), self.w(), -self.z(), self.y()],
-            [self.y(), self.z(), self.w(), -self.x()],
-            [self.z(), -self.y(), self.x(), self.w()]])
+            [self.w, -self.x, -self.y, -self.z],
+            [self.x, self.w, -self.z, self.y],
+            [self.y, self.z, self.w, -self.x],
+            [self.z, -self.y, self.x, self.w]])
 
     def get_right_mult_matrix(self,):
         """get multiplication matrix that is equivalent to quaternion multiplication from the right
@@ -94,10 +98,10 @@ class Quaternion:
         Example: q1*q2 = M(q2)*q1 where M(q2) is the left multiplication matrix
         """
         return np.array([
-            [self.w(), -self.x(), -self.y(), -self.z()],
-            [self.x(), self.w(), self.z(), -self.y()],
-            [self.y(), -self.z(), self.w(), self.x()],
-            [self.z(), self.y(), -self.x(), self.w()]])
+            [self.w, -self.x, -self.y, -self.z],
+            [self.x, self.w, self.z, -self.y],
+            [self.y, -self.z, self.w, self.x],
+            [self.z, self.y, -self.x, self.w]])
 
     def q_dot(self, omega, frame='body'):
         """calculate the quaternion derivative as a result to angular velocity"""
@@ -109,20 +113,20 @@ class Quaternion:
         return np.zeros(4)
 
     def inverse(self,):
-        return Quaternion(np.array([self.w(), -self.x(), -self.y(), -self.z()]))
+        return Quaternion(np.array([self.w, -self.x, -self.y, -self.z]))
 
     def rotation_matrix(self,):
         """calculate rotation matrix equivalent of the quaternion"""
-        qw_2 = self.w()**2
-        qx_2 = self.x()**2
-        qy_2 = self.y()**2
-        qz_2 = self.z()**2
-        qwqx = self.w() * self.x()
-        qwqy = self.w() * self.y()
-        qwqz = self.w() * self.z()
-        qxqy = self.x() * self.y()
-        qxqz = self.x() * self.z()
-        qyqz = self.y() * self.z()
+        qw_2 = self.w**2
+        qx_2 = self.x**2
+        qy_2 = self.y**2
+        qz_2 = self.z**2
+        qwqx = self.w * self.x
+        qwqy = self.w * self.y
+        qwqz = self.w * self.z
+        qxqy = self.x * self.y
+        qxqz = self.x * self.z
+        qyqz = self.y * self.z
 
         rot = np.eye(3)
         rot[0, 0] = qw_2 + qx_2 - qy_2 - qz_2
