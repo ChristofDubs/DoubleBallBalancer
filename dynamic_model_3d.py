@@ -11,7 +11,7 @@ from rotation import Quaternion
 
 
 class ModelParam:
-    """Physical parameters of 2D Double Ball Balancer
+    """Physical parameters of 3D Double Ball Balancer
 
     The Double Ball Balancer consists of 3 bodies:
         1: lower ball
@@ -79,13 +79,34 @@ STATE_SIZE = 17
 
 
 class ModelState:
-    def __init__(self, x0=None):
+    """Class to represent state of 3D Double Ball Balancer
+
+    The state is stored in this class as a numpy array, for ease of interfacing
+    with scipy. Numerous properties / setters allow interfacing with this class
+    without knowledge about the state index definitions.
+
+    Attributes:
+        x: array representing the full state
+    """
+
+    def __init__(self, x0=None, skip_checks=False):
+        """Initializes attributes
+
+        args:
+            x0 (np.ndarray, optional): initial state. Set to default values if not specified
+            skip_checks (bool, optional): if set to true and x0 is provided, x0 is set without checking it.
+        """
+        if skip_checks and x0 is not None:
+            self.x = x0
+            return
+
         if x0 is None or not self.set_state(x0):
             self.x = np.zeros(STATE_SIZE, dtype=np.float)
             self.x[Q_1_W_IDX] = 1
             self.x[Q_2_W_IDX] = 1
 
     def normalize_quaternions(self):
+        """Normalize the rotation quaternions"""
         self.q1 *= 1.0 / np.linalg.norm(self.q1)
         self.q2 *= 1.0 / np.linalg.norm(self.q2)
 
@@ -113,10 +134,16 @@ class ModelState:
                 'called set_state with array of length {} instead of {}. Ignoring.'.format(
                     len(x0_flat), STATE_SIZE))
             return False
+
+        q1_norm = np.linalg.norm(x0_flat[Q_1_W_IDX:Q_1_Z_IDX + 1])
+        q2_norm = np.linalg.norm(x0_flat[Q_2_W_IDX:Q_2_Z_IDX + 1])
+
+        # quaternion check
+        if q1_norm == 0 or q2_norm == 0:
+            return false
+
         self.x = x0_flat
-
-        # todo: quaternion check
-
+        self.normalize_quaternions()
         return True
 
     @property
@@ -329,7 +356,7 @@ class DynamicModel:
             x (numpy.ndarray): state at which the state derivative function is evaluated
             t: time [s]. Since this system is time invariant, this argument is unused.
         """
-        eval_state = ModelState(x)
+        eval_state = ModelState(x, skip_checks=True)
 
         # freeze system if state is irrecoverable
         if self.is_irrecoverable(eval_state):
