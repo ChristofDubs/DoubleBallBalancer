@@ -7,8 +7,6 @@ author: Christof Dubs
 import numpy as np
 from numpy import sin, cos
 from scipy.integrate import odeint
-
-from definitions_3d import *
 from rotation import Quaternion
 
 
@@ -59,31 +57,37 @@ class ModelParam:
         return self.g > 0 and self.l > 0 and self.m1 > 0 and self.m2 > 0 and self.m3 > 0 and self.r1 > 0 and self.r2 > 0 and self.tau > 0 and self.theta1 > 0 and self.theta2 > 0 and self.theta3 > 0
 
 
-class DynamicModel:
-    """Simulation interface for the 2D Double Ball Balancer
+# state size and indices
+PSI_Y_IDX = 0
+PSI_Z_IDX = 1
+Q_1_W_IDX = 2
+Q_1_X_IDX = 3
+Q_1_Y_IDX = 4
+Q_1_Z_IDX = 5
+Q_2_W_IDX = 6
+Q_2_X_IDX = 7
+Q_2_Y_IDX = 8
+Q_2_Z_IDX = 9
+PSI_Y_DOT_IDX = 10
+PSI_Z_DOT_IDX = 11
+OMEGA_2_X_IDX = 12
+OMEGA_2_Y_IDX = 13
+OMEGA_2_Z_IDX = 14
+X_IDX = 15
+Y_IDX = 16
+STATE_SIZE = 17
 
-    Attributes:
-        p (ModelParam): physical parameters
-        x (numpy.ndarray): state [beta, phi, psi, beta_dot, phi_dot, psi_dot]
 
-    Functions that are not meant to be called from outside the class (private methods) are prefixed with a single underline.
-    """
-
-    def __init__(self, param, x0=None):
-        """Initializes attributes to default values
-
-        args:
-            param (ModelParam): parameters of type ModelParam
-            x0 (numpy.ndarray, optional): initial state. Set to equilibrium state if not specified
-        """
-        self.p = param
-        if not param.is_valid():
-            print('Warning: not all parameters set!')
-
+class ModelState:
+    def __init__(self, x0=None):
         if x0 is None or not self.set_state(x0):
-            self.x = np.zeros(STATE_SIZE)
-            self.x[Q_1_W_IDX] = 1.0
-            self.x[Q_2_W_IDX] = 1.0
+            self.x = np.zeros(STATE_SIZE, dtype=np.float)
+            self.x[Q_1_W_IDX] = 1
+            self.x[Q_2_W_IDX] = 1
+
+    def normalize_quaternions(self):
+        self.q1 *= 1.0 / np.linalg.norm(self.q1)
+        self.q2 *= 1.0 / np.linalg.norm(self.q2)
 
     def set_state(self, x0):
         """Set the state.
@@ -111,11 +115,140 @@ class DynamicModel:
             return False
         self.x = x0_flat
 
-        # todo: fix this by making a nicer state class
-        self.x[Q_1_W_IDX] = 1.0
-        self.x[Q_2_W_IDX] = 1.0
+        # todo: quaternion check
 
         return True
+
+    @property
+    def psi_y(self):
+        return self.x[PSI_Y_IDX]
+
+    @psi_y.setter
+    def psi_y(self, value):
+        self.x[PSI_Y_IDX] = value
+
+    @property
+    def psi_y_dot(self):
+        return self.x[PSI_Y_DOT_IDX]
+
+    @psi_y_dot.setter
+    def psi_y_dot(self, value):
+        self.x[PSI_Y_DOT_IDX] = value
+
+    @property
+    def psi_z(self):
+        return self.x[PSI_Z_IDX]
+
+    @psi_z.setter
+    def psi_z(self, value):
+        self.x[PSI_Z_IDX] = value
+
+    @property
+    def psi_z_dot(self):
+        return self.x[PSI_Z_DOT_IDX]
+
+    @psi_z_dot.setter
+    def psi_z_dot(self, value):
+        self.x[PSI_Z_DOT_IDX] = value
+
+    @property
+    def q1(self):
+        return self.x[Q_1_W_IDX:Q_1_Z_IDX + 1]
+
+    @q1.setter
+    def q1(self, value):
+        if isinstance(value, Quaternion):
+            self.x[Q_1_W_IDX:Q_1_Z_IDX + 1] = value.q
+            return
+        if isinstance(value, np.ndarray):
+            self.x[Q_1_W_IDX:Q_1_Z_IDX + 1] = value
+            return
+        print('failed to set x')
+
+    @property
+    def q2(self):
+        return self.x[Q_2_W_IDX:Q_2_Z_IDX + 1]
+
+    @q2.setter
+    def q2(self, value):
+        if isinstance(value, Quaternion):
+            self.x[Q_2_W_IDX:Q_2_Z_IDX + 1] = value.q
+            return
+        if isinstance(value, np.ndarray):
+            self.x[Q_2_W_IDX:Q_2_Z_IDX + 1] = value
+            return
+        print('failed to set x')
+
+    @property
+    def psi(self):
+        return self.x[PSI_Y_IDX:PSI_Z_IDX + 1]
+
+    @psi.setter
+    def psi(self, value):
+        self.x[PSI_Y_IDX:PSI_Z_IDX + 1] = value
+
+    @property
+    def psi_dot(self):
+        return self.x[PSI_Y_DOT_IDX:PSI_Z_DOT_IDX + 1]
+
+    @psi_dot.setter
+    def psi_dot(self, value):
+        self.x[PSI_Y_DOT_IDX:PSI_Z_DOT_IDX + 1] = value
+
+    @property
+    def pos(self):
+        return self.x[X_IDX:Y_IDX + 1]
+
+    @pos.setter
+    def pos(self, value):
+        self.x[X_IDX:Y_IDX + 1] = value
+
+    @property
+    def omega(self):
+        return self.x[PSI_Y_DOT_IDX:OMEGA_2_Z_IDX + 1]
+
+    @omega.setter
+    def omega(self, value):
+        self.x[PSI_Y_DOT_IDX:OMEGA_2_Z_IDX + 1] = value
+
+    @property
+    def omega_2(self):
+        return self.x[OMEGA_2_X_IDX:OMEGA_2_Z_IDX + 1]
+
+    @omega_2.setter
+    def omega_2(self, value):
+        self.x[OMEGA_2_X_IDX:OMEGA_2_Z_IDX + 1] = value
+
+
+class DynamicModel:
+    """Simulation interface for the 2D Double Ball Balancer
+
+    Attributes:
+        p (ModelParam): physical parameters
+        state (ModelState): 17-dimensional state
+
+    Functions that are not meant to be called from outside the class (private methods) are prefixed with a single underline.
+    """
+
+    def __init__(self, param, x0=None):
+        """Initializes attributes to default values
+
+        args:
+            param (ModelParam): parameters of type ModelParam
+            x0 (ModelState, optional): initial state. Set to equilibrium state if not specified
+        """
+        self.p = param
+        if not param.is_valid():
+            print('Warning: not all parameters set!')
+
+        if x0 is not None:
+            if not isinstance(x0, ModelState):
+                print('invalid type passed as initial state')
+                self.state = ModelState()
+            else:
+                self.state = x0
+        else:
+            self.state = ModelState()
 
     def simulate_step(self, delta_t):
         """Simulate one time step
@@ -126,25 +259,24 @@ class DynamicModel:
             delta_t: time step [s]
         """
         t = np.array([0, delta_t])
-        self.x = odeint(self._x_dot, self.x, t)[-1]
+        self.state.x = odeint(self._x_dot, self.state.x, t)[-1]
 
         # normalize quaternions
-        self.x[Q_1_W_IDX: Q_1_Z_IDX + 1] *= 1.0 / np.linalg.norm(self.x[Q_1_W_IDX: Q_1_Z_IDX + 1])
-        self.x[Q_2_W_IDX: Q_2_Z_IDX + 1] *= 1.0 / np.linalg.norm(self.x[Q_2_W_IDX: Q_2_Z_IDX + 1])
+        self.state.normalize_quaternions()
 
-    def is_irrecoverable(self, x=None):
+    def is_irrecoverable(self, state=None):
         """Checks if system is recoverable
 
         args:
-            x0 (numpy.ndarray, optional): state. If not specified, the internal state is checked
+            state (ModelState, optional): state. If not specified, the internal state is checked
 
         Returns:
             bool: True if state is irrecoverable, False otherwise.
         """
-        if x is None:
-            x = self.x
+        if state is None:
+            state = self.state
 
-        psi_y = x[PSI_Y_IDX]
+        psi_y = state.psi_y
 
         # upper ball falling off the lower ball
         if psi_y < -np.pi / 2 or psi_y > np.pi / 2:
@@ -160,7 +292,7 @@ class DynamicModel:
         # todo: decide how to check / what to do if upper ball lifts off
         return False
 
-    def get_visualization(self, x=None):
+    def get_visualization(self, state=None):
         """Get visualization of the system for plotting
 
         Usage example:
@@ -168,21 +300,21 @@ class DynamicModel:
             plt.plot(*v['lower_ball'])
 
         args:
-            x (numpy.ndarray, optional): state. If not specified, the internal state is used
+            state (ModelState, optional): state. If not specified, the internal state is checked
 
         Returns:
             dict: dictionary with keys "lower_ball", "upper_ball" and "lever_arm". The value for each key is a list with three elements: a list of x coordinates, a list of y coordinates and a list of z coordinates.
         """
-        if x is None:
-            x = self.x
+        if state is None:
+            state = self.state
 
         vis = {}
 
-        r_OSi = self._compute_r_OSi(x)
+        r_OSi = self._compute_r_OSi(state)
         vis['lower_ball'] = self._compute_ball_visualization(
-            r_OSi[0], self.p.r1, Quaternion(x[Q_1_W_IDX: Q_1_Z_IDX + 1]))
+            r_OSi[0], self.p.r1, Quaternion(state.q1))
         vis['upper_ball'] = self._compute_ball_visualization(
-            r_OSi[1], self.p.r2, Quaternion(x[Q_2_W_IDX: Q_2_Z_IDX + 1]))
+            r_OSi[1], self.p.r2, Quaternion(state.q2))
         # vis['lever_arm'] = [[r_OSi[1][0], r_OSi[2][0]], [r_OSi[1][1], r_OSi[2][1]]]
         return vis
 
@@ -194,27 +326,32 @@ class DynamicModel:
         Its signature is compatible with scipy.integrate.odeint's first callable argument.
 
         args:
-            x (numpy.ndarray): initial state
+            x (numpy.ndarray): state at which the state derivative function is evaluated
             t: time [s]. Since this system is time invariant, this argument is unused.
         """
+        eval_state = ModelState(x)
+
         # freeze system if state is irrecoverable
-        if self.is_irrecoverable():
-            return np.concatenate(
-                [np.zeros(10), -100 * x[PSI_Y_DOT_IDX:OMEGA_2_Z_IDX + 1], np.zeros(2)])
+        if self.is_irrecoverable(eval_state):
+            return np.zeros(np.shape(eval_state.x))
 
-        A = self._compute_acc_jacobian_matrix(x)
-        b = self._compute_rhs(x)
+        xdot = ModelState()
+
+        A = self._compute_acc_jacobian_matrix(eval_state)
+        b = self._compute_rhs(eval_state)
         omega_dot = np.linalg.solve(A, b)
+        xdot.omega = omega_dot
 
-        omega_1 = self._get_lower_ball_omega(x)
+        omega_1 = self._get_lower_ball_omega(eval_state)
 
-        q1_dot = Quaternion(x[Q_1_W_IDX: Q_1_Z_IDX + 1]).q_dot(omega_1, frame='inertial')
+        xdot.q1 = Quaternion(eval_state.q1).q_dot(omega_1, frame='inertial')
 
-        q2_dot = Quaternion(x[Q_2_W_IDX: Q_2_Z_IDX + 1]
-                            ).q_dot(x[OMEGA_2_X_IDX:OMEGA_2_Z_IDX + 1], frame='inertial')
+        xdot.q2 = Quaternion(eval_state.q2).q_dot(eval_state.omega_2, frame='inertial')
 
-        return np.concatenate([x[PSI_Y_DOT_IDX:PSI_Z_DOT_IDX + 1], q1_dot,
-                               q2_dot, omega_dot, self._get_lower_ball_vel(omega_1)])
+        xdot.psi = eval_state.psi_dot
+        xdot.pos = self._get_lower_ball_vel(omega_1)
+
+        return xdot.x
 
     def _get_lower_ball_vel(self, omega_1):
         """computes the linear velocity (x/y) of the lower ball
@@ -224,18 +361,18 @@ class DynamicModel:
         """
         return self.p.r1 * np.array([omega_1[1], -omega_1[0]])
 
-    def _get_lower_ball_omega(self, x):
+    def _get_lower_ball_omega(self, state):
         """computes the angular velocity (x/y/z) of the lower ball
 
         args:
-            x (numpy.ndarray): current state
+            state (ModelState): current state
         """
-        psi_z = x[PSI_Z_IDX]
-        psi_y_dot = x[PSI_Y_DOT_IDX]
-        psi_z_dot = x[PSI_Z_DOT_IDX]
-        w_2x = x[OMEGA_2_X_IDX]
-        w_2y = x[OMEGA_2_Y_IDX]
-        w_2z = x[OMEGA_2_Z_IDX]
+        psi_z = state.psi_z
+        psi_y_dot = state.psi_y_dot
+        psi_z_dot = state.psi_z_dot
+        w_2x = state.omega_2[0]
+        w_2y = state.omega_2[1]
+        w_2z = state.omega_2[2]
 
         w_1x = -(psi_y_dot * self.p.r1 * np.sin(psi_z) + psi_y_dot *
                  self.p.r2 * np.sin(psi_z) + self.p.r2 * w_2x) / self.p.r1
@@ -245,7 +382,7 @@ class DynamicModel:
 
         return np.array([w_1x, w_1y, w_1z])
 
-    def _compute_acc_jacobian_matrix(self, x):
+    def _compute_acc_jacobian_matrix(self, state):
         """computes angular acceleration matrix of rotational part of system dynamics (equal to jacobian matrix since dynamics are linear in angular accelerations)
 
         The non-linear rotational dynamics are of the form
@@ -257,12 +394,12 @@ class DynamicModel:
         This function computes matrix A.
 
         args:
-            x (numpy.ndarray): current state
+            x (ModelState): current state
 
         Returns: 5x5 angular acceleration matrix
         """
-        psi_y = x[PSI_Y_IDX]
-        psi_z = x[PSI_Z_IDX]
+        psi_y = state.psi_y
+        psi_z = state.psi_z
 
         A = np.zeros([5, 5])
 
@@ -301,7 +438,7 @@ class DynamicModel:
 
         return A
 
-    def _compute_rhs(self, x):
+    def _compute_rhs(self, state):
         """computes state (and input) terms of system dynamics
 
         The non-linear rotational dynamics are of the form
@@ -313,16 +450,16 @@ class DynamicModel:
         This function computes vector b.
 
         args:
-            x (numpy.ndarray): current state
+            state (ModelState): current state
 
         Returns: 5x1 array of state (and input) terms
         """
         b = np.zeros(5)
 
-        psi_y = x[PSI_Y_IDX]
-        psi_z = x[PSI_Z_IDX]
-        psi_y_dot = x[PSI_Y_DOT_IDX]
-        psi_z_dot = x[PSI_Z_DOT_IDX]
+        psi_y = state.psi_y
+        psi_z = state.psi_z
+        psi_y_dot = state.psi_y_dot
+        psi_z_dot = state.psi_z_dot
 
         # auto-generated symbolic expressions
         b[0] = self.p.m2 * (psi_y_dot**2 * self.p.r1**2 + 2 * psi_y_dot**2 * self.p.r1 * self.p.r2 + psi_y_dot**2 * self.p.r2**2 + psi_z_dot**2 * self.p.r1**2 * cos(psi_y) + psi_z_dot**2 * self.p.r1**2 + 2 * psi_z_dot **
@@ -337,18 +474,18 @@ class DynamicModel:
 
         return b
 
-    def _compute_r_OSi(self, x):
+    def _compute_r_OSi(self, state):
         """computes center of mass locations of all bodies
 
         args:
-            x (numpy.ndarray): current state
+            state (ModelState): current state
 
         Returns: list of x/y/z coordinates of center of mass of lower ball, upper ball, and lever arm.
         """
-        pos_x = x[X_IDX]
-        pos_y = x[Y_IDX]
-        psi_y = x[PSI_Y_IDX]
-        psi_z = x[PSI_Z_IDX]
+        pos_x = state.pos[0]
+        pos_y = state.pos[1]
+        psi_y = state.psi_y
+        psi_z = state.psi_z
 
         r_OS1 = np.array([pos_x, pos_y, self.p.r1])
 
