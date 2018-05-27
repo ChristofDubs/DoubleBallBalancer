@@ -148,7 +148,7 @@ for row in range(A.rows):
         else:
             print('A[{},{}] = {}'.format(row, col, A[row, col].subs(sub_list)))
 
-b = simplify(dyn - A * omega_dot)
+b = simplify(dyn.subs([(x, 0) for x in omega_dot]))
 for row in range(b.rows):
     print('b[{}] = {}'.format(row, -b[row].subs(sub_list)))
 
