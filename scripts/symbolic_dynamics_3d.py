@@ -18,13 +18,15 @@ phi_x_dot, phi_y_dot, phi_z_dot = symbols('phi_x_dot phi_y_dot phi_z_dot')
 psi_y_dot, psi_z_dot = symbols('psi_y_dot psi_z_dot')
 w_1x, w_1y, w_1z = symbols('w_1x w_1y w_1z')
 w_2x, w_2y, w_2z = symbols('w_2x w_2y w_2z')
+w_3x, w_3y, w_3z = symbols('w_3x w_3y w_3z')
 
 omega_1 = Matrix([w_1x, w_1y, w_1z])
 omega_2 = Matrix([w_2x, w_2y, w_2z])
+b_omega_3 = Matrix([w_3x, w_3y, w_3z])
 
 # angular accelerations
-phi_x_ddot, phi_y_ddot, phi_z_ddot, psi_y_ddot, psi_z_ddot, w_2_dot_x, w_2_dot_y, w_2_dot_z = symbols(
-    'phi_x_ddot phi_y_ddot phi_z_ddot psi_y_ddot psi_z_ddot w_2_dot_x w_2_dot_y w_2_dot_z')
+w_3_dot_x, w_3_dot_y, w_3_dot_z, psi_y_ddot, psi_z_ddot, w_2_dot_x, w_2_dot_y, w_2_dot_z = symbols(
+    'w_3_dot_x w_3_dot_y w_3_dot_z psi_y_ddot psi_z_ddot w_2_dot_x w_2_dot_y w_2_dot_z')
 
 # parameter
 l, m1, m2, m3, r1, r2, theta1, theta2, theta3x, theta3y, theta3z = symbols(
@@ -81,8 +83,10 @@ v_OS2 = simplify(v_OS2.subs(sub_list))
 
 # lever arm
 R_IB3 = rot_axis3(-phi_z) * rot_axis2(-phi_y) * rot_axis1(-phi_x)
-b_omega_3 = Matrix([phi_x_dot, 0, 0]) + rot_axis1(phi_x) * Matrix([0, phi_y_dot, 0]
-                                                                  ) + rot_axis1(phi_x) * rot_axis2(phi_y) * Matrix([0, 0, phi_z_dot])
+b_om_3 = Matrix([phi_x_dot, 0, 0]) + rot_axis1(phi_x) * Matrix([0, phi_y_dot, 0]) + \
+    rot_axis1(phi_x) * rot_axis2(phi_y) * Matrix([0, 0, phi_z_dot])
+jac = b_om_3.jacobian(Matrix([phi_x_dot, phi_y_dot, phi_z_dot]))
+[phi_x_dot, phi_y_dot, phi_z_dot] = simplify(jac.LUsolve(b_omega_3))
 # print(b_omega_3.jacobian(Matrix([phi_x_dot, phi_y_dot, phi_z_dot])))
 # i_omega_3 = simplify(R_IB3 * b_omega_3)
 v_OS3 = v_OS2 + simplify(R_IB3 * b_omega_3.cross(Matrix([0, 0, -l])))
@@ -92,10 +96,11 @@ v_OS3 = v_OS2 + simplify(R_IB3 * b_omega_3.cross(Matrix([0, 0, -l])))
 v_i = [v_OS1, v_OS2, v_OS3]
 om_i = [omega_1, omega_2, b_omega_3]
 
-omega_dot = Matrix([phi_x_ddot, phi_y_ddot, phi_z_ddot, psi_y_ddot,
-                    psi_z_ddot, w_2_dot_x, w_2_dot_y, w_2_dot_z])
-omega = Matrix([phi_x_dot, phi_y_dot, phi_z_dot, psi_y_dot, psi_z_dot, w_2x, w_2y, w_2z])
-ang = Matrix([phi_x, phi_y, phi_z, psi_y, psi_z, beta_x, beta_y, beta_z])
+omega_dot = Matrix([psi_y_ddot, psi_z_ddot, w_2_dot_x, w_2_dot_y,
+                    w_2_dot_z, w_3_dot_x, w_3_dot_y, w_3_dot_z])
+omega = Matrix([psi_y_dot, psi_z_dot, w_2x, w_2y, w_2z, w_3x, w_3y, w_3z])
+ang = Matrix([psi_y, psi_z, beta_x, beta_y, beta_z, phi_x, phi_y, phi_z])
+ang_dot = Matrix([psi_y_dot, psi_z_dot, w_2x, w_2y, w_2z, phi_x_dot, phi_y_dot, phi_z_dot])
 
 J_i = [v.jacobian(omega) for v in v_i]
 JR_i = [om.jacobian(omega) for om in om_i]
@@ -106,15 +111,21 @@ M_i = [Matrix([0, 0, 0]), -R_IB3 * b_T, b_T]
 
 # Impulse
 p_i = [m[i] * v_i[i] for i in range(3)]
-p_dot_i = [p.jacobian(omega) * omega_dot + p.jacobian(ang) * omega for p in p_i]
+p_dot_i = [p.jacobian(omega) * omega_dot + p.jacobian(ang) * ang_dot for p in p_i]
 
 # Spin
 omega_diff_i = [
     om_i[i].jacobian(omega) *
     omega_dot +
     om_i[i].jacobian(ang) *
-    omega for i in range(3)]
-NS_dot_i = [theta[i] * omega_diff_i[i] + om_i[i].cross(theta[i] * om_i[i]) for i in range(3)]
+    ang_dot for i in range(3)]
+NS_dot_i = [
+    simplify(
+        theta[i] *
+        omega_diff_i[i] +
+        om_i[i].cross(
+            theta[i] *
+            om_i[i])) for i in range(3)]
 
 # dynamics
 dyn = zeros(8, 1)
@@ -137,7 +148,6 @@ sub_list = [
         'tau',
         'theta1',
         'theta2',
-        'theta3',
         'theta3x',
         'theta3y',
         'theta3z']]
@@ -151,11 +161,6 @@ for row in range(A.rows):
 b = simplify(dyn.subs([(x, 0) for x in omega_dot]))
 for row in range(b.rows):
     print('b[{}] = {}'.format(row, -b[row].subs(sub_list)))
-
-# verify term separation
-dyn2 = A * omega_dot + b
-
-print([simplify(dyn[i] - dyn2[i]) == 0 for i in range(5)])
 
 # kinematic relations
 for i, om in enumerate(omega_1):
