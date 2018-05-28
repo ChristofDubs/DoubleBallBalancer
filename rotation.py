@@ -144,6 +144,25 @@ class Quaternion:
 
         return rot
 
+    def get_roll_pitch_yaw(self,):
+        """calculate roll, pitch and yaw angle equivalent of the quaternion
+
+        This rotation sequence is defined as a rotation of the body frame about the body frame's z-axis by angle yaw, followed by a rotation about the body frame's y-axis by angle pitch, followed by a rotation about the body frame's x-axis by angle roll.
+        """
+        sin_p = 2 * (self.w * self.y - self.z * self.x)
+        if sin_p >= 1:
+            p = np.pi / 2
+        elif sin_p <= -1:
+            p = -np.pi / 2
+        else:
+            p = np.arcsin(sin_p)
+
+        r = np.arctan2(2 * (self.w * self.x + self.y * self.z), 1 - 2 * (self.x**2 + self.y**2))
+
+        y = np.arctan2(2 * (self.w * self.z + self.x * self.y), 1 - 2 * (self.y**2 + self.z**2))
+
+        return np.array([r, p, y])
+
 # further functions for creating quaternions
 
 
@@ -167,6 +186,26 @@ def quat_from_angle_vector(angle_vec):
     """
     angle = np.linalg.norm(angle_vec)
     return quat_from_angle_axis(angle, angle_vec, norm=angle)
+
+
+def quat_from_roll_pitch_yaw(roll, pitch, yaw):
+    """calculate quaternion from roll, pitch and yaw angle
+
+    This rotation sequence is defined as a rotation about the body frame's z-axis by angle yaw, followed by a rotation about the (new) body frame's y-axis by angle pitch, followed by a rotation about the body frame's x-axis by angle roll.
+    """
+    cos_p = np.cos(pitch * 0.5)
+    sin_p = np.sin(pitch * 0.5)
+    cos_r = np.cos(roll * 0.5)
+    sin_r = np.sin(roll * 0.5)
+    cos_y = np.cos(yaw * 0.5)
+    sin_y = np.sin(yaw * 0.5)
+
+    qw = cos_p * cos_r * cos_y + sin_p * sin_r * sin_y
+    qx = cos_p * sin_r * cos_y - sin_p * cos_r * sin_y
+    qy = sin_p * cos_r * cos_y + cos_p * sin_r * sin_y
+    qz = cos_p * cos_r * sin_y - sin_p * sin_r * cos_y
+
+    return Quaternion([qw, qx, qy, qz])
 
 # functions for creating rotation matrices
 
