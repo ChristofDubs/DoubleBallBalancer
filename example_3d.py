@@ -27,10 +27,12 @@ param.theta3 = 1
 
 # initial state
 x0 = ModelState()
-x0.psi_y = 0.25
+# x0.psi_y = 0.25
 # x0.psi_z = 0.3
 # x0.omega_2 = np.array([0,0,0.75])
-x0.psi_y_dot = -0.3
+# x0.psi_y_dot = -0.3
+x0.q3 = np.array([0.01, 0, 1, 0])
+
 
 # instantiate model
 model = DynamicModel(param, x0)
@@ -60,6 +62,7 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
 
         ax.plot_wireframe(*vis['lower_ball'], color='b')
         ax.plot_wireframe(*vis['upper_ball'], color='r')
+        ax.plot_wireframe(*vis['lever_arm'], color='g')
 
         plt.xlabel('x [m]')
         plt.ylabel('y [m]')

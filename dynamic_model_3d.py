@@ -46,7 +46,9 @@ class ModelParam:
         self.tau = 0.001
         self.theta1 = 1.0
         self.theta2 = 1.0
-        self.theta3 = 1.0
+        self.theta3x = 1.0
+        self.theta3y = 1.0
+        self.theta3z = 1.0
 
     def is_valid(self,):
         """Checks validity of parameter configuration
@@ -54,7 +56,7 @@ class ModelParam:
         Returns:
             bool: True if valid, False if invalid.
         """
-        return self.g > 0 and self.l > 0 and self.m1 > 0 and self.m2 > 0 and self.m3 > 0 and self.r1 > 0 and self.r2 > 0 and self.tau > 0 and self.theta1 > 0 and self.theta2 > 0 and self.theta3 > 0
+        return self.g > 0 and self.l > 0 and self.m1 > 0 and self.m2 > 0 and self.m3 > 0 and self.r1 > 0 and self.r2 > 0 and self.tau > 0 and self.theta1 > 0 and self.theta2 > 0 and self.theta3x > 0 and self.theta3y > 0 and self.theta3z > 0
 
 
 # state size and indices
@@ -68,14 +70,21 @@ Q_2_W_IDX = 6
 Q_2_X_IDX = 7
 Q_2_Y_IDX = 8
 Q_2_Z_IDX = 9
-PSI_Y_DOT_IDX = 10
-PSI_Z_DOT_IDX = 11
-OMEGA_2_X_IDX = 12
-OMEGA_2_Y_IDX = 13
-OMEGA_2_Z_IDX = 14
-X_IDX = 15
-Y_IDX = 16
-STATE_SIZE = 17
+Q_3_W_IDX = 10
+Q_3_X_IDX = 11
+Q_3_Y_IDX = 12
+Q_3_Z_IDX = 13
+PSI_Y_DOT_IDX = 14
+PSI_Z_DOT_IDX = 15
+OMEGA_2_X_IDX = 16
+OMEGA_2_Y_IDX = 17
+OMEGA_2_Z_IDX = 18
+OMEGA_3_X_IDX = 19
+OMEGA_3_Y_IDX = 20
+OMEGA_3_Z_IDX = 21
+X_IDX = 22
+Y_IDX = 23
+STATE_SIZE = 24
 
 
 class ModelState:
@@ -104,11 +113,13 @@ class ModelState:
             self.x = np.zeros(STATE_SIZE, dtype=np.float)
             self.x[Q_1_W_IDX] = 1
             self.x[Q_2_W_IDX] = 1
+            self.x[Q_3_W_IDX] = 1
 
     def normalize_quaternions(self):
         """Normalize the rotation quaternions"""
         self.q1 *= 1.0 / np.linalg.norm(self.q1)
         self.q2 *= 1.0 / np.linalg.norm(self.q2)
+        self.q3 *= 1.0 / np.linalg.norm(self.q3)
 
     def set_state(self, x0):
         """Set the state.
@@ -137,9 +148,10 @@ class ModelState:
 
         q1_norm = np.linalg.norm(x0_flat[Q_1_W_IDX:Q_1_Z_IDX + 1])
         q2_norm = np.linalg.norm(x0_flat[Q_2_W_IDX:Q_2_Z_IDX + 1])
+        q3_norm = np.linalg.norm(x0_flat[Q_3_W_IDX:Q_3_Z_IDX + 1])
 
         # quaternion check
-        if q1_norm == 0 or q2_norm == 0:
+        if q1_norm == 0 or q2_norm == 0 or q3_norm == 0:
             return false
 
         self.x = x0_flat
@@ -207,6 +219,20 @@ class ModelState:
         print('failed to set x')
 
     @property
+    def q3(self):
+        return self.x[Q_3_W_IDX:Q_3_Z_IDX + 1]
+
+    @q3.setter
+    def q3(self, value):
+        if isinstance(value, Quaternion):
+            self.x[Q_3_W_IDX:Q_3_Z_IDX + 1] = value.q
+            return
+        if isinstance(value, np.ndarray):
+            self.x[Q_3_W_IDX:Q_3_Z_IDX + 1] = value
+            return
+        print('failed to set x')
+
+    @property
     def psi(self):
         return self.x[PSI_Y_IDX:PSI_Z_IDX + 1]
 
@@ -232,11 +258,11 @@ class ModelState:
 
     @property
     def omega(self):
-        return self.x[PSI_Y_DOT_IDX:OMEGA_2_Z_IDX + 1]
+        return self.x[PSI_Y_DOT_IDX:OMEGA_3_Z_IDX + 1]
 
     @omega.setter
     def omega(self, value):
-        self.x[PSI_Y_DOT_IDX:OMEGA_2_Z_IDX + 1] = value
+        self.x[PSI_Y_DOT_IDX:OMEGA_3_Z_IDX + 1] = value
 
     @property
     def omega_2(self):
@@ -246,13 +272,21 @@ class ModelState:
     def omega_2(self, value):
         self.x[OMEGA_2_X_IDX:OMEGA_2_Z_IDX + 1] = value
 
+    @property
+    def omega_3(self):
+        return self.x[OMEGA_3_X_IDX:OMEGA_3_Z_IDX + 1]
+
+    @omega_3.setter
+    def omega_3(self, value):
+        self.x[OMEGA_3_X_IDX:OMEGA_3_Z_IDX + 1] = value
+
 
 class DynamicModel:
     """Simulation interface for the 2D Double Ball Balancer
 
     Attributes:
         p (ModelParam): physical parameters
-        state (ModelState): 17-dimensional state
+        state (ModelState): 24-dimensional state
 
     Functions that are not meant to be called from outside the class (private methods) are prefixed with a single underline.
     """
@@ -342,7 +376,7 @@ class DynamicModel:
             r_OSi[0], self.p.r1, Quaternion(state.q1))
         vis['upper_ball'] = self._compute_ball_visualization(
             r_OSi[1], self.p.r2, Quaternion(state.q2))
-        # vis['lever_arm'] = [[r_OSi[1][0], r_OSi[2][0]], [r_OSi[1][1], r_OSi[2][1]]]
+        vis['lever_arm'] = [np.array([[r_OSi[1][i], r_OSi[2][i]]]) for i in range(3)]
         return vis
 
     def _x_dot(self, x, t):
@@ -374,6 +408,8 @@ class DynamicModel:
         xdot.q1 = Quaternion(eval_state.q1).q_dot(omega_1, frame='inertial')
 
         xdot.q2 = Quaternion(eval_state.q2).q_dot(eval_state.omega_2, frame='inertial')
+
+        xdot.q3 = Quaternion(eval_state.q3).q_dot(eval_state.omega_3, frame='body')
 
         xdot.psi = eval_state.psi_dot
         xdot.pos = self._get_lower_ball_vel(omega_1)
@@ -427,41 +463,89 @@ class DynamicModel:
         """
         psi_y = state.psi_y
         psi_z = state.psi_z
+        [phi_x, phi_y, phi_z] = Quaternion(state.q3).get_roll_pitch_yaw()
 
-        A = np.zeros([5, 5])
+        A = np.zeros([8, 8])
 
         # auto-generated symbolic expressions
-        A[0, 0] = (self.p.r1 + self.p.r2)**2 * (self.p.r1**2 * (self.p.m1 + 2 * \
-                   self.p.m2 * cos(psi_y) + 2 * self.p.m2) + self.p.theta1) / self.p.r1**2
+        A[0, 0] = (self.p.r1 + self.p.r2)**2 * (2 * self.p.m3 * self.p.r1**2 * (cos(psi_y) + 1) + self.p.r1 **
+                                                2 * (self.p.m1 + 2 * self.p.m2 * cos(psi_y) + 2 * self.p.m2) + self.p.theta1) / self.p.r1**2
         A[0, 1] = 0
-        A[0, 2] = self.p.r2 * (self.p.m1 * self.p.r1**3 + self.p.m1 * self.p.r1**2 * self.p.r2 + self.p.m2 * self.p.r1**3 * cos(psi_y) + self.p.m2 * self.p.r1**3 + self.p.m2 *
-                               self.p.r1**2 * self.p.r2 * cos(psi_y) + self.p.m2 * self.p.r1**2 * self.p.r2 + self.p.r1 * self.p.theta1 + self.p.r2 * self.p.theta1) * sin(psi_z) / self.p.r1**2
-        A[0, 3] = -self.p.r2 * (self.p.m1 * self.p.r1**3 + self.p.m1 * self.p.r1**2 * self.p.r2 + self.p.m2 * self.p.r1**3 * cos(psi_y) + self.p.m2 * self.p.r1**3 + self.p.m2 *
-                                self.p.r1**2 * self.p.r2 * cos(psi_y) + self.p.m2 * self.p.r1**2 * self.p.r2 + self.p.r1 * self.p.theta1 + self.p.r2 * self.p.theta1) * cos(psi_z) / self.p.r1**2
+        A[0, 2] = self.p.r2 * (self.p.m1 * self.p.r1**3 + self.p.m1 * self.p.r1**2 * self.p.r2 + self.p.m2 * self.p.r1**3 * cos(psi_y) + self.p.m2 * self.p.r1**3 + self.p.m2 * self.p.r1**2 * self.p.r2 * cos(psi_y) + self.p.m2 * self.p.r1**2 * self.p.r2 +
+                               self.p.m3 * self.p.r1**3 * cos(psi_y) + self.p.m3 * self.p.r1**3 + self.p.m3 * self.p.r1**2 * self.p.r2 * cos(psi_y) + self.p.m3 * self.p.r1**2 * self.p.r2 + self.p.r1 * self.p.theta1 + self.p.r2 * self.p.theta1) * sin(psi_z) / self.p.r1**2
+        A[0, 3] = -self.p.r2 * (self.p.m1 * self.p.r1**3 + self.p.m1 * self.p.r1**2 * self.p.r2 + self.p.m2 * self.p.r1**3 * cos(psi_y) + self.p.m2 * self.p.r1**3 + self.p.m2 * self.p.r1**2 * self.p.r2 * cos(psi_y) + self.p.m2 * self.p.r1**2 * self.p.r2 +
+                                self.p.m3 * self.p.r1**3 * cos(psi_y) + self.p.m3 * self.p.r1**3 + self.p.m3 * self.p.r1**2 * self.p.r2 * cos(psi_y) + self.p.m3 * self.p.r1**2 * self.p.r2 + self.p.r1 * self.p.theta1 + self.p.r2 * self.p.theta1) * cos(psi_z) / self.p.r1**2
         A[0, 4] = 0
+        A[0, 5] = self.p.l * self.p.m3 * (-(self.p.r1 + self.p.r2) * sin(phi_x) * sin(psi_y) * cos(phi_y) + (sin(phi_x) * sin(phi_y) * sin(phi_z) + cos(phi_x) * cos(phi_z)) * (self.p.r1 + self.p.r2 + (
+            self.p.r1 + self.p.r2) * cos(psi_y)) * sin(psi_z) + (sin(phi_x) * sin(phi_y) * cos(phi_z) - sin(phi_z) * cos(phi_x)) * (self.p.r1 + self.p.r2 + (self.p.r1 + self.p.r2) * cos(psi_y)) * cos(psi_z))
+        A[0, 6] = -self.p.l * self.p.m3 * ((self.p.r1 + self.p.r2) * sin(phi_y) * sin(psi_y) + (self.p.r1 + self.p.r2 + (self.p.r1 + self.p.r2) * cos(
+            psi_y)) * sin(phi_z) * sin(psi_z) * cos(phi_y) + (self.p.r1 + self.p.r2 + (self.p.r1 + self.p.r2) * cos(psi_y)) * cos(phi_y) * cos(phi_z) * cos(psi_z))
+        A[0, 7] = 0
         A[1, 0] = A[0, 1]
-        A[1, 1] = (self.p.r1 + self.p.r2)**2 * (self.p.m2 * self.p.r1 **
-                                                2 * sin(psi_y)**2 + self.p.theta1) / self.p.r1**2
-        A[1, 2] = self.p.m2 * self.p.r2 * (self.p.r1 + self.p.r2) * sin(psi_y) * cos(psi_z)
-        A[1, 3] = self.p.m2 * self.p.r2 * (self.p.r1 + self.p.r2) * sin(psi_y) * sin(psi_z)
+        A[1, 1] = (self.p.r1 + self.p.r2)**2 * (self.p.r1**2 * (self.p.m2 + self.p.m3)
+                                                * sin(psi_y)**2 + self.p.theta1) / self.p.r1**2
+        A[1, 2] = self.p.r2 * (self.p.m2 + self.p.m3) * (self.p.r1 +
+                                                         self.p.r2) * sin(psi_y) * cos(psi_z)
+        A[1, 3] = self.p.r2 * (self.p.m2 + self.p.m3) * (self.p.r1 +
+                                                         self.p.r2) * sin(psi_y) * sin(psi_z)
         A[1, 4] = -self.p.r2 * self.p.theta1 * (self.p.r1 + self.p.r2) / self.p.r1**2
+        A[1, 5] = self.p.l * self.p.m3 * (self.p.r1 + self.p.r2) * (sin(phi_x) * sin(
+            phi_y) * sin(phi_z - psi_z) + cos(phi_x) * cos(phi_z - psi_z)) * sin(psi_y)
+        A[1, 6] = -self.p.l * self.p.m3 * (self.p.r1 + self.p.r2) * \
+            sin(psi_y) * sin(phi_z - psi_z) * cos(phi_y)
+        A[1, 7] = 0
         A[2, 0] = A[0, 2]
         A[2, 1] = A[1, 2]
-        A[2, 2] = self.p.m1 * self.p.r2**2 + self.p.m2 * self.p.r2**2 + \
-            self.p.theta2 + self.p.r2**2 * self.p.theta1 / self.p.r1**2
+        A[2, 2] = self.p.m1 * self.p.r2**2 + self.p.m2 * self.p.r2**2 + self.p.m3 * \
+            self.p.r2**2 + self.p.theta2 + self.p.r2**2 * self.p.theta1 / self.p.r1**2
         A[2, 3] = 0
         A[2, 4] = 0
+        A[2, 5] = self.p.l * self.p.m3 * self.p.r2 * \
+            (sin(phi_x) * sin(phi_y) * sin(phi_z) + cos(phi_x) * cos(phi_z))
+        A[2, 6] = -self.p.l * self.p.m3 * self.p.r2 * sin(phi_z) * cos(phi_y)
+        A[2, 7] = 0
         A[3, 0] = A[0, 3]
         A[3, 1] = A[1, 3]
         A[3, 2] = A[2, 3]
-        A[3, 3] = self.p.m1 * self.p.r2**2 + self.p.m2 * self.p.r2**2 + \
-            self.p.theta2 + self.p.r2**2 * self.p.theta1 / self.p.r1**2
+        A[3, 3] = self.p.m1 * self.p.r2**2 + self.p.m2 * self.p.r2**2 + self.p.m3 * \
+            self.p.r2**2 + self.p.theta2 + self.p.r2**2 * self.p.theta1 / self.p.r1**2
         A[3, 4] = 0
+        A[3, 5] = self.p.l * self.p.m3 * self.p.r2 * \
+            (-sin(phi_x) * sin(phi_y) * cos(phi_z) + sin(phi_z) * cos(phi_x))
+        A[3, 6] = self.p.l * self.p.m3 * self.p.r2 * cos(phi_y) * cos(phi_z)
+        A[3, 7] = 0
         A[4, 0] = A[0, 4]
         A[4, 1] = A[1, 4]
         A[4, 2] = A[2, 4]
         A[4, 3] = A[3, 4]
         A[4, 4] = self.p.theta2 + self.p.r2**2 * self.p.theta1 / self.p.r1**2
+        A[4, 5] = 0
+        A[4, 6] = 0
+        A[4, 7] = 0
+        A[5, 0] = A[0, 5]
+        A[5, 1] = A[1, 5]
+        A[5, 2] = A[2, 5]
+        A[5, 3] = A[3, 5]
+        A[5, 4] = A[4, 5]
+        A[5, 5] = self.p.l**2 * self.p.m3 + self.p.theta3x
+        A[5, 6] = 0
+        A[5, 7] = 0
+        A[6, 0] = A[0, 6]
+        A[6, 1] = A[1, 6]
+        A[6, 2] = A[2, 6]
+        A[6, 3] = A[3, 6]
+        A[6, 4] = A[4, 6]
+        A[6, 5] = A[5, 6]
+        A[6, 6] = self.p.l**2 * self.p.m3 + self.p.theta3y
+        A[6, 7] = 0
+        A[7, 0] = A[0, 7]
+        A[7, 1] = A[1, 7]
+        A[7, 2] = A[2, 7]
+        A[7, 3] = A[3, 7]
+        A[7, 4] = A[4, 7]
+        A[7, 5] = A[5, 7]
+        A[7, 6] = A[6, 7]
+        A[7, 7] = self.p.theta3z
 
         return A
 
@@ -481,23 +565,67 @@ class DynamicModel:
 
         Returns: 5x1 array of state (and input) terms
         """
-        b = np.zeros(5)
+        b = np.zeros(8)
 
         psi_y = state.psi_y
         psi_z = state.psi_z
         psi_y_dot = state.psi_y_dot
         psi_z_dot = state.psi_z_dot
+        [phi_x, phi_y, phi_z] = Quaternion(state.q3).get_roll_pitch_yaw()
+        w_3x = state.omega_3[0]
+        w_3y = state.omega_3[1]
+        w_3z = state.omega_3[2]
+        Tx = 0.0
+        Ty = 0.0
+        Tz = 0.0
 
         # auto-generated symbolic expressions
-        b[0] = self.p.m2 * (psi_y_dot**2 * self.p.r1**2 + 2 * psi_y_dot**2 * self.p.r1 * self.p.r2 + psi_y_dot**2 * self.p.r2**2 + psi_z_dot**2 * self.p.r1**2 * cos(psi_y) + psi_z_dot**2 * self.p.r1**2 + 2 * psi_z_dot **
-                            2 * self.p.r1 * self.p.r2 * cos(psi_y) + 2 * psi_z_dot**2 * self.p.r1 * self.p.r2 + psi_z_dot**2 * self.p.r2**2 * cos(psi_y) + psi_z_dot**2 * self.p.r2**2 + self.p.g * self.p.r1 + self.p.g * self.p.r2) * sin(psi_y)
-        b[1] = -psi_y_dot * psi_z_dot * self.p.m2 * \
-            (self.p.r1 + self.p.r2)**2 * (sin(psi_y) + sin(2 * psi_y))
-        b[2] = psi_y_dot**2 * self.p.m2 * self.p.r1 * self.p.r2 * sin(psi_y) * sin(psi_z) + psi_y_dot**2 * self.p.m2 * self.p.r2**2 * sin(psi_y) * sin(psi_z) - psi_y_dot * psi_z_dot * self.p.m1 * self.p.r1 * self.p.r2 * cos(psi_z) - psi_y_dot * psi_z_dot * self.p.m1 * self.p.r2**2 * cos(psi_z) - 2 * psi_y_dot * psi_z_dot * self.p.m2 * self.p.r1 * self.p.r2 * cos(psi_y) * cos(psi_z) - psi_y_dot * psi_z_dot * self.p.m2 * self.p.r1 * self.p.r2 * cos(
-            psi_z) - 2 * psi_y_dot * psi_z_dot * self.p.m2 * self.p.r2**2 * cos(psi_y) * cos(psi_z) - psi_y_dot * psi_z_dot * self.p.m2 * self.p.r2**2 * cos(psi_z) - psi_y_dot * psi_z_dot * self.p.r2 * self.p.theta1 * cos(psi_z) / self.p.r1 - psi_y_dot * psi_z_dot * self.p.r2**2 * self.p.theta1 * cos(psi_z) / self.p.r1**2 + psi_z_dot**2 * self.p.m2 * self.p.r1 * self.p.r2 * sin(psi_y) * sin(psi_z) + psi_z_dot**2 * self.p.m2 * self.p.r2**2 * sin(psi_y) * sin(psi_z)
-        b[3] = -psi_y_dot**2 * self.p.m2 * self.p.r1 * self.p.r2 * sin(psi_y) * cos(psi_z) - psi_y_dot**2 * self.p.m2 * self.p.r2**2 * sin(psi_y) * cos(psi_z) - psi_y_dot * psi_z_dot * self.p.m1 * self.p.r1 * self.p.r2 * sin(psi_z) - psi_y_dot * psi_z_dot * self.p.m1 * self.p.r2**2 * sin(psi_z) - 2 * psi_y_dot * psi_z_dot * self.p.m2 * self.p.r1 * self.p.r2 * sin(psi_z) * cos(psi_y) - psi_y_dot * psi_z_dot * self.p.m2 * self.p.r1 * self.p.r2 * sin(
-            psi_z) - 2 * psi_y_dot * psi_z_dot * self.p.m2 * self.p.r2**2 * sin(psi_z) * cos(psi_y) - psi_y_dot * psi_z_dot * self.p.m2 * self.p.r2**2 * sin(psi_z) - psi_y_dot * psi_z_dot * self.p.r2 * self.p.theta1 * sin(psi_z) / self.p.r1 - psi_y_dot * psi_z_dot * self.p.r2**2 * self.p.theta1 * sin(psi_z) / self.p.r1**2 - psi_z_dot**2 * self.p.m2 * self.p.r1 * self.p.r2 * sin(psi_y) * cos(psi_z) - psi_z_dot**2 * self.p.m2 * self.p.r2**2 * sin(psi_y) * cos(psi_z)
-        b[4] = 0
+        b[0] = self.p.m2 * (
+            psi_y_dot**2 * self.p.r1**2 + 2 * psi_y_dot**2 * self.p.r1 * self.p.r2 + psi_y_dot**2 * self.p.r2**2 + psi_z_dot**2 * self.p.r1**2 * cos(psi_y) + psi_z_dot**2 * self.p.r1**2 + 2 * psi_z_dot**2 * self.p.r1 * self.p.r2 * cos(psi_y) + 2 * psi_z_dot**2 * self.p.r1 * self.p.r2 + psi_z_dot**2 * self.p.r2**2 * cos(psi_y) + psi_z_dot**2 * self.p.r2**2 + self.p.g * self.p.r1 + self.p.g * self.p.r2) * sin(psi_y) + self.p.m3 * (
+            (self.p.r1 + self.p.r2) * (
+                -psi_y_dot**2 * self.p.r1 * cos(psi_y) - psi_y_dot**2 * self.p.r2 * cos(psi_y) + self.p.g + self.p.l * w_3x**2 * cos(phi_x) * cos(phi_y) + self.p.l * w_3x * w_3z * sin(phi_y) + self.p.l * w_3y**2 * cos(phi_x) * cos(phi_y) - self.p.l * w_3y * w_3z * sin(phi_x) * cos(phi_y)) * sin(psi_y) + (
+                self.p.r1 + self.p.r2 + (
+                    self.p.r1 + self.p.r2) * cos(psi_y)) * (
+                        psi_y_dot**2 * self.p.r1 * sin(psi_y) * sin(psi_z) + psi_y_dot**2 * self.p.r2 * sin(psi_y) * sin(psi_z) - 2 * psi_y_dot * psi_z_dot * self.p.r1 * cos(psi_y) * cos(psi_z) - psi_y_dot * psi_z_dot * self.p.r1 * cos(psi_z) - 2 * psi_y_dot * psi_z_dot * self.p.r2 * cos(psi_y) * cos(psi_z) - psi_y_dot * psi_z_dot * self.p.r2 * cos(psi_z) + psi_z_dot**2 * self.p.r1 * sin(psi_y) * sin(psi_z) + psi_z_dot**2 * self.p.r2 * sin(psi_y) * sin(psi_z) + self.p.l * w_3x**2 * sin(phi_x) * cos(phi_z) - self.p.l * w_3x**2 * sin(phi_y) * sin(phi_z) * cos(phi_x) + self.p.l * w_3x * w_3z * sin(phi_z) * cos(phi_y) + self.p.l * w_3y**2 * sin(phi_x) * cos(phi_z) - self.p.l * w_3y**2 * sin(phi_y) * sin(phi_z) * cos(phi_x) + self.p.l * w_3y * w_3z * sin(phi_x) * sin(phi_y) * sin(phi_z) + self.p.l * w_3y * w_3z * cos(phi_x) * cos(phi_z)) * sin(psi_z) + (
+                            self.p.r1 + self.p.r2 + (
+                                self.p.r1 + self.p.r2) * cos(psi_y)) * (
+                                    psi_y_dot**2 * self.p.r1 * sin(psi_y) * cos(psi_z) + psi_y_dot**2 * self.p.r2 * sin(psi_y) * cos(psi_z) + 2 * psi_y_dot * psi_z_dot * self.p.r1 * sin(psi_z) * cos(psi_y) + psi_y_dot * psi_z_dot * self.p.r1 * sin(psi_z) + 2 * psi_y_dot * psi_z_dot * self.p.r2 * sin(psi_z) * cos(psi_y) + psi_y_dot * psi_z_dot * self.p.r2 * sin(psi_z) + psi_z_dot**2 * self.p.r1 * sin(psi_y) * cos(psi_z) + psi_z_dot**2 * self.p.r2 * sin(psi_y) * cos(psi_z) - self.p.l * w_3x**2 * sin(phi_x) * sin(phi_z) - self.p.l * w_3x**2 * sin(phi_y) * cos(phi_x) * cos(phi_z) + self.p.l * w_3x * w_3z * cos(phi_y) * cos(phi_z) - self.p.l * w_3y**2 * sin(phi_x) * sin(phi_z) - self.p.l * w_3y**2 * sin(phi_y) * cos(phi_x) * cos(phi_z) + self.p.l * w_3y * w_3z * sin(phi_x) * sin(phi_y) * cos(phi_z) - self.p.l * w_3y * w_3z * sin(phi_z) * cos(phi_x)) * cos(psi_z))
+        b[1] = -(self.p.r1 + self.p.r2) * (psi_y_dot * psi_z_dot * self.p.m2 * (2 * self.p.r1 * cos(psi_y) + self.p.r1 + 2 * self.p.r2 * cos(psi_y) + self.p.r2) + self.p.m3 * (2 * psi_y_dot * psi_z_dot * self.p.r1 * cos(psi_y) + psi_y_dot * psi_z_dot * self.p.r1 + 2 * psi_y_dot * psi_z_dot * self.p.r2 * cos(psi_y) + psi_y_dot * psi_z_dot * self.p.r2 - self.p.l * w_3x**2 * sin(phi_x) * cos(phi_z - psi_z) +
+                                                                                                                                                                                self.p.l * w_3x**2 * sin(phi_y) * sin(phi_z - psi_z) * cos(phi_x) - self.p.l * w_3x * w_3z * sin(phi_z - psi_z) * cos(phi_y) - self.p.l * w_3y**2 * sin(phi_x) * cos(phi_z - psi_z) + self.p.l * w_3y**2 * sin(phi_y) * sin(phi_z - psi_z) * cos(phi_x) - self.p.l * w_3y * w_3z * sin(phi_x) * sin(phi_y) * sin(phi_z - psi_z) - self.p.l * w_3y * w_3z * cos(phi_x) * cos(phi_z - psi_z))) * sin(psi_y)
+        b[2] = -(psi_y_dot * psi_z_dot * self.p.r2 * self.p.theta1 * (self.p.r1 + self.p.r2) * cos(psi_z) + self.p.m3 * self.p.r1**2 * self.p.r2 * (-psi_y_dot**2 * self.p.r1 * sin(psi_y) * sin(psi_z) - psi_y_dot**2 * self.p.r2 * sin(psi_y) * sin(psi_z) + 2 * psi_y_dot * psi_z_dot * self.p.r1 * cos(psi_y) * cos(psi_z) + psi_y_dot * psi_z_dot * self.p.r1 * cos(psi_z) + 2 * psi_y_dot * psi_z_dot * self.p.r2 * cos(psi_y) * cos(psi_z) + psi_y_dot * psi_z_dot * self.p.r2 * cos(psi_z) - psi_z_dot**2 * self.p.r1 * sin(psi_y) * sin(psi_z) - psi_z_dot**2 * self.p.r2 * sin(psi_y) * sin(psi_z) - self.p.l * w_3x**2 * sin(phi_x) * cos(phi_z) + self.p.l * w_3x**2 * sin(phi_y) * sin(phi_z) * cos(phi_x) - self.p.l * w_3x * w_3z * sin(phi_z) * cos(phi_y) - self.p.l * w_3y**2 * sin(phi_x) * cos(phi_z) + self.p.l * w_3y**2 *
+                                                                                                                                                    sin(phi_y) * sin(phi_z) * cos(phi_x) - self.p.l * w_3y * w_3z * sin(phi_x) * sin(phi_y) * sin(phi_z) - self.p.l * w_3y * w_3z * cos(phi_x) * cos(phi_z)) + self.p.r1**2 * (Tx * cos(phi_y) * cos(phi_z) + Ty * (sin(phi_x) * sin(phi_y) * cos(phi_z) - sin(phi_z) * cos(phi_x)) + Tz * (sin(phi_x) * sin(phi_z) + sin(phi_y) * cos(phi_x) * cos(phi_z)) + psi_y_dot * psi_z_dot * self.p.m1 * self.p.r2 * (self.p.r1 + self.p.r2) * cos(psi_z) - self.p.m2 * self.p.r2 * (psi_y_dot * (self.p.r1 + self.p.r2) * (psi_y_dot * sin(psi_y) * sin(psi_z) - psi_z_dot * cos(psi_y) * cos(psi_z)) - psi_z_dot * (psi_y_dot * self.p.r1 * cos(psi_z) + psi_y_dot * self.p.r2 * cos(psi_z) + psi_y_dot * (self.p.r1 + self.p.r2) * cos(psi_y) * cos(psi_z) - psi_z_dot * (self.p.r1 + self.p.r2) * sin(psi_y) * sin(psi_z))))) / self.p.r1**2
+        b[3] = -(psi_y_dot * psi_z_dot * self.p.r2 * self.p.theta1 * (self.p.r1 + self.p.r2) * sin(psi_z) + self.p.m3 * self.p.r1**2 * self.p.r2 * (psi_y_dot**2 * self.p.r1 * sin(psi_y) * cos(psi_z) + psi_y_dot**2 * self.p.r2 * sin(psi_y) * cos(psi_z) + 2 * psi_y_dot * psi_z_dot * self.p.r1 * sin(psi_z) * cos(psi_y) + psi_y_dot * psi_z_dot * self.p.r1 * sin(psi_z) + 2 * psi_y_dot * psi_z_dot * self.p.r2 * sin(psi_z) * cos(psi_y) + psi_y_dot * psi_z_dot * self.p.r2 * sin(psi_z) + psi_z_dot**2 * self.p.r1 * sin(psi_y) * cos(psi_z) + psi_z_dot**2 * self.p.r2 * sin(psi_y) * cos(psi_z) - self.p.l * w_3x**2 * sin(phi_x) * sin(phi_z) - self.p.l * w_3x**2 * sin(phi_y) * cos(phi_x) * cos(phi_z) + self.p.l * w_3x * w_3z * cos(phi_y) * cos(phi_z) - self.p.l * w_3y**2 * sin(phi_x) * sin(phi_z) - self.p.l * w_3y**2 *
+                                                                                                                                                    sin(phi_y) * cos(phi_x) * cos(phi_z) + self.p.l * w_3y * w_3z * sin(phi_x) * sin(phi_y) * cos(phi_z) - self.p.l * w_3y * w_3z * sin(phi_z) * cos(phi_x)) + self.p.r1**2 * (Tx * sin(phi_z) * cos(phi_y) + Ty * (sin(phi_x) * sin(phi_y) * sin(phi_z) + cos(phi_x) * cos(phi_z)) - Tz * (sin(phi_x) * cos(phi_z) - sin(phi_y) * sin(phi_z) * cos(phi_x)) + psi_y_dot * psi_z_dot * self.p.m1 * self.p.r2 * (self.p.r1 + self.p.r2) * sin(psi_z) + self.p.m2 * self.p.r2 * (psi_y_dot * (self.p.r1 + self.p.r2) * (psi_y_dot * sin(psi_y) * cos(psi_z) + psi_z_dot * sin(psi_z) * cos(psi_y)) + psi_z_dot * (psi_y_dot * self.p.r1 * sin(psi_z) + psi_y_dot * self.p.r2 * sin(psi_z) + psi_y_dot * (self.p.r1 + self.p.r2) * sin(psi_z) * cos(psi_y) + psi_z_dot * (self.p.r1 + self.p.r2) * sin(psi_y) * cos(psi_z))))) / self.p.r1**2
+        b[4] = Tx * sin(phi_y) - Ty * sin(phi_x) * cos(phi_y) - Tz * cos(phi_x) * cos(phi_y)
+        b[5] = Tx - self.p.l * self.p.m3 * (
+            -psi_y_dot**2 * self.p.r1 * sin(phi_x) * sin(phi_y) * sin(psi_y) * cos(
+                phi_z - psi_z) - psi_y_dot**2 * self.p.r1 * sin(phi_x) * cos(phi_y) * cos(psi_y) + psi_y_dot**2 * self.p.r1 * sin(psi_y) * sin(
+                phi_z - psi_z) * cos(phi_x) - psi_y_dot**2 * self.p.r2 * sin(phi_x) * sin(phi_y) * sin(psi_y) * cos(
+                phi_z - psi_z) - psi_y_dot**2 * self.p.r2 * sin(phi_x) * cos(phi_y) * cos(psi_y) + psi_y_dot**2 * self.p.r2 * sin(psi_y) * sin(
+                    phi_z - psi_z) * cos(phi_x) + 2 * psi_y_dot * psi_z_dot * self.p.r1 * sin(phi_x) * sin(phi_y) * sin(
+                        phi_z - psi_z) * cos(psi_y) + psi_y_dot * psi_z_dot * self.p.r1 * sin(phi_x) * sin(phi_y) * sin(
+                            phi_z - psi_z) + 2 * psi_y_dot * psi_z_dot * self.p.r1 * cos(phi_x) * cos(psi_y) * cos(
+                                phi_z - psi_z) + psi_y_dot * psi_z_dot * self.p.r1 * cos(phi_x) * cos(
+                                    phi_z - psi_z) + 2 * psi_y_dot * psi_z_dot * self.p.r2 * sin(phi_x) * sin(phi_y) * sin(
+                                        phi_z - psi_z) * cos(psi_y) + psi_y_dot * psi_z_dot * self.p.r2 * sin(phi_x) * sin(phi_y) * sin(
+                                            phi_z - psi_z) + 2 * psi_y_dot * psi_z_dot * self.p.r2 * cos(phi_x) * cos(psi_y) * cos(
+                                                phi_z - psi_z) + psi_y_dot * psi_z_dot * self.p.r2 * cos(phi_x) * cos(
+                                                    phi_z - psi_z) - psi_z_dot**2 * self.p.r1 * sin(phi_x) * sin(phi_y) * sin(psi_y) * cos(
+                                                        phi_z - psi_z) + psi_z_dot**2 * self.p.r1 * sin(psi_y) * sin(
+                                                            phi_z - psi_z) * cos(phi_x) - psi_z_dot**2 * self.p.r2 * sin(phi_x) * sin(phi_y) * sin(psi_y) * cos(
+                                                                phi_z - psi_z) + psi_z_dot**2 * self.p.r2 * sin(psi_y) * sin(
+                                                                    phi_z - psi_z) * cos(phi_x) + self.p.g * sin(phi_x) * cos(phi_y) - self.p.l * w_3y * w_3z) + self.p.theta3y * w_3y * w_3z - self.p.theta3z * w_3y * w_3z
+        b[6] = Ty - self.p.l * self.p.m3 * (
+            -psi_y_dot**2 * self.p.r1 * sin(phi_y) * cos(psi_y) + psi_y_dot**2 * self.p.r1 * sin(psi_y) * cos(phi_y) * cos(
+                phi_z - psi_z) - psi_y_dot**2 * self.p.r2 * sin(phi_y) * cos(psi_y) + psi_y_dot**2 * self.p.r2 * sin(psi_y) * cos(phi_y) * cos(
+                phi_z - psi_z) - 2 * psi_y_dot * psi_z_dot * self.p.r1 * sin(
+                phi_z - psi_z) * cos(phi_y) * cos(psi_y) - psi_y_dot * psi_z_dot * self.p.r1 * sin(
+                    phi_z - psi_z) * cos(phi_y) - 2 * psi_y_dot * psi_z_dot * self.p.r2 * sin(
+                        phi_z - psi_z) * cos(phi_y) * cos(psi_y) - psi_y_dot * psi_z_dot * self.p.r2 * sin(
+                            phi_z - psi_z) * cos(phi_y) + psi_z_dot**2 * self.p.r1 * sin(psi_y) * cos(phi_y) * cos(
+                                phi_z - psi_z) + psi_z_dot**2 * self.p.r2 * sin(psi_y) * cos(phi_y) * cos(
+                                    phi_z - psi_z) + self.p.g * sin(phi_y) + self.p.l * w_3x * w_3z) - self.p.theta3x * w_3x * w_3z + self.p.theta3z * w_3x * w_3z
+        b[7] = Tz + self.p.theta3x * w_3x * w_3y - self.p.theta3y * w_3x * w_3y
 
         return b
 
@@ -513,6 +641,7 @@ class DynamicModel:
         pos_y = state.pos[1]
         psi_y = state.psi_y
         psi_z = state.psi_z
+        [phi_x, phi_y, phi_z] = Quaternion(state.q3).get_roll_pitch_yaw()
 
         r_OS1 = np.array([pos_x, pos_y, self.p.r1])
 
@@ -521,7 +650,12 @@ class DynamicModel:
 
         r_OS2 = r_OS1 + r_S1S2
 
-        return [r_OS1, r_OS2]
+        r_S2S3 = -self.p.l * np.array([sin(phi_x) * sin(phi_z) + sin(phi_y) * cos(phi_x) * cos(phi_z), -sin(
+            phi_x) * cos(phi_z) + sin(phi_y) * sin(phi_z) * cos(phi_x), cos(phi_x) * cos(phi_y)])
+
+        r_OS3 = r_OS2 + r_S2S3
+
+        return [r_OS1, r_OS2, r_OS3]
 
     def _compute_ball_visualization(self, center, radius, q_IB):
         """computes visualization points of a ball
