@@ -128,9 +128,11 @@ NS_dot_i = [
             om_i[i])) for i in range(3)]
 
 # dynamics
+print('generating dynamics')
 dyn = zeros(8, 1)
 for i in range(3):
     dyn += simplify(J_i[i].T * (p_dot_i[i] - F_i[i])) + simplify(JR_i[i].T * (NS_dot_i[i] - M_i[i]))
+    print('generated term {} of 3 dynamic terms'.format(i))
 
 A = simplify(dyn.jacobian(omega_dot))
 
@@ -158,9 +160,9 @@ for row in range(A.rows):
         else:
             print('A[{},{}] = {}'.format(row, col, A[row, col].subs(sub_list)))
 
-b = simplify(dyn.subs([(x, 0) for x in omega_dot]))
+b = dyn.subs([(x, 0) for x in omega_dot])
 for row in range(b.rows):
-    print('b[{}] = {}'.format(row, -b[row].subs(sub_list)))
+    print('b[{}] = {}'.format(row, -simplify(b[row]).subs(sub_list)))
 
 # kinematic relations
 for i, om in enumerate(omega_1):
