@@ -10,12 +10,12 @@ x, y = symbols('x y')
 x_dot, y_dot = symbols('x_dot y_dot')
 
 # angles
-beta_x, beta_y, beta_z, phi_x, phi_y, phi_z, psi_y, psi_z = symbols(
-    'beta_x, beta_y, beta_z phi_x phi_y phi_z psi_y psi_z')
+alpha_z, beta_x, beta_y, beta_z, phi_x, phi_y, phi_z, psi_x, psi_y = symbols(
+    'alpha_z beta_x beta_y beta_z phi_x phi_y phi_z psi_x psi_y')
 
 # angular velocities
 phi_x_dot, phi_y_dot, phi_z_dot = symbols('phi_x_dot phi_y_dot phi_z_dot')
-psi_y_dot, psi_z_dot = symbols('psi_y_dot psi_z_dot')
+psi_x_dot, psi_y_dot = symbols('psi_x_dot psi_y_dot')
 w_1x, w_1y, w_1z = symbols('w_1x w_1y w_1z')
 w_2x, w_2y, w_2z = symbols('w_2x w_2y w_2z')
 w_3x, w_3y, w_3z = symbols('w_3x w_3y w_3z')
@@ -25,8 +25,8 @@ omega_2 = Matrix([w_2x, w_2y, w_2z])
 b_omega_3 = Matrix([w_3x, w_3y, w_3z])
 
 # angular accelerations
-w_3_dot_x, w_3_dot_y, w_3_dot_z, psi_y_ddot, psi_z_ddot, w_2_dot_x, w_2_dot_y, w_2_dot_z = symbols(
-    'w_3_dot_x w_3_dot_y w_3_dot_z psi_y_ddot psi_z_ddot w_2_dot_x w_2_dot_y w_2_dot_z')
+w_1_dot_z, w_3_dot_x, w_3_dot_y, w_3_dot_z, psi_x_ddot, psi_y_ddot, w_2_dot_x, w_2_dot_y, w_2_dot_z = symbols(
+    'w_1_dot_z w_3_dot_x w_3_dot_y w_3_dot_z psi_x_ddot psi_y_ddot w_2_dot_x w_2_dot_y w_2_dot_z')
 
 # parameter
 l, m1, m2, m3, r1, r2, theta1, theta2, theta3x, theta3y, theta3z = symbols(
@@ -49,7 +49,7 @@ x_dot = v_OS1[0]
 y_dot = v_OS1[1]
 
 # kinematic constraints: upper ball rolling on lower ball
-e_S1S2 = Matrix([cos(psi_z) * sin(psi_y), sin(psi_z) * sin(psi_y), cos(psi_y)])
+e_S1S2 = rot_axis2(-psi_y) * rot_axis1(-psi_x) * Matrix([0, 0, 1])
 
 r_S1P1 = r1 * e_S1S2
 
@@ -60,7 +60,7 @@ r_S1S2 = (r1 + r2) * e_S1S2
 r_OS2 = r_OS1 + r_S1S2
 
 v_OS2 = diff(r_OS2, x, 1) * x_dot + diff(r_OS2, y, 1) * y_dot + \
-    diff(r_OS2, psi_y, 1) * psi_y_dot + diff(r_OS2, psi_z, 1) * psi_z_dot
+    diff(r_OS2, psi_x, 1) * psi_x_dot + diff(r_OS2, psi_y, 1) * psi_y_dot
 
 r_S2P2 = -r2 * e_S1S2
 
@@ -70,10 +70,9 @@ constraints = simplify(v_P1 - v_P2)
 
 sol = solve(constraints, omega_1)
 
-# somehow, w_1z is not in the sol dict... need to back-substitute sol for w_1x and solve again.
-omega_1[2] = simplify(solve(constraints[1].subs(w_1x, sol[w_1x]), w_1z)[0])
-omega_1[0] = simplify(sol[w_1x].subs(w_1z, omega_1[2]))
-omega_1[1] = simplify(sol[w_1y].subs(w_1z, omega_1[2]))
+omega_1[0] = simplify(sol[w_1x])
+omega_1[1] = simplify(sol[w_1y])
+omega_1[2] = w_1z
 
 sub_list = [(w_1x, omega_1[0]), (w_1y, omega_1[1]), (w_1z, omega_1[2])]
 
@@ -96,11 +95,11 @@ v_OS3 = v_OS2 + simplify(R_IB3 * b_omega_3.cross(Matrix([0, 0, -l])))
 v_i = [v_OS1, v_OS2, v_OS3]
 om_i = [omega_1, omega_2, b_omega_3]
 
-omega_dot = Matrix([psi_y_ddot, psi_z_ddot, w_2_dot_x, w_2_dot_y,
-                    w_2_dot_z, w_3_dot_x, w_3_dot_y, w_3_dot_z])
-omega = Matrix([psi_y_dot, psi_z_dot, w_2x, w_2y, w_2z, w_3x, w_3y, w_3z])
-ang = Matrix([psi_y, psi_z, beta_x, beta_y, beta_z, phi_x, phi_y, phi_z])
-ang_dot = Matrix([psi_y_dot, psi_z_dot, w_2x, w_2y, w_2z, phi_x_dot, phi_y_dot, phi_z_dot])
+omega_dot = Matrix([w_1_dot_z, psi_x_ddot, psi_y_ddot, w_2_dot_x,
+                    w_2_dot_y, w_2_dot_z, w_3_dot_x, w_3_dot_y, w_3_dot_z])
+omega = Matrix([w_1z, psi_x_dot, psi_y_dot, w_2x, w_2y, w_2z, w_3x, w_3y, w_3z])
+ang = Matrix([alpha_z, psi_x, psi_y, beta_x, beta_y, beta_z, phi_x, phi_y, phi_z])
+ang_dot = Matrix([w_1z, psi_x_dot, psi_y_dot, w_2x, w_2y, w_2z, phi_x_dot, phi_y_dot, phi_z_dot])
 
 J_i = [v.jacobian(omega) for v in v_i]
 JR_i = [om.jacobian(omega) for om in om_i]
@@ -129,12 +128,12 @@ NS_dot_i = [
 
 # dynamics
 print('generating dynamics')
-dyn = zeros(8, 1)
+dyn = zeros(9, 1)
 for i in range(3):
     dyn += simplify(J_i[i].T * (p_dot_i[i] - F_i[i])) + simplify(JR_i[i].T * (NS_dot_i[i] - M_i[i]))
     print('generated term {} of 3 dynamic terms'.format(i))
 
-A = simplify(dyn.jacobian(omega_dot))
+A = dyn.jacobian(omega_dot)
 
 sub_list = [
     (x,
@@ -158,7 +157,7 @@ for row in range(A.rows):
         if row > col and simplify(A[row, col] - A[col, row]) == 0:
             print('A[{},{}] = A[{},{}]'.format(row, col, col, row))
         else:
-            print('A[{},{}] = {}'.format(row, col, A[row, col].subs(sub_list)))
+            print('A[{},{}] = {}'.format(row, col, simplify(A[row, col]).subs(sub_list)))
 
 b = dyn.subs([(x, 0) for x in omega_dot])
 for row in range(b.rows):

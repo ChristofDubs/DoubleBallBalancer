@@ -90,16 +90,16 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
 
 if plot_states:
     plt.figure()
+    plt.plot(sim_time_vec, [state.psi_x for state in state_vec], label='psi_x')
     plt.plot(sim_time_vec, [state.psi_y for state in state_vec], label='psi_y')
-    plt.plot(sim_time_vec, [state.psi_z for state in state_vec], label='psi_z')
     plt.xlabel('time [s]')
     plt.ylabel('angles [rad]')
     plt.legend()
     plt.title('angles')
 
     plt.figure()
+    plt.plot(sim_time_vec, [state.psi_x_dot for state in state_vec], label='psi_x_dot')
     plt.plot(sim_time_vec, [state.psi_y_dot for state in state_vec], label='psi_y_dot')
-    plt.plot(sim_time_vec, [state.psi_z_dot for state in state_vec], label='psi_z_dot')
     plt.xlabel('time [s]')
     plt.ylabel('omega [rad]')
     plt.legend()
