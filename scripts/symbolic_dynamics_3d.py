@@ -2,7 +2,7 @@
 
 Derivation of the rigid multi-body dynamics using the Projected Newton-Euler method.
 """
-from sympy import symbols, Matrix, sin, cos, simplify, solve, diff, eye, diag, zeros
+from sympy import symbols, Matrix, sin, cos, solve, diff, eye, diag, zeros, cse
 from sympy.matrices.dense import rot_axis1, rot_axis2, rot_axis3
 
 # position
@@ -66,29 +66,28 @@ r_S2P2 = -r2 * e_S1S2
 
 v_P2 = v_OS2 + omega_2.cross(r_S2P2)
 
-constraints = simplify(v_P1 - v_P2)
+constraints = v_P1 - v_P2
 
 sol = solve(constraints, omega_1)
 
-omega_1[0] = simplify(sol[w_1x])
-omega_1[1] = simplify(sol[w_1y])
+omega_1[0] = sol[w_1x]
+omega_1[1] = sol[w_1y]
 omega_1[2] = w_1z
 
 sub_list = [(w_1x, omega_1[0]), (w_1y, omega_1[1]), (w_1z, omega_1[2])]
 
 # eliminate omega_1
-v_OS1 = simplify(v_OS1.subs(sub_list))
-v_OS2 = simplify(v_OS2.subs(sub_list))
+v_OS1 = v_OS1.subs(sub_list)
+v_OS2 = v_OS2.subs(sub_list)
 
 # lever arm
 R_IB3 = rot_axis3(-phi_z) * rot_axis2(-phi_y) * rot_axis1(-phi_x)
+r_S2S3 = R_IB3 * Matrix([0, 0, -l])
 b_om_3 = Matrix([phi_x_dot, 0, 0]) + rot_axis1(phi_x) * Matrix([0, phi_y_dot, 0]) + \
     rot_axis1(phi_x) * rot_axis2(phi_y) * Matrix([0, 0, phi_z_dot])
 jac = b_om_3.jacobian(Matrix([phi_x_dot, phi_y_dot, phi_z_dot]))
-[phi_x_dot, phi_y_dot, phi_z_dot] = simplify(jac.LUsolve(b_omega_3))
-# print(b_omega_3.jacobian(Matrix([phi_x_dot, phi_y_dot, phi_z_dot])))
-# i_omega_3 = simplify(R_IB3 * b_omega_3)
-v_OS3 = v_OS2 + simplify(R_IB3 * b_omega_3.cross(Matrix([0, 0, -l])))
+[phi_x_dot, phi_y_dot, phi_z_dot] = jac.LUsolve(b_omega_3)
+v_OS3 = v_OS2 + R_IB3 * (b_omega_3.cross(Matrix([0, 0, -l])))
 
 
 # calculate Jacobians
@@ -119,21 +118,23 @@ omega_diff_i = [
     om_i[i].jacobian(ang) *
     ang_dot for i in range(3)]
 NS_dot_i = [
-    simplify(
+    theta[i] *
+    omega_diff_i[i] +
+    om_i[i].cross(
         theta[i] *
-        omega_diff_i[i] +
-        om_i[i].cross(
-            theta[i] *
-            om_i[i])) for i in range(3)]
+        om_i[i]) for i in range(3)]
 
 # dynamics
 print('generating dynamics')
 dyn = zeros(9, 1)
 for i in range(3):
-    dyn += simplify(J_i[i].T * (p_dot_i[i] - F_i[i])) + simplify(JR_i[i].T * (NS_dot_i[i] - M_i[i]))
+    dyn += J_i[i].T * (p_dot_i[i] - F_i[i]) + JR_i[i].T * (NS_dot_i[i] - M_i[i])
     print('generated term {} of 3 dynamic terms'.format(i))
 
 A = dyn.jacobian(omega_dot)
+b = dyn.subs([(x, 0) for x in omega_dot])
+
+common_sub_expr = cse([A, b])
 
 sub_list = [
     (x,
@@ -152,17 +153,33 @@ sub_list = [
         'theta3x',
         'theta3y',
         'theta3z']]
+
+for term in common_sub_expr[0]:
+    print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
+
 for row in range(A.rows):
     for col in range(A.cols):
-        if row > col and simplify(A[row, col] - A[col, row]) == 0:
-            print('A[{},{}] = A[{},{}]'.format(row, col, col, row))
-        else:
-            print('A[{},{}] = {}'.format(row, col, simplify(A[row, col]).subs(sub_list)))
+        print('        A[{},{}] = {}'.format(row, col,
+                                             common_sub_expr[1][0][row, col].subs(sub_list)))
 
-b = dyn.subs([(x, 0) for x in omega_dot])
 for row in range(b.rows):
-    print('b[{}] = {}'.format(row, -simplify(b[row]).subs(sub_list)))
+    print('        b[{}] = {}'.format(row, -common_sub_expr[1][1][row].subs(sub_list)))
 
 # kinematic relations
-for i, om in enumerate(omega_1):
-    print('omega_1[{}] = {}'.format(i, om.subs(sub_list)))
+common_sub_expr = cse(omega_1)
+for term in common_sub_expr[0]:
+    print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
+
+for row in range(omega_1.rows):
+    print('        omega_1[{}] = {}'.format(row, common_sub_expr[1][0][row].subs(sub_list)))
+
+# position vectors
+common_sub_expr = cse([r_S1S2, r_S2S3])
+for term in common_sub_expr[0]:
+    print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
+
+for row in range(r_S1S2.rows):
+    print('        r_S1S2[{}] = {}'.format(row, common_sub_expr[1][0][row].subs(sub_list)))
+
+for row in range(r_S2S3.rows):
+    print('        r_S2S3[{}] = {}'.format(row, common_sub_expr[1][1][row].subs(sub_list)))
