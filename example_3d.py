@@ -60,8 +60,8 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
         # plot
         plt.cla()
 
-        ax.plot_wireframe(*vis['lower_ball'], color='b')
-        ax.plot_wireframe(*vis['upper_ball'], color='r')
+        ax.plot_wireframe(*vis['lower_ball'], color='b', linewidth=0.5)
+        ax.plot_wireframe(*vis['upper_ball'], color='r', linewidth=0.5)
         ax.plot_wireframe(*vis['lever_arm'], color='g')
 
         plt.xlabel('x [m]')
