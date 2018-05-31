@@ -36,7 +36,7 @@ l, m1, m2, m3, r1, r2, theta1, theta2, theta3x, theta3y, theta3z = symbols(
 g = symbols('g')
 
 # inputs
-b_T = Matrix(symbols('Tx Ty Tz'))
+T = Matrix(symbols('Tx Ty Tz'))
 
 # parameter lists:
 m = [m1, m2, m3]
@@ -105,7 +105,7 @@ JR_i = [om.jacobian(omega) for om in om_i]
 
 # Forces
 F_i = [Matrix([0, 0, -mi * g]) for mi in m]
-M_i = [Matrix([0, 0, 0]), -R_IB3 * b_T, b_T]
+M_i = [Matrix([0, 0, 0]), -T, R_IB3.T * T]
 
 # Impulse
 p_i = [m[i] * v_i[i] for i in range(3)]

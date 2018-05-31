@@ -15,24 +15,12 @@ plot_states = True
 # create parameter struct
 param = ModelParam()
 param.l = 1
-param.m1 = 1
-param.m2 = 1
-param.m3 = 1
 param.r1 = 3
 param.r2 = 2
-param.tau = 0.100
-param.theta1 = 1
-param.theta2 = 1
-param.theta3 = 1
 
 # initial state
 x0 = ModelState()
-# x0.psi_y = 0.25
-# x0.psi_z = 0.3
-# x0.omega_2 = np.array([0,0,0.75])
-# x0.psi_y_dot = -0.3
 x0.q3 = np.array([0.01, 0, 1, 0])
-
 
 # instantiate model
 model = DynamicModel(param, x0)
@@ -78,7 +66,7 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
         start_time = time.time()
 
     # simulate one time step
-    model.simulate_step(dt)
+    model.simulate_step(dt, np.zeros(3))
     sim_time += dt
 
     # save states as matrix, sim_time and inputs as lists
