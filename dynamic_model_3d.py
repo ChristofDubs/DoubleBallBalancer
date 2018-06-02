@@ -236,6 +236,10 @@ class ModelState:
         print('failed to set x')
 
     @property
+    def phi(self):
+        return Quaternion(self.q3).get_roll_pitch_yaw()
+
+    @property
     def psi(self):
         return self.x[PSI_X_IDX:PSI_Y_IDX + 1]
 
@@ -445,14 +449,10 @@ class DynamicModel:
         returns:
             array containing angular velocity of lower ball [rad/s]
         """
-        psi_x = state.psi_x
-        psi_y = state.psi_y
-        psi_x_dot = state.psi_x_dot
-        psi_y_dot = state.psi_y_dot
+        [psi_x, psi_y] = state.psi
+        [psi_x_dot, psi_y_dot] = state.psi_dot
         w_1z = state.omega_1_z
-        w_2x = state.omega_2[0]
-        w_2y = state.omega_2[1]
-        w_2z = state.omega_2[2]
+        [w_2x, w_2y, w_2z] = state.omega_2
 
         omega_1 = np.zeros(3)
 
@@ -489,21 +489,13 @@ class DynamicModel:
 
         Returns: array containing the time derivative of the angular velocity state [rad/s^2]
         """
-        psi_x = state.psi_x
-        psi_y = state.psi_y
-        psi_x_dot = state.psi_x_dot
-        psi_y_dot = state.psi_y_dot
-        [phi_x, phi_y, phi_z] = Quaternion(state.q3).get_roll_pitch_yaw()
+        [psi_x, psi_y] = state.psi
+        [psi_x_dot, psi_y_dot] = state.psi_dot
+        [phi_x, phi_y, phi_z] = state.phi
         w_1z = state.omega_1_z
-        w_2x = state.omega_2[0]
-        w_2y = state.omega_2[1]
-        w_2z = state.omega_2[2]
-        w_3x = state.omega_3[0]
-        w_3y = state.omega_3[1]
-        w_3z = state.omega_3[2]
-        Tx = T[0]
-        Ty = T[1]
-        Tz = T[2]
+        [w_2x, w_2y, w_2z] = state.omega_2
+        [w_3x, w_3y, w_3z] = state.omega_3
+        [Tx, Ty, Tz] = T
 
         A = np.zeros([9, 9])
         b = np.zeros(9)
@@ -839,11 +831,9 @@ class DynamicModel:
 
         Returns: list of x/y/z coordinates of center of mass of lower ball, upper ball, and lever arm.
         """
-        pos_x = state.pos[0]
-        pos_y = state.pos[1]
-        psi_x = state.psi_x
-        psi_y = state.psi_y
-        [phi_x, phi_y, phi_z] = Quaternion(state.q3).get_roll_pitch_yaw()
+        [pos_x, pos_y] = state.pos
+        [psi_x, psi_y] = state.psi
+        [phi_x, phi_y, phi_z] = state.phi
 
         r_OS1 = np.array([pos_x, pos_y, self.p.r1])
 
