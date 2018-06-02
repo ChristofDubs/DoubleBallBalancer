@@ -183,3 +183,15 @@ for row in range(r_S1S2.rows):
 
 for row in range(r_S2S3.rows):
     print('        r_S2S3[{}] = {}'.format(row, common_sub_expr[1][1][row].subs(sub_list)))
+
+# linearize system around equilibrium [0, ... , 0, x, y]
+eq = [(x, 0) for x in omega_dot]
+eq.extend([(x, 0) for x in omega])
+eq.extend([(x, 0) for x in ang)
+eq.extend([(x, 0) for x in T])
+
+dyn_lin = dyn.subs(eq)
+for vec in [ang, omega, omega_dot, T]:
+    dyn_lin += dyn.jacobian(vec).subs(eq) * vec
+
+print(dyn_lin)
