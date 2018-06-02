@@ -7,6 +7,7 @@ import time
 import copy
 
 from dynamic_model_3d import ModelParam, DynamicModel, ModelState
+from controller_3d import LQRController
 
 print_sim_time = False
 plot_visualization = True
@@ -20,10 +21,11 @@ param.r2 = 2
 
 # initial state
 x0 = ModelState()
-x0.q3 = np.array([0.01, 0, 1, 0])
+x0.psi_y = 0.2
 
 # instantiate model
 model = DynamicModel(param, x0)
+controller = LQRController()
 
 # simulation time step
 dt = 0.05
@@ -66,7 +68,7 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
         start_time = time.time()
 
     # simulate one time step
-    model.simulate_step(dt, np.zeros(3))
+    model.simulate_step(dt, controller.compute_ctrl_input(model.state))
     sim_time += dt
 
     # save states as matrix, sim_time and inputs as lists
