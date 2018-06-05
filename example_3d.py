@@ -21,7 +21,6 @@ param.r2 = 2
 
 # initial state
 x0 = ModelState()
-x0.psi_y = 0.2
 
 # instantiate model
 model = DynamicModel(param, x0)
@@ -31,7 +30,7 @@ controller = LQRController()
 dt = 0.05
 
 # prepare simulation
-max_sim_time = 15
+max_sim_time = 20
 sim_time = 0
 sim_time_vec = [sim_time]
 state_vec = [copy.copy(model.state)]
@@ -67,8 +66,12 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
 
         start_time = time.time()
 
+    # omega_2 command
+    phase = sim_time * 2 * np.pi / (max_sim_time / 2)
+    omega_2_cmd = np.array([0, np.sin(phase)])
+
     # simulate one time step
-    model.simulate_step(dt, controller.compute_ctrl_input(model.state))
+    model.simulate_step(dt, controller.compute_ctrl_input(model.state, omega_2_cmd))
     sim_time += dt
 
     # save states as matrix, sim_time and inputs as lists

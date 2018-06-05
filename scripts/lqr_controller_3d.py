@@ -74,7 +74,7 @@ print('open loop eigenvalues: \n{}'.format(np.linalg.eigvals(A)))
 
 # LQR controller:
 # https://en.wikipedia.org/wiki/Linear%E2%80%93quadratic_regulator
-R = np.eye(3, dtype=float) * 0.1
+R = np.eye(3, dtype=float) * 0.05
 
 # remove uncontrollable / irrelevant states for stabilization:
 # angles: alpha_z, beta_x, beta_y, beta_z, phi_z
@@ -88,7 +88,7 @@ A = np.delete(A, delete_mask, 1)
 
 B = np.delete(B, delete_mask, 0)
 
-Q = np.diag(np.array([1, 1, 0.5, 0.5, 2, 2, 4, 4, 4, 4], dtype=float))
+Q = np.diag(np.array([1, 1, 0.5, 0.5, 2, 2, 1, 1, 8, 8], dtype=float))
 
 # eigenvalues
 print('open loop eigenvalues: \n{}'.format(np.linalg.eigvals(A)))
