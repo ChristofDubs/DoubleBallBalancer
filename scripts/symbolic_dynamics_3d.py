@@ -2,7 +2,7 @@
 
 Derivation of the rigid multi-body dynamics using the Projected Newton-Euler method.
 """
-from sympy import symbols, Matrix, sin, cos, solve, diff, eye, diag, zeros, cse
+from sympy import symbols, Matrix, sin, cos, solve, diff, eye, diag, zeros, cse, simplify
 from sympy.matrices.dense import rot_axis1, rot_axis2, rot_axis3
 
 # position
@@ -19,6 +19,7 @@ psi_x_dot, psi_y_dot = symbols('psi_x_dot psi_y_dot')
 w_1x, w_1y, w_1z = symbols('w_1x w_1y w_1z')
 w_2x, w_2y, w_2z = symbols('w_2x w_2y w_2z')
 w_3x, w_3y, w_3z = symbols('w_3x w_3y w_3z')
+w_mx, w_my, w_mz = symbols('w_mx w_my w_mz')
 
 omega_1 = Matrix([w_1x, w_1y, w_1z])
 omega_2 = Matrix([w_2x, w_2y, w_2z])
@@ -29,14 +30,15 @@ w_1_dot_z, w_3_dot_x, w_3_dot_y, w_3_dot_z, psi_x_ddot, psi_y_ddot, w_2_dot_x, w
     'w_1_dot_z w_3_dot_x w_3_dot_y w_3_dot_z psi_x_ddot psi_y_ddot w_2_dot_x w_2_dot_y w_2_dot_z')
 
 # parameter
-l, m1, m2, m3, r1, r2, theta1, theta2, theta3x, theta3y, theta3z = symbols(
-    'l m1 m2 m3 r1 r2 theta1 theta2 theta3x theta3y theta3z')
+l, m1, m2, m3, r1, r2, tau, theta1, theta2, theta3x, theta3y, theta3z = symbols(
+    'l m1 m2 m3 r1 r2 tau, theta1 theta2 theta3x theta3y theta3z')
 
 # constants
 g = symbols('g')
 
 # inputs
 T = Matrix(symbols('Tx Ty Tz'))
+omega_cmd = Matrix(symbols('omega_x_cmd omega_y_cmd'))
 
 # parameter lists:
 m = [m1, m2, m3]
@@ -131,8 +133,46 @@ for i in range(3):
     dyn += J_i[i].T * (p_dot_i[i] - F_i[i]) + JR_i[i].T * (NS_dot_i[i] - M_i[i])
     print('generated term {} of 3 dynamic terms'.format(i))
 
-A = dyn.jacobian(omega_dot)
-b = dyn.subs([(x, 0) for x in omega_dot])
+# eliminate T by inspection
+T_sol = T - Matrix(dyn[3:6])
+
+dyn_new = Matrix(dyn)
+
+dyn_new[3:6, 0] = Matrix(dyn_new[6:9]).subs([(T[j], T_sol[j]) for j in range(3)])
+
+omega_m = Matrix([w_mx, w_my, w_mz])
+omega_m_dot = 1.0 / tau * (Matrix([omega_cmd, [0]]) - omega_m)
+phi_mx, phi_my, phi_mz = symbols('phi_mx phi_my phi_mz')
+phi_m = Matrix([phi_mx, phi_my, phi_mz])
+
+b_om_23 = Matrix([w_mx, 0, 0]) + rot_axis1(phi_mx) * Matrix([0, w_my, 0]) + \
+    rot_axis1(phi_mx) * rot_axis2(phi_my) * Matrix([0, 0, w_mz])
+jac = b_om_23.jacobian(omega_m)
+omega_m_sol = jac.LUsolve(b_omega_3 - R_IB3.T * omega_2)
+
+# omega_m_dot = omega_m_dot.subs([(omega_m[i], omega_m_sol[i]) for i in range(3)])
+# b_om_23 = b_om_23.subs([(omega_m[i], omega_m_sol[i]) for i in range(3)])
+
+b_om_3 = b_om_23 + R_IB3.T * omega_2
+# b_om_3_sol = b_om_3.subs([(omega_m[i], omega_m_sol[i]) for i in range(3)])
+
+b_omega_3_dot = simplify(
+    b_om_3.jacobian(omega_m) *
+    omega_m_dot +
+    b_om_3.jacobian(phi_m) *
+    omega_m +
+    b_om_3.jacobian(omega) *
+    omega_dot +
+    b_om_3.jacobian(ang) *
+    ang_dot)
+
+b_omega_3_dot = b_omega_3_dot.subs([(omega_m[i], omega_m_sol[i]) for i in range(3)])
+
+dyn_new[6:9, 0] = b_omega_3_dot - Matrix([w_3_dot_x, w_3_dot_y, w_3_dot_z])
+
+
+A = dyn_new.jacobian(omega_dot)
+b = dyn_new.subs([(x, 0) for x in omega_dot])
 
 common_sub_expr = cse([A, b])
 
@@ -187,11 +227,11 @@ for row in range(r_S2S3.rows):
 # linearize system around equilibrium [0, ... , 0, x, y]
 eq = [(x, 0) for x in omega_dot]
 eq.extend([(x, 0) for x in omega])
-eq.extend([(x, 0) for x in ang)
-eq.extend([(x, 0) for x in T])
+eq.extend([(x, 0) for x in ang])
+eq.extend([(x, 0) for x in omega_cmd])
 
-dyn_lin = dyn.subs(eq)
-for vec in [ang, omega, omega_dot, T]:
+dyn_lin = dyn_new.subs(eq)
+for vec in [ang, omega, omega_dot, omega_cmd]:
     dyn_lin += dyn.jacobian(vec).subs(eq) * vec
 
 print(dyn_lin)

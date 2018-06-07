@@ -71,7 +71,7 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
     omega_2_cmd = np.array([0, np.sin(phase)])
 
     # simulate one time step
-    model.simulate_step(dt, controller.compute_ctrl_input(model.state, omega_2_cmd))
+    model.simulate_step(dt, np.array([0, 1]))
     sim_time += dt
 
     # save states as matrix, sim_time and inputs as lists
