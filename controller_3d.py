@@ -1,48 +1,47 @@
 """Controller class for controlling 3D Double Ball Balancer
 """
 import numpy as np
+import controller_2d
+from definitions_2d import BETA_IDX, PHI_IDX, PSI_IDX, BETA_DOT_IDX, PHI_DOT_IDX, PSI_DOT_IDX
 from dynamic_model_3d import ModelState
-from rotation import Quaternion
 
 
-class LQRController:
+class Controller:
     def __init__(self,):
-        self.K = np.array([[-2.00368209e+02,
-                            4.33763458e-13,
-                            4.10947256e+01,
-                            -1.12238067e-13,
-                            -1.25566071e+02,
-                            -1.62299604e-14,
-                            4.47213595e+00,
-                            6.82370587e-14,
-                            7.59597871e+00,
-                            3.90852326e-14],
-                           [6.97197406e-14,
-                            -2.00368209e+02,
-                            2.02852999e-14,
-                            4.10947256e+01,
-                            -2.03721204e-14,
-                            -1.25566071e+02,
-                            1.43508979e-14,
-                            4.47213595e+00,
-                            -2.42367057e-15,
-                            7.59597871e+00],
-                           [0.00000000e+00,
-                            0.00000000e+00,
-                            0.00000000e+00,
-                            0.00000000e+00,
-                            0.00000000e+00,
-                            0.00000000e+00,
-                            0.00000000e+00,
-                            0.00000000e+00,
-                            0.00000000e+00,
-                            0.00000000e+00]])
+        self.ctrl_2d = controller_2d.Controller()
 
-    def compute_ctrl_input(self, state, omega_2_cmd):
-        [phi_x, phi_y, phi_z] = state.phi
+    def compute_ctrl_input(self, state, beta_cmd):
+        [phi_x, phi_y] = state.phi
+        [phi_x_dot, phi_y_dot] = state.phi_dot
+        [psi_x, psi_y] = state.psi
+        [psi_x_dot, psi_y_dot] = state.psi_dot
+        [w_2x, w_2y, w_2z] = state.omega_2
 
-        ang = np.concatenate([state.psi, [phi_x, phi_y]])
-        omega = np.concatenate([state.psi_dot, state.omega_2[:2], state.omega_3[:2]])
+        # lever arm orientation wrt. inertial frame
+        [phi_ix, phi_iy, _] = state.q3.get_roll_pitch_yaw()
 
-        return -np.dot(self.K, np.concatenate([ang, omega])) + \
-            np.concatenate([np.dot(self.K[0:2, 6:8] - 1, omega_2_cmd), [0]])
+        x = np.zeros(6)
+
+        # rotate along principal motor axis (y-axis)
+        x[BETA_IDX] = phi_iy - phi_y
+        x[PHI_IDX] = phi_iy
+        x[PSI_IDX] = psi_y
+
+        x[BETA_DOT_IDX] = w_2y
+        x[PHI_DOT_IDX] = w_2y + phi_y_dot
+        x[PSI_DOT_IDX] = psi_y_dot
+
+        uy = self.ctrl_2d.compute_ctrl_input(x, beta_cmd)
+
+        # stabilize lateral axis
+        x[BETA_IDX] = phi_ix - phi_x
+        x[PHI_IDX] = phi_ix
+        x[PSI_IDX] = psi_x
+
+        x[BETA_DOT_IDX] = w_2x
+        x[PHI_DOT_IDX] = w_2x + phi_x_dot
+        x[PSI_DOT_IDX] = psi_x_dot
+
+        ux = self.ctrl_2d.compute_ctrl_input(x, 0)
+
+        return np.array([ux, uy])
