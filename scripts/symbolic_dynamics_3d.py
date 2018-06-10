@@ -2,7 +2,7 @@
 
 Derivation of the rigid multi-body dynamics using the Projected Newton-Euler method.
 """
-from sympy import symbols, Matrix, sin, cos, solve, diff, eye, diag, zeros, cse, simplify
+from sympy import symbols, Matrix, sin, cos, solve, diff, eye, diag, zeros, cse
 from sympy.matrices.dense import rot_axis1, rot_axis2, rot_axis3
 
 # position
@@ -15,30 +15,30 @@ alpha_z, beta_x, beta_y, beta_z, phi_x, phi_y, phi_z, psi_x, psi_y = symbols(
 
 # angular velocities
 phi_x_dot, phi_y_dot, phi_z_dot = symbols('phi_x_dot phi_y_dot phi_z_dot')
+beta_x_dot, beta_y_dot, beta_z_dot = symbols('beta_x_dot beta_y_dot beta_z_dot')
 psi_x_dot, psi_y_dot = symbols('psi_x_dot psi_y_dot')
 w_1x, w_1y, w_1z = symbols('w_1x w_1y w_1z')
 w_2x, w_2y, w_2z = symbols('w_2x w_2y w_2z')
-w_3x, w_3y, w_3z = symbols('w_3x w_3y w_3z')
-w_mx, w_my, w_mz = symbols('w_mx w_my w_mz')
 
 omega_1 = Matrix([w_1x, w_1y, w_1z])
-omega_2 = Matrix([w_2x, w_2y, w_2z])
-b_omega_3 = Matrix([w_3x, w_3y, w_3z])
+b_omega_2 = Matrix([w_2x, w_2y, w_2z])
 
 # angular accelerations
-w_1_dot_z, w_3_dot_x, w_3_dot_y, w_3_dot_z, psi_x_ddot, psi_y_ddot, w_2_dot_x, w_2_dot_y, w_2_dot_z = symbols(
-    'w_1_dot_z w_3_dot_x w_3_dot_y w_3_dot_z psi_x_ddot psi_y_ddot w_2_dot_x w_2_dot_y w_2_dot_z')
+w_1_dot_z, phi_x_ddot, phi_y_ddot, psi_x_ddot, psi_y_ddot, w_2_dot_x, w_2_dot_y, w_2_dot_z = symbols(
+    'w_1_dot_z phi_x_ddot phi_y_ddot psi_x_ddot psi_y_ddot w_2_dot_x w_2_dot_y w_2_dot_z')
 
 # parameter
 l, m1, m2, m3, r1, r2, tau, theta1, theta2, theta3x, theta3y, theta3z = symbols(
-    'l m1 m2 m3 r1 r2 tau, theta1 theta2 theta3x theta3y theta3z')
+    'l m1 m2 m3 r1 r2 tau theta1 theta2 theta3x theta3y theta3z')
 
 # constants
 g = symbols('g')
 
 # inputs
-T = Matrix(symbols('Tx Ty Tz'))
-omega_cmd = Matrix(symbols('omega_x_cmd omega_y_cmd'))
+Tx, Ty = symbols('Tx Ty')
+b_T = Matrix([Tx, Ty, 0])
+omega_x_cmd, omega_y_cmd = symbols('omega_x_cmd omega_y_cmd')
+omega_cmd = Matrix([omega_x_cmd, omega_y_cmd])
 
 # parameter lists:
 m = [m1, m2, m3]
@@ -66,7 +66,9 @@ v_OS2 = diff(r_OS2, x, 1) * x_dot + diff(r_OS2, y, 1) * y_dot + \
 
 r_S2P2 = -r2 * e_S1S2
 
-v_P2 = v_OS2 + omega_2.cross(r_S2P2)
+R_IB2 = rot_axis3(-beta_z) * rot_axis2(-beta_y) * rot_axis1(-beta_x)
+
+v_P2 = v_OS2 + (R_IB2 * b_omega_2).cross(r_S2P2)
 
 constraints = v_P1 - v_P2
 
@@ -82,32 +84,39 @@ sub_list = [(w_1x, omega_1[0]), (w_1y, omega_1[1]), (w_1z, omega_1[2])]
 v_OS1 = v_OS1.subs(sub_list)
 v_OS2 = v_OS2.subs(sub_list)
 
-# lever arm
-R_IB3 = rot_axis3(-phi_z) * rot_axis2(-phi_y) * rot_axis1(-phi_x)
-r_S2S3 = R_IB3 * Matrix([0, 0, -l])
-b_om_3 = Matrix([phi_x_dot, 0, 0]) + rot_axis1(phi_x) * Matrix([0, phi_y_dot, 0]) + \
-    rot_axis1(phi_x) * rot_axis2(phi_y) * Matrix([0, 0, phi_z_dot])
-jac = b_om_3.jacobian(Matrix([phi_x_dot, phi_y_dot, phi_z_dot]))
-[phi_x_dot, phi_y_dot, phi_z_dot] = jac.LUsolve(b_omega_3)
-v_OS3 = v_OS2 + R_IB3 * (b_omega_3.cross(Matrix([0, 0, -l])))
+# upper ball
+R_IB2 = rot_axis3(-beta_z) * rot_axis2(-beta_y) * rot_axis1(-beta_x)
+b_om_2 = Matrix([beta_x_dot, 0, 0]) + rot_axis1(beta_x) * Matrix([0, beta_y_dot, 0]
+                                                                 ) + rot_axis1(beta_x) * rot_axis2(beta_y) * Matrix([0, 0, beta_z_dot])
+jac = b_om_2.jacobian(Matrix([beta_x_dot, beta_y_dot, beta_z_dot]))
+[beta_x_dot, beta_y_dot, beta_z_dot] = jac.LUsolve(b_omega_2)
 
+# lever arm
+R_B2B3 = rot_axis2(-phi_y) * rot_axis1(-phi_x)
+R_IB3 = R_IB2 * R_B2B3
+r_S2S3 = R_IB3 * Matrix([0, 0, -l])
+b_omega_3 = Matrix([phi_x_dot, 0, 0]) + rot_axis1(phi_x) * \
+    Matrix([0, phi_y_dot, 0]) + R_B2B3.T * b_omega_2
+
+v_OS3 = v_OS2 + R_IB3 * (b_omega_3.cross(Matrix([0, 0, -l])))
 
 # calculate Jacobians
 v_i = [v_OS1, v_OS2, v_OS3]
-om_i = [omega_1, omega_2, b_omega_3]
+om_i = [omega_1, b_omega_2, b_omega_3]
 
 omega_dot = Matrix([w_1_dot_z, psi_x_ddot, psi_y_ddot, w_2_dot_x,
-                    w_2_dot_y, w_2_dot_z, w_3_dot_x, w_3_dot_y, w_3_dot_z])
-omega = Matrix([w_1z, psi_x_dot, psi_y_dot, w_2x, w_2y, w_2z, w_3x, w_3y, w_3z])
-ang = Matrix([alpha_z, psi_x, psi_y, beta_x, beta_y, beta_z, phi_x, phi_y, phi_z])
-ang_dot = Matrix([w_1z, psi_x_dot, psi_y_dot, w_2x, w_2y, w_2z, phi_x_dot, phi_y_dot, phi_z_dot])
+                    w_2_dot_y, w_2_dot_z, phi_x_ddot, phi_y_ddot])
+omega = Matrix([w_1z, psi_x_dot, psi_y_dot, w_2x, w_2y, w_2z, phi_x_dot, phi_y_dot])
+ang = Matrix([alpha_z, psi_x, psi_y, beta_x, beta_y, beta_z, phi_x, phi_y])
+ang_dot = Matrix([w_1z, psi_x_dot, psi_y_dot, beta_x_dot,
+                  beta_y_dot, beta_z_dot, phi_x_dot, phi_y_dot])
 
 J_i = [v.jacobian(omega) for v in v_i]
 JR_i = [om.jacobian(omega) for om in om_i]
 
 # Forces
 F_i = [Matrix([0, 0, -mi * g]) for mi in m]
-M_i = [Matrix([0, 0, 0]), -T, R_IB3.T * T]
+M_i = [Matrix([0, 0, 0]), -R_B2B3 * b_T, b_T]
 
 # Impulse
 p_i = [m[i] * v_i[i] for i in range(3)]
@@ -128,51 +137,23 @@ NS_dot_i = [
 
 # dynamics
 print('generating dynamics')
-dyn = zeros(9, 1)
+dyn = zeros(8, 1)
 for i in range(3):
     dyn += J_i[i].T * (p_dot_i[i] - F_i[i]) + JR_i[i].T * (NS_dot_i[i] - M_i[i])
     print('generated term {} of 3 dynamic terms'.format(i))
 
-# eliminate T by inspection
-T_sol = T - Matrix(dyn[3:6])
+# replace the last 2 equations (the only ones containing T)
+dyn[6] = phi_x_ddot - 1 / tau * (omega_x_cmd - phi_x_dot)
+dyn[7] = phi_y_ddot - 1 / tau * (omega_y_cmd - phi_y_dot)
 
-dyn_new = Matrix(dyn)
+# check that all Tx, Ty terms are eliminated
+print(Matrix(dyn[:]).jacobian(Matrix([Tx, Ty])) == zeros(8, 2))
 
-dyn_new[3:6, 0] = Matrix(dyn_new[6:9]).subs([(T[j], T_sol[j]) for j in range(3)])
+# set Tx, Ty to zero directly instead of simplifying (terms can be ... + Tx + ... - Tx)
+dyn = dyn.subs([('Tx', 0), ('Ty', 0)])
 
-omega_m = Matrix([w_mx, w_my, w_mz])
-omega_m_dot = 1.0 / tau * (Matrix([omega_cmd, [0]]) - omega_m)
-phi_mx, phi_my, phi_mz = symbols('phi_mx phi_my phi_mz')
-phi_m = Matrix([phi_mx, phi_my, phi_mz])
-
-b_om_23 = Matrix([w_mx, 0, 0]) + rot_axis1(phi_mx) * Matrix([0, w_my, 0]) + \
-    rot_axis1(phi_mx) * rot_axis2(phi_my) * Matrix([0, 0, w_mz])
-jac = b_om_23.jacobian(omega_m)
-omega_m_sol = jac.LUsolve(b_omega_3 - R_IB3.T * omega_2)
-
-# omega_m_dot = omega_m_dot.subs([(omega_m[i], omega_m_sol[i]) for i in range(3)])
-# b_om_23 = b_om_23.subs([(omega_m[i], omega_m_sol[i]) for i in range(3)])
-
-b_om_3 = b_om_23 + R_IB3.T * omega_2
-# b_om_3_sol = b_om_3.subs([(omega_m[i], omega_m_sol[i]) for i in range(3)])
-
-b_omega_3_dot = simplify(
-    b_om_3.jacobian(omega_m) *
-    omega_m_dot +
-    b_om_3.jacobian(phi_m) *
-    omega_m +
-    b_om_3.jacobian(omega) *
-    omega_dot +
-    b_om_3.jacobian(ang) *
-    ang_dot)
-
-b_omega_3_dot = b_omega_3_dot.subs([(omega_m[i], omega_m_sol[i]) for i in range(3)])
-
-dyn_new[6:9, 0] = b_omega_3_dot - Matrix([w_3_dot_x, w_3_dot_y, w_3_dot_z])
-
-
-A = dyn_new.jacobian(omega_dot)
-b = dyn_new.subs([(x, 0) for x in omega_dot])
+A = dyn.jacobian(omega_dot)
+b = dyn.subs([(x, 0) for x in omega_dot])
 
 common_sub_expr = cse([A, b])
 
@@ -230,7 +211,7 @@ eq.extend([(x, 0) for x in omega])
 eq.extend([(x, 0) for x in ang])
 eq.extend([(x, 0) for x in omega_cmd])
 
-dyn_lin = dyn_new.subs(eq)
+dyn_lin = dyn.subs(eq)
 for vec in [ang, omega, omega_dot, omega_cmd]:
     dyn_lin += dyn.jacobian(vec).subs(eq) * vec
 

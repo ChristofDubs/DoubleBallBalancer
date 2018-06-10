@@ -7,7 +7,7 @@ author: Christof Dubs
 import numpy as np
 from numpy import sin, cos, tan
 from scipy.integrate import odeint
-from rotation import Quaternion
+from rotation import Quaternion, quat_from_angle_vector
 
 
 class ModelParam:
@@ -72,22 +72,19 @@ Q_2_W_IDX = 6
 Q_2_X_IDX = 7
 Q_2_Y_IDX = 8
 Q_2_Z_IDX = 9
-Q_3_W_IDX = 10
-Q_3_X_IDX = 11
-Q_3_Y_IDX = 12
-Q_3_Z_IDX = 13
-OMEGA_1_Z_IDX = 14
-PSI_X_DOT_IDX = 15
-PSI_Y_DOT_IDX = 16
-OMEGA_2_X_IDX = 17
-OMEGA_2_Y_IDX = 18
-OMEGA_2_Z_IDX = 19
-OMEGA_3_X_IDX = 20
-OMEGA_3_Y_IDX = 21
-OMEGA_3_Z_IDX = 22
-X_IDX = 23
-Y_IDX = 24
-STATE_SIZE = 25
+PHI_X_IDX = 10
+PHI_Y_IDX = 11
+OMEGA_1_Z_IDX = 12
+PSI_X_DOT_IDX = 13
+PSI_Y_DOT_IDX = 14
+OMEGA_2_X_IDX = 15
+OMEGA_2_Y_IDX = 16
+OMEGA_2_Z_IDX = 17
+PHI_X_DOT_IDX = 18
+PHI_Y_DOT_IDX = 19
+X_IDX = 20
+Y_IDX = 21
+STATE_SIZE = 22
 
 
 class ModelState:
@@ -116,13 +113,11 @@ class ModelState:
             self.x = np.zeros(STATE_SIZE, dtype=np.float)
             self.x[Q_1_W_IDX] = 1
             self.x[Q_2_W_IDX] = 1
-            self.x[Q_3_W_IDX] = 1
 
     def normalize_quaternions(self):
         """Normalize the rotation quaternions"""
         self.q1 *= 1.0 / np.linalg.norm(self.q1)
         self.q2 *= 1.0 / np.linalg.norm(self.q2)
-        self.q3 *= 1.0 / np.linalg.norm(self.q3)
 
     def set_state(self, x0):
         """Set the state.
@@ -151,10 +146,9 @@ class ModelState:
 
         q1_norm = np.linalg.norm(x0_flat[Q_1_W_IDX:Q_1_Z_IDX + 1])
         q2_norm = np.linalg.norm(x0_flat[Q_2_W_IDX:Q_2_Z_IDX + 1])
-        q3_norm = np.linalg.norm(x0_flat[Q_3_W_IDX:Q_3_Z_IDX + 1])
 
         # quaternion check
-        if q1_norm == 0 or q2_norm == 0 or q3_norm == 0:
+        if q1_norm == 0 or q2_norm == 0:
             return false
 
         self.x = x0_flat
@@ -194,6 +188,38 @@ class ModelState:
         self.x[PSI_Y_DOT_IDX] = value
 
     @property
+    def phi_x(self):
+        return self.x[PHI_X_IDX]
+
+    @phi_x.setter
+    def phi_x(self, value):
+        self.x[PHI_X_IDX] = value
+
+    @property
+    def phi_x_dot(self):
+        return self.x[PHI_X_DOT_IDX]
+
+    @phi_x_dot.setter
+    def phi_x_dot(self, value):
+        self.x[PHI_X_DOT_IDX] = value
+
+    @property
+    def phi_y(self):
+        return self.x[PHI_Y_IDX]
+
+    @phi_y.setter
+    def phi_y(self, value):
+        self.x[PHI_Y_IDX] = value
+
+    @property
+    def phi_y_dot(self):
+        return self.x[PHI_Y_DOT_IDX]
+
+    @phi_y_dot.setter
+    def phi_y_dot(self, value):
+        self.x[PHI_Y_DOT_IDX] = value
+
+    @property
     def q1(self):
         return self.x[Q_1_W_IDX:Q_1_Z_IDX + 1]
 
@@ -223,21 +249,28 @@ class ModelState:
 
     @property
     def q3(self):
-        return self.x[Q_3_W_IDX:Q_3_Z_IDX + 1]
+        return Quaternion(self.q2) * quat_from_angle_vector(
+            np.array([0, self.phi_y, 0])) * quat_from_angle_vector(np.array([self.phi_x, 0, 0]))
 
-    @q3.setter
-    def q3(self, value):
-        if isinstance(value, Quaternion):
-            self.x[Q_3_W_IDX:Q_3_Z_IDX + 1] = value.q
-            return
-        if isinstance(value, np.ndarray):
-            self.x[Q_3_W_IDX:Q_3_Z_IDX + 1] = value
-            return
-        print('failed to set x')
+    @property
+    def beta(self):
+        return Quaternion(self.q2).get_roll_pitch_yaw()
 
     @property
     def phi(self):
-        return Quaternion(self.q3).get_roll_pitch_yaw()
+        return self.x[PHI_X_IDX:PHI_Y_IDX + 1]
+
+    @phi.setter
+    def phi(self, value):
+        self.x[PHI_X_IDX:PHI_Y_IDX + 1] = value
+
+    @property
+    def phi_dot(self):
+        return self.x[PHI_X_DOT_IDX:PHI_Y_DOT_IDX + 1]
+
+    @phi_dot.setter
+    def phi_dot(self, value):
+        self.x[PHI_X_DOT_IDX:PHI_Y_DOT_IDX + 1] = value
 
     @property
     def psi(self):
@@ -265,11 +298,11 @@ class ModelState:
 
     @property
     def omega(self):
-        return self.x[OMEGA_1_Z_IDX:OMEGA_3_Z_IDX + 1]
+        return self.x[OMEGA_1_Z_IDX:PHI_Y_DOT_IDX + 1]
 
     @omega.setter
     def omega(self, value):
-        self.x[OMEGA_1_Z_IDX:OMEGA_3_Z_IDX + 1] = value
+        self.x[OMEGA_1_Z_IDX:PHI_Y_DOT_IDX + 1] = value
 
     @property
     def omega_1_z(self):
@@ -286,14 +319,6 @@ class ModelState:
     @omega_2.setter
     def omega_2(self, value):
         self.x[OMEGA_2_X_IDX:OMEGA_2_Z_IDX + 1] = value
-
-    @property
-    def omega_3(self):
-        return self.x[OMEGA_3_X_IDX:OMEGA_3_Z_IDX + 1]
-
-    @omega_3.setter
-    def omega_3(self, value):
-        self.x[OMEGA_3_X_IDX:OMEGA_3_Z_IDX + 1] = value
 
 
 class DynamicModel:
@@ -422,10 +447,9 @@ class DynamicModel:
 
         xdot.q1 = Quaternion(eval_state.q1).q_dot(omega_1, frame='inertial')
 
-        xdot.q2 = Quaternion(eval_state.q2).q_dot(eval_state.omega_2, frame='inertial')
+        xdot.q2 = Quaternion(eval_state.q2).q_dot(eval_state.omega_2, frame='body')
 
-        xdot.q3 = Quaternion(eval_state.q3).q_dot(eval_state.omega_3, frame='body')
-
+        xdot.phi = eval_state.phi_dot
         xdot.psi = eval_state.psi_dot
         xdot.pos = self._get_lower_ball_vel(omega_1)
 
@@ -449,6 +473,7 @@ class DynamicModel:
         returns:
             array containing angular velocity of lower ball [rad/s]
         """
+        [beta_x, beta_y, beta_z] = state.beta
         [psi_x, psi_y] = state.psi
         [psi_x_dot, psi_y_dot] = state.psi_dot
         w_1z = state.omega_1_z
@@ -457,19 +482,33 @@ class DynamicModel:
         omega_1 = np.zeros(3)
 
         x0 = 1 / self.p.r1
-        x1 = cos(psi_y)
-        x2 = 1 / x1
-        x3 = psi_x_dot * self.p.r1
-        x4 = psi_x_dot * self.p.r2
-        x5 = sin(psi_y)
-        x6 = self.p.r1 * w_1z
-        x7 = self.p.r2 * w_2z
-        x8 = tan(psi_x)
-        x9 = x8 * tan(psi_y)
-        x10 = x2 * x8
-        omega_1[0] = x0 * x2 * (-self.p.r2 * w_2x * x1 + x3 + x4 + x5 * x6 + x5 * x7)
-        omega_1[1] = x0 * (psi_y_dot * self.p.r1 + psi_y_dot * self.p.r2 -
-                           self.p.r2 * w_2y - x10 * x6 - x10 * x7 - x3 * x9 - x4 * x9)
+        x1 = tan(psi_y)
+        x2 = self.p.r1 * x1
+        x3 = 1 / cos(psi_y)
+        x4 = psi_x_dot * x3
+        x5 = sin(beta_z)
+        x6 = cos(beta_x)
+        x7 = self.p.r2 * w_2y * x6
+        x8 = self.p.r2 * x1
+        x9 = sin(beta_y)
+        x10 = w_2x * x9
+        x11 = cos(beta_z)
+        x12 = cos(beta_y)
+        x13 = self.p.r2 * w_2x * x12
+        x14 = sin(beta_x)
+        x15 = self.p.r2 * w_2z * x14
+        x16 = w_2y * x14
+        x17 = self.p.r2 * x1 * x12
+        x18 = w_2z * x6
+        x19 = self.p.r2 * w_2y * x14 * x9
+        x20 = self.p.r2 * w_2z * x6 * x9
+        x21 = tan(psi_x)
+        x22 = psi_x_dot * x21
+        x23 = self.p.r2 * x12 * x21 * x3
+        omega_1[0] = x0 * (self.p.r1 * x4 + self.p.r2 * x4 + w_1z * x2 - x10 * x8 - \
+                           x11 * x13 - x11 * x19 - x11 * x20 - x15 * x5 + x16 * x17 + x17 * x18 + x5 * x7)
+        omega_1[1] = x0 * (psi_y_dot * self.p.r1 + psi_y_dot * self.p.r2 - self.p.r1 * w_1z * x21 * x3 + self.p.r2 * x10 *
+                           x21 * x3 + x11 * x15 - x11 * x7 - x13 * x5 - x16 * x23 - x18 * x23 - x19 * x5 - x2 * x22 - x20 * x5 - x22 * x8)
         omega_1[2] = w_1z
 
         return omega_1
@@ -479,9 +518,9 @@ class DynamicModel:
 
         The non-linear rotational dynamics are of the form
 
-        A * [omega_1_z_dot, psi_x_ddot, psi_y_ddot, omega_2_x_dot, omega_2_y_dot, omega_2_z_dot, omega_3_x_dot, omega_3_y_dot, omega_3_z_dot] = b
+        A * [omega_1_z_dot, psi_x_ddot, psi_y_ddot, omega_2_x_dot, omega_2_y_dot, omega_2_z_dot, phi_x_dot, phi_y_dot] = b
 
-        where A = A(phi_x, phi_y, phi_z, psi_x, psi_y) and b(state, inputs).
+        where A = A(phi_x, phi_y, phi_x_dot, phi_y_dot, psi_x, psi_y) and b(state, inputs).
 
         args:
             state (ModelState): current state
@@ -489,417 +528,465 @@ class DynamicModel:
 
         Returns: array containing the time derivative of the angular velocity state [rad/s^2]
         """
+        [beta_x, beta_y, beta_z] = state.beta
+        [phi_x, phi_y] = state.phi
+        [phi_x_dot, phi_y_dot] = state.phi_dot
         [psi_x, psi_y] = state.psi
         [psi_x_dot, psi_y_dot] = state.psi_dot
-        [phi_x, phi_y, phi_z] = state.phi
-        [phi_mx, phi_my, phi_mz] = (Quaternion(state.q2).inverse() *
-                                    Quaternion(state.q3)).get_roll_pitch_yaw()
         w_1z = state.omega_1_z
         [w_2x, w_2y, w_2z] = state.omega_2
-        [w_3x, w_3y, w_3z] = state.omega_3
         [omega_x_cmd, omega_y_cmd] = omega_cmd
 
-        A = np.zeros([9, 9])
-        b = np.zeros(9)
+        A = np.zeros([8, 8])
+        b = np.zeros(8)
 
         # auto-generated symbolic expressions
-        x0 = sin(psi_y)
+        x0 = tan(psi_y)
         x1 = x0**2
-        x2 = cos(psi_y)
-        x3 = x2**2
-        x4 = 1 / x3
-        x5 = self.p.theta1 * x4
-        x6 = x1 * x5
+        x2 = self.p.r1**2
+        x3 = x1 * x2
+        x4 = cos(psi_y)
+        x5 = x4**2
+        x6 = 1 / x5
         x7 = tan(psi_x)
         x8 = x7**2
-        x9 = x5 * x8
-        x10 = self.p.r1**2
-        x11 = self.p.m1 * x10 * x4
-        x12 = self.p.m2 * x10 * x4
-        x13 = self.p.m3 * x10 * x4
-        x14 = self.p.r1 + self.p.r2
-        x15 = x0 * x4
-        x16 = 1 / self.p.r1
-        x17 = x14 * x16
-        x18 = self.p.m1 * self.p.r1
-        x19 = 1 / x2
-        x20 = tan(psi_y)
+        x9 = x2 * x6 * x8
+        x10 = 1 / self.p.r1
+        x11 = self.p.theta1 * x0 * x10
+        x12 = 1 / x4
+        x13 = self.p.r1 * x12
+        x14 = self.p.r2 * x12
+        x15 = x13 + x14
+        x16 = self.p.m1 * self.p.r1 * x0
+        x17 = -x13 - x14
+        x18 = self.p.m1 * self.p.r1 * x12
+        x19 = x0 * x7
+        x20 = -self.p.r1 * x19 - self.p.r2 * x19
         x21 = x20 * x7
-        x22 = -self.p.r1 * x21 - self.p.r2 * x21
-        x23 = x19 * x22 * x7
-        x24 = self.p.r1 * x0 * x19
-        x25 = cos(psi_x)
-        x26 = x14 * x25
-        x27 = x14 * x19
-        x28 = -x26 - x27
-        x29 = self.p.theta1 * x16
-        x30 = self.p.m2 * self.p.r1 * x19 * x7
-        x31 = sin(psi_x)
-        x32 = x0 * x14 * x31
-        x33 = x22 - x32
-        x34 = self.p.r1 * x19 * x7
-        x35 = self.p.m1 * self.p.r1 * x14 * x15 - self.p.m2 * x24 * x28 - self.p.m3 * x24 * x28 - \
-            self.p.m3 * x33 * x34 + self.p.theta1 * x0 * x17 * x4 - x18 * x23 - x23 * x29 - x30 * x33
-        x36 = x14 * x19 * x7
-        x37 = x2 * x26
-        x38 = x14 + x37
-        x39 = self.p.m3 * x38
-        x40 = -x18 * x36 - x29 * x36 - x30 * x38 - x34 * x39
-        x41 = self.p.m1 * self.p.r1 * self.p.r2 * x19
+        x22 = self.p.theta1 * x10 * x12
+        x23 = cos(psi_x)
+        x24 = self.p.r1 + self.p.r2
+        x25 = x23 * x24
+        x26 = x17 - x25
+        x27 = self.p.r1 * x0 * x26
+        x28 = self.p.m2 * self.p.r1 * x12
+        x29 = sin(psi_x)
+        x30 = sin(psi_y)
+        x31 = x24 * x29 * x30
+        x32 = x20 - x31
+        x33 = x32 * x7
+        x34 = -self.p.m2 * x27 - self.p.m3 * self.p.r1 * x12 * x33 - self.p.m3 * \
+            x27 + x11 * x15 - x16 * x17 - x18 * x21 - x21 * x22 - x28 * x33
+        x35 = x24 * x7
+        x36 = x25 * x4
+        x37 = x24 + x36
+        x38 = self.p.r1 * x12 * x37 * x7
+        x39 = -self.p.m2 * x38 - self.p.m3 * x38 - x18 * x35 - x22 * x35
+        x40 = sin(beta_y)
+        x41 = self.p.r2 * x40
         x42 = x0 * x41
-        x43 = self.p.m2 * self.p.r1 * self.p.r2 * x19
-        x44 = x0 * x43
-        x45 = self.p.m3 * self.p.r1 * self.p.r2 * x19
-        x46 = x0 * x45
-        x47 = self.p.r2 * self.p.theta1 * x16 * x19
-        x48 = x0 * x47
-        x49 = x41 * x7
-        x50 = x43 * x7
-        x51 = x45 * x7
-        x52 = x47 * x7
-        x53 = self.p.m1 * self.p.r1 * self.p.r2 * x4
-        x54 = x1 * x53
-        x55 = x53 * x8
-        x56 = self.p.m2 * self.p.r1 * self.p.r2 * x4
-        x57 = x1 * x56
-        x58 = x56 * x8
-        x59 = self.p.m3 * self.p.r1 * self.p.r2 * x4
-        x60 = x1 * x59
-        x61 = x59 * x8
-        x62 = self.p.r2 * x16
-        x63 = x6 * x62
-        x64 = x62 * x9
-        x65 = self.p.l * self.p.m3 * self.p.r1 * x0 * x19
-        x66 = cos(phi_x)
-        x67 = cos(phi_z)
-        x68 = x66 * x67
-        x69 = sin(phi_y)
-        x70 = sin(phi_x)
-        x71 = sin(phi_z)
-        x72 = x70 * x71
-        x73 = x69 * x72
-        x74 = x68 + x73
-        x75 = self.p.l * self.p.m3 * self.p.r1 * x19 * x7
-        x76 = x66 * x71
-        x77 = x67 * x70
-        x78 = x69 * x77 - x76
-        x79 = -x65 * x74 - x75 * x78
-        x80 = cos(phi_y)
-        x81 = x71 * x80
-        x82 = x67 * x80
-        x83 = x65 * x81 + x75 * x82
-        x84 = x14**2
-        x85 = self.p.m1 * x84
-        x86 = 1 / x10
-        x87 = self.p.theta1 * x86
-        x88 = x84 * x87
-        x89 = self.p.m2 * x84
-        x90 = x3 * x31**2
-        x91 = self.p.m3 * x84
-        x92 = x22**2
-        x93 = x28**2
-        x94 = x33**2
-        x95 = x0 * x2 * x25 * x31
-        x96 = self.p.m1 * x22
-        x97 = self.p.theta1 * x22 * x86
-        x98 = self.p.m2 * x33 * x38 + x14 * x96 + x14 * x97 + x33 * x39 + x89 * x95 + x91 * x95
-        x99 = self.p.r2 * x14
-        x100 = self.p.m1 * x99
-        x101 = x100 * x19
-        x102 = x87 * x99
-        x103 = x102 * x19
-        x104 = self.p.r2 * x28
-        x105 = self.p.m2 * x104
-        x106 = self.p.m3 * x104
-        x107 = self.p.r2 * x96
-        x108 = self.p.r2 * x97
-        x109 = self.p.r2 * x33
-        x110 = self.p.m2 * x109
-        x111 = self.p.m3 * x109
-        x112 = x100 * x15
-        x113 = x102 * x15
-        x114 = x19 * x7
-        x115 = x107 * x114
-        x116 = x0 * x19
-        x117 = x105 * x116
-        x118 = x106 * x116
-        x119 = x108 * x114
-        x120 = x110 * x114
-        x121 = x111 * x114
-        x122 = self.p.l * self.p.m3 * x70 * x80
-        x123 = x14 * x2 * x31
-        x124 = self.p.l * self.p.m3 * x28
-        x125 = self.p.l * self.p.m3 * x33
-        x126 = -x122 * x123 + x124 * x74 + x125 * x78
-        x127 = self.p.l * self.p.m3 * x69
-        x128 = -x123 * x127 - x124 * x81 - x125 * x82
-        x129 = x38**2
-        x130 = x1 * x25**2
-        x131 = self.p.r2 * x38
-        x132 = self.p.m2 * x131
-        x133 = self.p.m3 * x131
-        x134 = x101 * x7
-        x135 = x103 * x7
-        x136 = x114 * x132
-        x137 = x114 * x133
-        x138 = x0 * x14 * x25
-        x139 = self.p.l * self.p.m3 * x38
-        x140 = -x122 * x138 + x139 * x78
-        x141 = -x127 * x138 - x139 * x82
-        x142 = x42 + x44 + x46 + x48
-        x143 = -x49 - x50 - x51 - x52
-        x144 = -x54 - x55 - x57 - x58 - x60 - x61 - x63 - x64
-        x145 = x101 + x103 - x105 - x106
-        x146 = x107 + x108 + x110 + x111
-        x147 = -x112 - x113 + x115 + x117 + x118 + x119 + x120 + x121
-        x148 = x100 + x102 + x132 + x133
-        x149 = x134 + x135 + x136 + x137
-        x150 = self.p.l * self.p.m3 * self.p.r2
-        x151 = x150 * x74
-        x152 = -self.p.theta2
-        x153 = self.p.r2**2
-        x154 = -self.p.m1 * x153 - self.p.m2 * x153 - self.p.m3 * x153 + x152 - x153 * x87
-        x155 = self.p.m1 * x153 * x19
-        x156 = self.p.m2 * x153 * x19
-        x157 = self.p.m3 * x153 * x19
-        x158 = self.p.theta1 * x153 * x19 * x86
-        x159 = x0 * x155 + x0 * x156 + x0 * x157 + x0 * x158
-        x160 = x150 * x78
-        x161 = -x155 * x7 - x156 * x7 - x157 * x7 - x158 * x7
-        x162 = x116 * x151
-        x163 = x114 * x160
-        x164 = self.p.m1 * x153 * x4
-        x165 = self.p.m2 * x153 * x4
-        x166 = self.p.m3 * x153 * x4
-        x167 = self.p.theta1 * x153 * x4 * x86
-        x168 = -x1 * x164 - x1 * x165 - x1 * x166 - x1 * x167 + \
-            x152 - x164 * x8 - x165 * x8 - x166 * x8 - x167 * x8
-        x169 = x150 * x82
-        x170 = x150 * x81
-        x171 = x169 * x74 - x170 * x78
-        x172 = x70**2
-        x173 = self.p.l**2
-        x174 = self.p.m3 * x173 * x80**2
-        x175 = self.p.m3 * x173
-        x176 = x162 + x163
-        x177 = x116 * x170
-        x178 = x114 * x169
-        x179 = -x177 - x178
-        x180 = -x175 * x67 * x78 * x80 + x175 * x69 * x70 * x80 - x175 * x71 * x74 * x80
-        x181 = x70 * x80
-        x182 = x68 * x69 + x72
-        x183 = x69 * x76 - x77
-        x184 = x66 * x80
-        x185 = 1.0 * x76
-        x186 = 1.0 * x77
-        x187 = x186 * x69
-        x188 = 1.0 * x68
-        x189 = 1.0 * x72
-        x190 = x189 * x69
-        x191 = 1.0 * x70
-        x192 = x188 * x69
-        x193 = x185 * x69
-        x194 = self.p.r1 * w_1z
-        x195 = self.p.r2 * w_2x
-        x196 = self.p.r2 * w_2z
-        x197 = x19 * (x0 * x195 + x194 * x2 + x196 * x2)
-        x198 = psi_x_dot * self.p.r1
-        x199 = psi_x_dot * self.p.r2
-        x200 = x0 * x194
-        x201 = x0 * x196
-        x202 = x15 * (-x195 * x2 + x198 + x199 + x200 + x201)
-        x203 = psi_y_dot * (-self.p.m1 * x197 - self.p.m1 * x202)
-        x204 = x16 * x197 + x16 * x202
-        x205 = psi_y_dot * self.p.theta1 * x204
-        x206 = psi_x_dot**2 * x14 * x31
-        x207 = psi_y_dot * (-x197 - x202)
-        x208 = self.p.m2 * x206 + self.p.m2 * x207
-        x209 = x7 * (x20**2 + 1)
-        x210 = x4 * x7
-        x211 = -x198 * x209 - x199 * x209 - x200 * x210 - x201 * x210
-        x212 = psi_y_dot * x211
-        x213 = x8 + 1
-        x214 = x20 * x213
-        x215 = x19 * x213
-        x216 = -x194 * x215 - x196 * x215 - x198 * x214 - x199 * x214
-        x217 = psi_x_dot * x216
-        x218 = self.p.m1 * x212 + self.p.m1 * x217
-        x219 = x16 * x212 + x16 * x217
-        x220 = self.p.theta1 * x219
-        x221 = psi_y_dot * (-psi_x_dot * x123 - psi_y_dot * x138 + x211)
-        x222 = psi_x_dot * (-psi_x_dot * x138 - psi_y_dot * x123 + x216)
-        x223 = self.p.m2 * x221 + self.p.m2 * x222
-        x224 = w_3y * x70
-        x225 = 1 / x66
-        x226 = w_3z + x224 * x225
-        x227 = 1 / (x172 * x225 * x80 + x184)
-        x228 = x226 * x227
-        x229 = self.p.l * self.p.m3 * w_3x * (w_3x + x228 * x69)
-        x230 = self.p.l * w_3y
-        x231 = self.p.l * w_3x
-        x232 = self.p.m3 * x226 * x227
-        x233 = x69 * x71
-        x234 = self.p.l * w_3x * x80
-        x235 = self.p.m3 * x225 * (w_3y - x181 * x228)
-        x236 = self.p.m3 * x206 + self.p.m3 * x207 + x183 * x229 + x232 * \
-            (-x230 * x82 + x231 * x78) + x235 * (x230 * x233 + x234 * x72)
-        x237 = x67 * x69
-        x238 = self.p.m3 * x221 + self.p.m3 * x222 + x182 * x229 + x232 * \
-            (x230 * x81 + x231 * (-x68 - x73)) + x235 * (x230 * x237 + x234 * x77)
-        x239 = psi_x_dot * (-psi_x_dot * x37 + psi_y_dot * x32)
-        x240 = psi_y_dot * (psi_x_dot * x32 - psi_y_dot * x37)
-        x241 = self.p.g * self.p.m2 + self.p.m2 * x239 + self.p.m2 * x240
-        x242 = psi_y_dot * x204
-        x243 = self.p.g * self.p.m3 + self.p.m3 * x239 + self.p.m3 * \
-            x240 + x184 * x229 + x235 * (x230 * x80 - x231 * x69 * x70)
-        x244 = self.p.theta3z * w_3z
-        x245 = self.p.theta3y * w_3y
-        x246 = self.p.l * x243
-        x247 = self.p.l * x236
-        x248 = self.p.l * x238
-        x249 = self.p.r2 * x203
-        x250 = self.p.r2 * x208
-        x251 = self.p.r2 * x236
-        x252 = x205 * x62 - x249 - x250 - x251
-        x253 = self.p.r2 * x218
-        x254 = self.p.r2 * x223
-        x255 = self.p.r2 * x238
-        x256 = x220 * x62 + x253 + x254 + x255
-        x257 = x114 * x253 + x114 * x254 + x114 * x255 + x116 * \
-            x249 + x116 * x250 + x116 * x251 + x219 * x52 - x242 * x48
-        x258 = self.p.theta3x * w_3x
-        x259 = 1 / self.p.tau
-        x260 = 2 * phi_x
-        x261 = w_2z * x80
-        x262 = cos(phi_mx)
-        x263 = cos(phi_my)
-        x264 = sin(phi_mx)
-        x265 = 1 / x262
-        x266 = 1 / (x262 * x263 + x263 * x264**2 * x265)
-        x267 = x261 * x66
-        x268 = x264 * x265
-        x269 = -w_2x * x78 - w_2y * x74 + w_3y - x261 * x70
-        x270 = -w_2x * x182 - w_2y * x183 + w_3z - x267 + x268 * x269
-        x271 = x266 * x270
-        x272 = x263 * x264 * x271
-        x273 = x269 - x272
-        x274 = 1.0 * w_2z * x69
-        x275 = 1.0 * omega_y_cmd * x259
-        x276 = w_2x * w_3x * x71
-        x277 = 1.0 * w_2x * x67 * x80
-        x278 = w_2y * w_3x * x67
-        x279 = 1.0 * w_2y * x71 * x80
-        x280 = 1.0 * w_3x
-        x281 = w_2x * w_3x
-        x282 = w_2y * w_3x
-        x283 = 1.0 * x259
-        x284 = x273 * x283
-        x285 = x262 * x263 * x266 * x270
-        x286 = sin(phi_my)
-        x287 = -1.0 * w_2x * x67 * x80 - 1.0 * w_2y * x71 * x80 + 1.0 * x266 * x270 * x286 + x274 + x280
-        x288 = x271 * x286 * (-1.0 * w_2x * x78 - 1.0 * w_2y * x74 - 1.0 *
-                              w_2z * x70 * x80 + 1.0 * w_3y - 1.0 * x263 * x264 * x266 * x270)
-        x289 = 1.0 * x66
-        A[0, 0] = self.p.theta1 + x1 * x11 + x1 * x12 + x1 * \
-            x13 + x11 * x8 + x12 * x8 + x13 * x8 + x6 + x9
-        A[0, 1] = x35
-        A[0, 2] = x40
-        A[0, 3] = -x42 - x44 - x46 - x48
-        A[0, 4] = x49 + x50 + x51 + x52
-        A[0, 5] = x54 + x55 + x57 + x58 + x60 + x61 + x63 + x64
-        A[0, 6] = x79
-        A[0, 7] = x83
-        A[0, 8] = 0
-        A[1, 0] = x35
-        A[1, 1] = self.p.m1 * x92 + self.p.m2 * x93 + self.p.m2 * x94 + self.p.m3 * \
-            x93 + self.p.m3 * x94 + x4 * x85 + x4 * x88 + x87 * x92 + x89 * x90 + x90 * x91
-        A[1, 2] = x98
-        A[1, 3] = -x101 - x103 + x105 + x106
-        A[1, 4] = -x107 - x108 - x110 - x111
-        A[1, 5] = x112 + x113 - x115 - x117 - x118 - x119 - x120 - x121
-        A[1, 6] = x126
-        A[1, 7] = x128
-        A[1, 8] = 0
-        A[2, 0] = x40
-        A[2, 1] = x98
-        A[2, 2] = self.p.m2 * x129 + self.p.m3 * x129 + x130 * x89 + x130 * x91 + x85 + x88
-        A[2, 3] = 0
-        A[2, 4] = -x100 - x102 - x132 - x133
-        A[2, 5] = -x134 - x135 - x136 - x137
-        A[2, 6] = x140
-        A[2, 7] = x141
-        A[2, 8] = 0
-        A[3, 0] = -x142 * x82 - x143 * x81 + x144 * x69 + x79
-        A[3, 1] = x126 - x145 * x82 - x146 * x81 + x147 * x69
-        A[3, 2] = x140 - x148 * x81 + x149 * x69
-        A[3, 3] = x151 - x154 * x82 + x159 * x69
-        A[3, 4] = -x154 * x81 - x160 + x161 * x69
-        A[3, 5] = -x159 * x82 - x161 * x81 - x162 - x163 + x168 * x69
-        A[3, 6] = self.p.theta3x + x171 + x172 * x174 + x175 * x74**2 + x175 * x78**2 + x176 * x69
-        A[3, 7] = x179 * x69 + x180
-        A[3, 8] = 0
-        A[4, 0] = -x142 * x78 - x143 * x74 - x144 * x181 + x83
-        A[4, 1] = x128 - x145 * x78 - x146 * x74 - x147 * x181
-        A[4, 2] = x141 - x148 * x74 - x149 * x181
-        A[4, 3] = -x154 * x78 - x159 * x181 - x170
-        A[4, 4] = -x154 * x74 - x161 * x181 + x169
-        A[4, 5] = -x159 * x78 - x161 * x74 - x168 * x181 + x177 + x178
-        A[4, 6] = -x176 * x181 + x180
-        A[4, 7] = self.p.theta3y + x171 + x174 * x67**2 + \
-            x174 * x71**2 + x175 * x69**2 - x179 * x181
-        A[4, 8] = 0
-        A[5, 0] = -x142 * x182 - x143 * x183 - x144 * x184
-        A[5, 1] = -x145 * x182 - x146 * x183 - x147 * x184
-        A[5, 2] = -x148 * x183 - x149 * x184
-        A[5, 3] = -x154 * x182 - x159 * x184
-        A[5, 4] = -x154 * x183 - x161 * x184
-        A[5, 5] = -x159 * x182 - x161 * x183 - x168 * x184
-        A[5, 6] = x151 * x182 - x160 * x183 - x176 * x184
-        A[5, 7] = x169 * x183 - x170 * x182 - x179 * x184
-        A[5, 8] = self.p.theta3z
+        x43 = cos(beta_z)
+        x44 = cos(beta_y)
+        x45 = self.p.r2 * x44
+        x46 = x43 * x45
+        x47 = x42 + x46
+        x48 = self.p.r1 * x0 * x47
+        x49 = -x42 - x46
+        x50 = sin(beta_z)
+        x51 = x45 * x50
+        x52 = self.p.r2 * x12 * x7
+        x53 = x40 * x52
+        x54 = -x51 + x53
+        x55 = x54 * x7
+        x56 = self.p.m3 * self.p.r1 * x0
+        x57 = sin(phi_x)
+        x58 = sin(phi_y)
+        x59 = x57 * x58
+        x60 = cos(phi_y)
+        x61 = x44 * x60
+        x62 = x50 * x61
+        x63 = sin(beta_x)
+        x64 = x43 * x63
+        x65 = cos(beta_x)
+        x66 = x50 * x65
+        x67 = x40 * x66
+        x68 = -x64 + x67
+        x69 = x58 * x68
+        x70 = x62 - x69
+        x71 = self.p.l * x70
+        x72 = x44 * x57
+        x73 = x58 * x72
+        x74 = x50 * x73
+        x75 = cos(phi_x)
+        x76 = x43 * x65
+        x77 = x50 * x63
+        x78 = x40 * x77
+        x79 = x76 + x78
+        x80 = x60 * x68
+        x81 = x57 * x80 + x74 + x75 * x79
+        x82 = self.p.l * x81
+        x83 = x47 - x59 * x71 + x60 * x82
+        x84 = self.p.m3 * self.p.r1 * x12 * x7
+        x85 = x43 * x61
+        x86 = x40 * x76 + x77
+        x87 = x58 * x86
+        x88 = x85 - x87
+        x89 = self.p.l * x88
+        x90 = x40 * x64
+        x91 = -x66 + x90
+        x92 = x60 * x86
+        x93 = x43 * x73 + x57 * x92 + x75 * x91
+        x94 = self.p.l * x93
+        x95 = x54 - x59 * x89 + x60 * x94
+        x96 = -self.p.m1 * x48 - self.p.m2 * x48 + x11 * x49 - \
+            x18 * x55 - x22 * x55 - x28 * x55 - x56 * x83 - x84 * x95
+        x97 = self.p.r2 * x66
+        x98 = self.p.r2 * x64
+        x99 = x40 * x98
+        x100 = self.p.r2 * x0 * x44
+        x101 = x100 * x63
+        x102 = -x101 - x97 + x99
+        x103 = self.p.m2 * self.p.r1 * x0
+        x104 = x101 + x97 - x99
+        x105 = self.p.r2 * x76
+        x106 = self.p.r2 * x77
+        x107 = self.p.r2 * x12 * x44 * x7
+        x108 = x107 * x63
+        x109 = -x105 - x106 * x40 - x108
+        x110 = x109 * x7
+        x111 = self.p.l * x75
+        x112 = x111 * x70
+        x113 = x102 - x112
+        x114 = x111 * x88
+        x115 = x109 - x114
+        x116 = -x102 * x103 - x102 * x16 + x104 * x11 - x110 * \
+            x18 - x110 * x22 - x110 * x28 - x113 * x56 - x115 * x84
+        x117 = x41 * x76
+        x118 = x44 * x65
+        x119 = self.p.r2 * x0 * x118
+        x120 = x106 + x117 - x119
+        x121 = -x106 - x117 + x119
+        x122 = x41 * x66
+        x123 = x118 * x52
+        x124 = -x122 - x123 + x98
+        x125 = x124 * x7
+        x126 = x57 * x60
+        x127 = x120 - x126 * x71 - x58 * x82
+        x128 = x124 - x126 * x89 - x58 * x94
+        x129 = -x103 * x120 + x11 * x121 - x120 * x16 - x125 * \
+            x18 - x125 * x22 - x125 * x28 - x127 * x56 - x128 * x84
+        x130 = x24**2
+        x131 = self.p.m2 * x130
+        x132 = x29**2 * x5
+        x133 = self.p.m3 * x130
+        x134 = x20**2
+        x135 = 1 / x2
+        x136 = self.p.theta1 * x135
+        x137 = x26**2
+        x138 = x32**2
+        x139 = x23 * x29 * x30 * x4
+        x140 = self.p.m1 * x24
+        x141 = self.p.theta1 * x135 * x24
+        x142 = self.p.m2 * x37
+        x143 = self.p.m3 * x37
+        x144 = x131 * x139 + x133 * x139 + x140 * x20 + x141 * x20 + x142 * x32 + x143 * x32
+        x145 = self.p.m1 * x47
+        x146 = self.p.theta1 * x135 * x15
+        x147 = x20 * x54
+        x148 = self.p.m2 * x47
+        x149 = self.p.m2 * x54
+        x150 = x24 * x29 * x4
+        x151 = x40 * x60
+        x152 = x118 * x58
+        x153 = -x151 - x152
+        x154 = self.p.l * x153
+        x155 = x63 * x75
+        x156 = x40 * x58
+        x157 = x156 * x57
+        x158 = x118 * x60
+        x159 = x158 * x57
+        x160 = x155 * x44 - x157 + x159
+        x161 = self.p.l * x160
+        x162 = -x154 * x59 + x161 * x60
+        x163 = self.p.m3 * x162
+        x164 = self.p.m3 * x26
+        x165 = self.p.m3 * x32
+        x166 = self.p.m1 * x147 + x136 * x147 + x145 * x17 + x146 * x49 + \
+            x148 * x26 + x149 * x32 - x150 * x163 + x164 * x83 + x165 * x95
+        x167 = self.p.l * self.p.m3 * x153 * x75
+        x168 = x150 * x167
+        x169 = self.p.m1 * x17
+        x170 = self.p.m1 * x20
+        x171 = self.p.m2 * x26
+        x172 = self.p.theta1 * x135 * x20
+        x173 = self.p.m2 * x32
+        x174 = x102 * x169 + x102 * x171 + x104 * x146 + x109 * x170 + \
+            x109 * x172 + x109 * x173 + x113 * x164 + x115 * x165 + x168
+        x175 = -x126 * x154 - x161 * x58
+        x176 = self.p.m3 * x175
+        x177 = x120 * x169 + x120 * x171 + x121 * x146 + x124 * x170 + \
+            x124 * x172 + x124 * x173 + x127 * x164 + x128 * x165 - x150 * x176
+        x178 = self.p.l * self.p.m3 * x160
+        x179 = x37**2
+        x180 = x23**2 * x30**2
+        x181 = x23 * x24 * x30
+        x182 = x140 * x54 + x141 * x54 + x142 * x54 + x143 * x95 - x163 * x181
+        x183 = x167 * x181
+        x184 = x109 * x140 + x109 * x141 + x109 * x142 + x115 * x143 + x183
+        x185 = x124 * x140 + x124 * x141 + x124 * x142 + x128 * x143 - x176 * x181
+        x186 = x60**2
+        x187 = x58**2
+        x188 = x57**2
+        x189 = self.p.theta3y * x188
+        x190 = x75**2
+        x191 = self.p.theta3z * x190
+        x192 = x47**2
+        x193 = x54**2
+        x194 = self.p.theta3y * x57 * x75
+        x195 = self.p.theta3z * x57 * x75
+        x196 = -x162 * x167 + x194 * x58 - x195 * x58
+        x197 = self.p.theta1 * x135 * x49
+        x198 = self.p.m1 * x54
+        x199 = self.p.theta1 * x135 * x54
+        x200 = self.p.m3 * x113
+        x201 = self.p.m3 * x115
+        x202 = x102 * x145 + x102 * x148 + x104 * x197 + x109 * x149 + \
+            x109 * x198 + x109 * x199 + x196 + x200 * x83 + x201 * x95
+        x203 = self.p.theta3x * x58
+        x204 = x58 * x60
+        x205 = self.p.m3 * x127 * x83 + self.p.m3 * x128 * x95 + x120 * x145 + x120 * x148 + x121 * x197 + \
+            x124 * x149 + x124 * x198 + x124 * x199 + x163 * x175 + x189 * x204 + x191 * x204 - x203 * x60
+        x206 = self.p.l * self.p.m3 * x81
+        x207 = self.p.l * self.p.m3 * x93
+        x208 = self.p.l * self.p.m3 * x70 * x75
+        x209 = self.p.l * self.p.m3 * x75 * x88
+        x210 = self.p.l**2 * self.p.m3
+        x211 = self.p.theta3y * x190 + self.p.theta3z * x188 + x153**2 * x190 * x210
+        x212 = x102**2
+        x213 = x109**2
+        x214 = -x167 * x175 + x194 * x60 - x195 * x60
+        x215 = x102 * x120
+        x216 = x109 * x124
+        x217 = self.p.m1 * x215 + self.p.m1 * x216 + self.p.m2 * x215 + self.p.m2 * \
+            x216 + x104 * x121 * x136 + x127 * x200 + x128 * x201 + x136 * x216 + x214
+        x218 = x120**2
+        x219 = x124**2
+        x220 = self.p.r1 * x0
+        x221 = x1 + 1
+        x222 = self.p.r1 * x221
+        x223 = w_1z * x222
+        x224 = psi_x_dot * x30 * x6
+        x225 = self.p.r1 * x224
+        x226 = self.p.r2 * x224
+        x227 = self.p.r2 * w_2x * x40
+        x228 = x221 * x227
+        x229 = self.p.r2 * w_2y * x44 * x63
+        x230 = x221 * x229
+        x231 = self.p.r2 * w_2z * x44 * x65
+        x232 = x221 * x231
+        x233 = psi_y_dot * (-x223 - x225 - x226 + x228 - x230 - x232)
+        x234 = w_2y * x63
+        x235 = 1 / x65
+        x236 = w_2z + x234 * x235
+        x237 = 1 / (x118 + x235 * x44 * x63**2)
+        x238 = self.p.m1 * x236 * x237
+        x239 = w_2z * x98
+        x240 = w_2x * x51
+        x241 = w_2y * x105
+        x242 = w_2y * x106
+        x243 = x242 * x40
+        x244 = w_2z * x122
+        x245 = x239 - x240 - x241 - x243 - x244
+        x246 = x236 * x237
+        x247 = w_2x + x246 * x40
+        x248 = w_2z * x97
+        x249 = w_2y * x117
+        x250 = w_2z * x101
+        x251 = w_2y * x119
+        x252 = x239 * x40
+        x253 = x242 + x248 + x249 + x250 - x251 - x252
+        x254 = x247 * x253
+        x255 = w_2y - x246 * x44 * x63
+        x256 = w_2x * x100
+        x257 = x227 * x43
+        x258 = x234 * x42
+        x259 = w_2y * x98
+        x260 = x259 * x44
+        x261 = w_2z * x65
+        x262 = x261 * x42
+        x263 = x231 * x43
+        x264 = x256 - x257 + x258 + x260 + x262 + x263
+        x265 = x235 * x255 * x264
+        x266 = self.p.m1 * x233 + self.p.m1 * x254 + self.p.m1 * x265 + x238 * x245
+        x267 = psi_y_dot * x10
+        x268 = x10 * x236 * x237
+        x269 = x10 * x247
+        x270 = x10 * x235 * x255
+        x271 = x267 * (x223 + x225 + x226 - x228 + x230 + x232) + x268 * (-x239 + x240 + x241 + x243 + x244) + \
+            x269 * (-x242 - x248 - x249 - x250 + x251 + x252) + x270 * (-x256 + x257 - x258 - x260 - x262 - x263)
+        x272 = psi_x_dot**2 * x24 * x29
+        x273 = self.p.m2 * x236 * x237
+        x274 = self.p.m2 * x233 + self.p.m2 * x254 + self.p.m2 * x265 + self.p.m2 * x272 + x245 * x273
+        x275 = self.p.r1 * x12 * x7
+        x276 = w_2z * x106
+        x277 = -w_2x * x46 + w_2y * x97 - w_2z * x117 - x259 * x40 - x276
+        x278 = psi_x_dot * x7
+        x279 = x30 * x6 * x7
+        x280 = -self.p.r1 * w_1z * x279 - self.p.r2 * x221 * x278 - \
+            x222 * x278 + x227 * x279 - x229 * x279 - x231 * x279
+        x281 = x8 + 1
+        x282 = psi_x_dot * x0 * x281
+        x283 = self.p.r2 * x12 * x281
+        x284 = -self.p.r1 * x282 - self.p.r2 * x282 - w_1z * x13 * x281 + \
+            w_2x * x283 * x40 - w_2y * x283 * x44 * x63 - w_2z * x283 * x44 * x65
+        x285 = psi_x_dot * x284
+        x286 = -w_2y * x122 - w_2y * x123 + w_2z * x105 + w_2z * x108 + x259 + x276 * x40
+        x287 = x247 * x286
+        x288 = w_2x * x107 + x227 * x50 + x234 * x53 - x242 * x44 - x248 * x44 + x261 * x53
+        x289 = x235 * x255 * x288
+        x290 = psi_y_dot * self.p.m1 * x280 + self.p.m1 * x285 + \
+            self.p.m1 * x287 + self.p.m1 * x289 + x238 * x277
+        x291 = x10 * x285 + x267 * x280 + x268 * x277 + x269 * x286 + x270 * x288
+        x292 = psi_y_dot * (-psi_x_dot * x150 - psi_y_dot * x181 + x280)
+        x293 = psi_x_dot * (-psi_x_dot * x181 - psi_y_dot * x150 + x284)
+        x294 = self.p.m2 * x287 + self.p.m2 * x289 + self.p.m2 * x292 + self.p.m2 * x293 + x273 * x277
+        x295 = phi_x_dot * self.p.m3
+        x296 = w_2x * x58
+        x297 = w_2z * x60
+        x298 = -phi_y_dot * x57 - w_2y * x57 + x296 * x75 + x297 * x75
+        x299 = w_2x * x60
+        x300 = w_2z * x58
+        x301 = phi_x_dot + x299 - x300
+        x302 = self.p.l * x301
+        x303 = x44 * x58
+        x304 = x303 * x50
+        x305 = x68 * x75
+        x306 = self.p.m3 * x247
+        x307 = -x76 - x78
+        x308 = phi_y_dot * x75
+        x309 = w_2y * x75
+        x310 = x296 * x57
+        x311 = x297 * x57
+        x312 = x308 + x309 + x310 + x311
+        x313 = self.p.l * x312 * x58
+        x314 = self.p.m3 * x235 * x255
+        x315 = self.p.l * x312
+        x316 = x44 * x75
+        x317 = x44 * x57 * x60
+        x318 = self.p.m3 * x236 * x237
+        x319 = phi_y_dot * self.p.m3
+        x320 = x299 * x57 - x300 * x57
+        x321 = -x296 - x297
+        x322 = self.p.m3 * x233 + self.p.m3 * x272 + x295 * (-x298 * x71 + x302 * (x304 * x75 + x305 * x60 - x57 * x79)) + x306 * (x253 + x302 * (x126 * x307 + x305) + x307 * x313) + x314 * (
+            x264 + x302 * (-x157 * x50 + x316 * x77 + x317 * x66) - x315 * (-x151 * x50 - x303 * x66)) + x318 * (x245 + x302 * x93 - x315 * x88) + x319 * (x302 * (x57 * x62 - x57 * x69) - x315 * (-x304 - x80) - x320 * x71 + x321 * x82)
+        x323 = x303 * x43
+        x324 = x75 * x86
+        x325 = x66 - x90
+        x326 = x64 - x67
+        x327 = self.p.m3 * x292 + self.p.m3 * x293 + x295 * (-x298 * x89 + x302 * (x323 * x75 + x324 * x60 - x57 * x91)) + x306 * (x286 + x302 * (x126 * x325 + x324) + x313 * x325) + x314 * (x288 + x302 * (-x157 * x43 + x159 * x43 + \
+                                                             x316 * x64) - x315 * (-x151 * x43 - x152 * x43)) + x318 * (x277 + x302 * (x126 * x326 + x307 * x75 - x74) - x315 * (-x326 * x58 - x62)) + x319 * (x302 * (x57 * x85 - x57 * x87) - x315 * (-x323 - x92) - x320 * x89 + x321 * x94)
+        x328 = psi_x_dot * (-psi_x_dot * x36 + psi_y_dot * x31)
+        x329 = psi_y_dot * (psi_x_dot * x31 - psi_y_dot * x36)
+        x330 = self.p.g * self.p.m2 + self.p.m2 * x328 + self.p.m2 * x329
+        x331 = self.p.theta1 * x10 * x271
+        x332 = self.p.theta1 * x10 * x291
+        x333 = x118 * x75
+        x334 = x151 * x57
+        x335 = self.p.g * self.p.m3 + self.p.m3 * x328 + self.p.m3 * x329 + x295 * (-x154 * x298 + x302 * (-x156 * x75 + x333 * x60 - x63 * x72)) + x306 * (x302 * (-x317 * x63 + x333) - x315 * x44 * x58 * x63) + x314 * (
+            x302 * (-x155 * x40 - x334 * x65 - x73) - x315 * (x156 * x65 - x61)) + x319 * (-x154 * x320 + x161 * x321 + x302 * (-x152 * x57 - x334) - x315 * (x156 - x158))
+        x336 = x298 * x312
+        x337 = phi_y_dot * self.p.theta3x * x321 - self.p.theta3y * x336 + self.p.theta3z * x336
+        x338 = x301 * x312
+        x339 = -self.p.theta3x * x338 + self.p.theta3y * x338 + self.p.theta3z * \
+            (phi_x_dot * (-x308 - x309 - x310 - x311) + phi_y_dot * (x299 * x75 - x300 * x75))
+        x340 = x339 * x75
+        x341 = x298 * x301
+        x342 = self.p.theta3x * x341 + self.p.theta3y * \
+            (phi_x_dot * x298 + phi_y_dot * x320) - self.p.theta3z * x341
+        x343 = 1 / self.p.tau
+        A[0, 0] = self.p.m1 * x3 + self.p.m1 * x9 + self.p.m2 * x3 + self.p.m2 * x9 + self.p.m3 * \
+            x3 + self.p.m3 * x9 + self.p.theta1 * x1 + self.p.theta1 * x6 * x8 + self.p.theta1
+        A[0, 1] = x34
+        A[0, 2] = x39
+        A[0, 3] = x96
+        A[0, 4] = x116
+        A[0, 5] = x129
+        A[0, 6] = -x56 * x82 - x84 * x94
+        A[0, 7] = x112 * x56 + x114 * x84
+        A[1, 0] = x34
+        A[1, 1] = self.p.m1 * x134 + self.p.m1 * x17**2 + self.p.m2 * x137 + self.p.m2 * x138 + \
+            self.p.m3 * x137 + self.p.m3 * x138 + x131 * x132 + x132 * x133 + x134 * x136 + x136 * x15**2
+        A[1, 2] = x144
+        A[1, 3] = x166
+        A[1, 4] = x174
+        A[1, 5] = x177
+        A[1, 6] = -x150 * x178 + x164 * x82 + x165 * x94
+        A[1, 7] = -x112 * x164 - x114 * x165 + x168
+        A[2, 0] = x39
+        A[2, 1] = x144
+        A[2, 2] = self.p.m1 * x130 + self.p.m2 * x179 + self.p.m3 * \
+            x179 + x130 * x136 + x131 * x180 + x133 * x180
+        A[2, 3] = x182
+        A[2, 4] = x184
+        A[2, 5] = x185
+        A[2, 6] = x143 * x94 - x178 * x181
+        A[2, 7] = -x114 * x143 + x183
+        A[3, 0] = x96
+        A[3, 1] = x166
+        A[3, 2] = x182
+        A[3, 3] = self.p.m1 * x192 + self.p.m1 * x193 + self.p.m2 * x192 + self.p.m2 * x193 + self.p.m3 * x162**2 + self.p.m3 * \
+            x83**2 + self.p.m3 * x95**2 + self.p.theta2 + self.p.theta3x * x186 + x136 * x193 + x136 * x49**2 + x187 * x189 + x187 * x191
+        A[3, 4] = x202
+        A[3, 5] = x205
+        A[3, 6] = self.p.theta3x * x60 + x162 * x178 + x206 * x83 + x207 * x95
+        A[3, 7] = x196 - x208 * x83 - x209 * x95
+        A[4, 0] = x116
+        A[4, 1] = x174
+        A[4, 2] = x184
+        A[4, 3] = x202
+        A[4, 4] = self.p.m1 * x212 + self.p.m1 * x213 + self.p.m2 * x212 + self.p.m2 * x213 + \
+            self.p.m3 * x113**2 + self.p.m3 * x115**2 + self.p.theta2 + x104**2 * x136 + x136 * x213 + x211
+        A[4, 5] = x217
+        A[4, 6] = -x153 * x160 * x210 * x75 + x200 * x82 + x201 * x94
+        A[4, 7] = -x112 * x200 - x114 * x201 + x211
+        A[5, 0] = x129
+        A[5, 1] = x177
+        A[5, 2] = x185
+        A[5, 3] = x205
+        A[5, 4] = x217
+        A[5, 5] = self.p.m1 * x218 + self.p.m1 * x219 + self.p.m2 * x218 + self.p.m2 * x219 + self.p.m3 * x127**2 + self.p.m3 * \
+            x128**2 + self.p.m3 * x175**2 + self.p.theta2 + self.p.theta3x * x187 + x121**2 * x136 + x136 * x219 + x186 * x189 + x186 * x191
+        A[5, 6] = x127 * x206 + x128 * x207 + x175 * x178 - x203
+        A[5, 7] = -x127 * x208 - x128 * x209 + x214
         A[6, 0] = 0
         A[6, 1] = 0
         A[6, 2] = 0
-        A[6, 3] = x82
-        A[6, 4] = x81
-        A[6, 5] = -x69
-        A[6, 6] = -1
+        A[6, 3] = 0
+        A[6, 4] = 0
+        A[6, 5] = 0
+        A[6, 6] = 1
         A[6, 7] = 0
-        A[6, 8] = 0
         A[7, 0] = 0
         A[7, 1] = 0
         A[7, 2] = 0
-        A[7, 3] = -x185 + x187
-        A[7, 4] = x188 + x190
-        A[7, 5] = x191 * x80
+        A[7, 3] = 0
+        A[7, 4] = 0
+        A[7, 5] = 0
         A[7, 6] = 0
-        A[7, 7] = -1
-        A[7, 8] = 0
-        A[8, 0] = 0
-        A[8, 1] = 0
-        A[8, 2] = 0
-        A[8, 3] = x189 + x192
-        A[8, 4] = -x186 + x193
-        A[8, 5] = 1.0 * x184
-        A[8, 6] = 0
-        A[8, 7] = 0
-        A[8, 8] = -1
-        b[0] = x114 * x220 - x116 * x205 + x203 * x24 + x208 * \
-            x24 + x218 * x34 + x223 * x34 + x236 * x24 + x238 * x34
-        b[1] = -self.p.theta1 * x14 * x16 * x19 * x242 + x123 * x241 + x123 * x243 + x203 * \
-            x27 - x208 * x28 - x218 * x22 - x219 * x22 * x29 - x223 * x33 - x236 * x28 - x238 * x33
-        b[2] = x138 * x241 + x138 * x243 - x14 * x218 - x17 * x220 - x223 * x38 - x238 * x38
-        b[3] = -w_3y * x244 + w_3z * x245 - x181 * x246 - x247 * \
-            x74 - x248 * x78 + x252 * x82 + x256 * x81 - x257 * x69
-        b[4] = w_3x * x244 - w_3z * x258 + x181 * x257 - x246 * \
-            x69 + x247 * x81 + x248 * x82 + x252 * x78 + x256 * x74
-        b[5] = -w_3x * x245 + w_3y * x258 + x182 * x252 + x183 * x256 + x184 * x257
-        b[6] = -x225 * x259 * (-self.p.tau * x263 * x265 * x271 * x273 * x66 - self.p.tau * x66 * (w_2x * x71 - w_2y * x67) * (w_3z * x66 + x224) - self.p.tau * (
-            w_2x * x237 + w_2y * x233 + x261) * (w_3y * cos(x260) + w_3y - w_3z * sin(x260)) / 2 + x66 * (omega_x_cmd + w_2x * x82 + w_2y * x81 - w_2z * x69 - w_3x))
-        b[7] = -w_3z * x274 + w_3z * x277 + w_3z * x279 - x191 * x276 + x191 * x278 - x192 * x281 - x193 * \
-            x282 - x262 * x275 - x267 * x280 + x268 * x273 * x287 + x268 * x288 + x272 * x283 + x284 - x285 * x287
-        b[8] = w_2z * w_3x * x191 * x80 + w_3y * x274 - w_3y * x277 - w_3y * x279 + x187 * x281 + x190 * x282 + \
-            x264 * x275 - x268 * x284 + x272 * x287 + x273 * x287 - x276 * x289 + x278 * x289 + x283 * x285 + x288
+        A[7, 7] = 1
+        b[0] = -self.p.theta1 * x0 * x271 + self.p.theta1 * x12 * x291 * x7 + x220 * \
+            x266 + x220 * x274 + x220 * x322 + x275 * x290 + x275 * x294 + x275 * x327
+        b[1] = -x15 * x331 + x150 * x330 + x150 * x335 - x17 * x266 - x20 * \
+            x290 - x20 * x332 - x26 * x274 - x26 * x322 - x294 * x32 - x32 * x327
+        b[2] = x181 * x330 + x181 * x335 - x24 * x290 - x24 * x332 - x294 * x37 - x327 * x37
+        b[3] = -x162 * x335 - x266 * x47 - x274 * x47 - x290 * x54 - x294 * x54 - x322 * \
+            x83 - x327 * x95 - x331 * x49 - x332 * x54 - x337 * x60 - x340 * x58 - x342 * x59
+        b[4] = -x102 * x266 - x102 * x274 - x104 * x331 - x109 * x290 - x109 * x294 - x109 * \
+            x332 - x113 * x322 - x115 * x327 + x154 * x335 * x75 + x339 * x57 - x342 * x75
+        b[5] = -x120 * x266 - x120 * x274 - x121 * x331 - x124 * x290 - x124 * x294 - x124 * \
+            x332 - x126 * x342 - x127 * x322 - x128 * x327 - x175 * x335 + x337 * x58 - x340 * x60
+        b[6] = x343 * (omega_x_cmd - phi_x_dot)
+        b[7] = x343 * (omega_y_cmd - phi_y_dot)
 
         omega_dot = np.linalg.solve(A, b)
 
@@ -913,9 +1000,10 @@ class DynamicModel:
 
         Returns: list of x/y/z coordinates of center of mass of lower ball, upper ball, and lever arm.
         """
+        [beta_x, beta_y, beta_z] = state.beta
         [pos_x, pos_y] = state.pos
         [psi_x, psi_y] = state.psi
-        [phi_x, phi_y, phi_z] = state.phi
+        [phi_x, phi_y] = state.phi
 
         r_OS1 = np.array([pos_x, pos_y, self.p.r1])
 
@@ -924,17 +1012,27 @@ class DynamicModel:
 
         x0 = self.p.r1 + self.p.r2
         x1 = x0 * cos(psi_x)
-        x2 = sin(phi_x)
-        x3 = sin(phi_z)
-        x4 = cos(phi_z)
+        x2 = cos(beta_z)
+        x3 = sin(phi_y)
+        x4 = cos(beta_y)
         x5 = cos(phi_x)
-        x6 = x5 * sin(phi_y)
+        x6 = x3 * x4 * x5
+        x7 = sin(phi_x)
+        x8 = sin(beta_z)
+        x9 = cos(beta_x)
+        x10 = x8 * x9
+        x11 = sin(beta_y)
+        x12 = sin(beta_x)
+        x13 = x12 * x2
+        x14 = x5 * cos(phi_y)
+        x15 = x12 * x8
+        x16 = x2 * x9
         r_S1S2[0] = x1 * sin(psi_y)
         r_S1S2[1] = -x0 * sin(psi_x)
         r_S1S2[2] = x1 * cos(psi_y)
-        r_S2S3[0] = -self.p.l * (x2 * x3 + x4 * x6)
-        r_S2S3[1] = -self.p.l * (-x2 * x4 + x3 * x6)
-        r_S2S3[2] = -self.p.l * x5 * cos(phi_y)
+        r_S2S3[0] = -self.p.l * (x14 * (x11 * x16 + x15) + x2 * x6 - x7 * (-x10 + x11 * x13))
+        r_S2S3[1] = -self.p.l * (x14 * (x10 * x11 - x13) + x6 * x8 - x7 * (x11 * x15 + x16))
+        r_S2S3[2] = -self.p.l * (-x11 * x3 * x5 - x12 * x4 * x7 + x14 * x4 * x9)
 
         r_OS2 = r_OS1 + r_S1S2
         r_OS3 = r_OS2 + r_S2S3
