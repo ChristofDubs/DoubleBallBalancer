@@ -37,7 +37,7 @@ x_dot = -r1 * alpha_dot
 # kinematic constraints: upper ball rolling on lower ball
 
 om1 = Matrix([0, 0, alpha_dot])
-r_S1P1 = Matrix([-r1 * sin(psi), r1 * cos(psi), 0])
+r_S1P1 = r1 * Matrix([- sin(psi), cos(psi), 0])
 v_OS1 = Matrix([-r1 * alpha_dot, 0, 0])
 
 v_P1 = v_OS1 + om1.cross(r_S1P1)
@@ -49,8 +49,8 @@ r_S2P2 = Matrix([r2 * sin(psi), -r2 * cos(psi), 0])
 
 v_P2 = v_OS2 + om2.cross(r_S2P2)
 
-constraint1 = simplify(solve([v_P1[0] - v_P2[0]], [alpha_dot]))
-constraint2 = simplify(solve([v_P1[1] - v_P2[1]], [alpha_dot]))
+constraint1 = solve([v_P1[0] - v_P2[0]], [alpha_dot])
+constraint2 = solve([v_P1[1] - v_P2[1]], [alpha_dot])
 
 # print(constraint1 == constraint2)
 # print(constraint1[alpha_dot])
@@ -61,7 +61,7 @@ om1 = om1.subs(alpha_dot, constraint1[alpha_dot])
 v_OS2 = v_OS2.subs(alpha_dot, constraint1[alpha_dot])
 
 
-r_S2S3 = Matrix([l * sin(phi), -l * cos(phi), 0])
+r_S2S3 = l * Matrix([sin(phi), -cos(phi), 0])
 om3 = Matrix([0, 0, phi_dot])
 v_OS3 = v_OS2 + om3.cross(r_S2S3)
 
@@ -89,7 +89,7 @@ NS_dot_i = [NS.jacobian(omega) * omega_dot for NS in NS_i]
 # dynamics
 dyn = Matrix([0, 0, 0])
 for i in range(3):
-    dyn += simplify(J_i[i].T * (p_dot_i[i] - F_i[i])) + simplify(JR_i[i].T * (NS_dot_i[i] - M_i[i]))
+    dyn += J_i[i].T * (p_dot_i[i] - F_i[i]) + JR_i[i].T * (NS_dot_i[i] - M_i[i])
 
 # eliminate torque T by inspection
 dyn_new = Matrix([0, 0, 0])
@@ -102,20 +102,24 @@ gamma_dot = phi_dot - beta_dot
 
 dyn_new[2] = gamma_ddot - 1 / tau * (omega_cmd - gamma_dot)
 
-A = simplify(dyn_new.jacobian(omega_dot))
+A = dyn_new.jacobian(omega_dot)
+b = dyn_new.subs([(x, 0) for x in omega_dot])
+
+common_sub_expr = cse([A, b])
 
 sub_list = [(x, 'self.p.' + x)
             for x in ['g', 'l', 'm1', 'm2', 'm3', 'r1', 'r2', 'tau', 'theta1', 'theta2', 'theta3']]
+
+for term in common_sub_expr[0]:
+    print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
+
 for row in range(A.rows):
     for col in range(A.cols):
-        if row > col and simplify(A[row, col] - A[col, row]) == 0:
-            print('A[{},{}]=A[{},{}]'.format(row, col, col, row))
-        else:
-            print('A[{},{}] = {}'.format(row, col, A[row, col].subs(sub_list)))
+        print('        A[{},{}] = {}'.format(row, col,
+                                             common_sub_expr[1][0][row, col].subs(sub_list)))
 
-b = simplify(dyn_new - A * omega_dot)
 for row in range(b.rows):
-    print('b[{}] = {}'.format(row, -b[row].subs(sub_list)))
+    print('        b[{}] = {}'.format(row, -common_sub_expr[1][1][row].subs(sub_list)))
 
 # linearize system around equilibrium [beta, 0, 0, 0, 0, 0]
 eq = [(x, 0) for x in ['phi', 'psi', 'beta_dot', 'phi_dot', 'psi_dot', 'beta_dd', 'phi_dd', 'psi_dd']]

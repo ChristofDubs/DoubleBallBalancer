@@ -136,7 +136,7 @@ class DynamicModel:
         psi = x[PSI_IDX]
 
         # upper ball falling off the lower ball
-        if psi < -np.pi / 2 or psi > np.pi / 2:
+        if np.abs(psi) > np.pi / 2:
             return True
 
         # upper ball touching the ground
@@ -197,13 +197,11 @@ class DynamicModel:
         if self.is_irrecoverable():
             return np.concatenate([x[3:], -100 * x[3:]])
 
-        A = self._compute_acc_jacobian_matrix(x)
-        b = self._compute_rhs(x, u)
-        omega_dot = np.linalg.solve(A, b)
+        omega_dot = self._compute_omega_dot(x, u)
         return np.concatenate([x[3:], omega_dot])
 
-    def _compute_acc_jacobian_matrix(self, x):
-        """computes angular acceleration matrix of system dynamics (equal to jacobian matrix since dynamics are linear in angular accelerations)
+    def _compute_omega_dot(self, x, omega_cmd):
+        """computes angular accelerations of system dynamics
 
         The non-linear dynamics are of the form
 
@@ -211,69 +209,71 @@ class DynamicModel:
 
         where A = A(phi, psi) and b=b(phi,psi,phi_dot,psi_dot,u)
 
-        This function computes matrix A.
+        This function solves for the angular accelerations [beta_ddot, phi_ddot, psi_ddot]
 
         args:
             x (numpy.ndarray): current state
+            omega_cmd: motor speed command [rad/s]
 
-        Returns: 3x3 angular acceleration matrix
+
+        Returns: array containing the time derivative of the angular velocities
         """
+        beta = x[BETA_IDX]
         phi = x[PHI_IDX]
         psi = x[PSI_IDX]
 
-        A = np.zeros([3, 3])
-
-        # auto-generated symbolic expressions
-        A[0, 0] = self.p.l * self.p.m3 * self.p.r2 * cos(phi) + self.p.m1 * self.p.r2**2 + self.p.m2 * \
-            self.p.r2**2 + self.p.m3 * self.p.r2**2 + self.p.theta2 + self.p.r2**2 * self.p.theta1 / self.p.r1**2
-        A[0, 1] = self.p.l**2 * self.p.m3 + self.p.l * \
-            self.p.m3 * self.p.r2 * cos(phi) + self.p.theta3
-        A[0, 2] = -(self.p.r1**2 * (self.p.l * self.p.m3 * (self.p.r1 * cos(phi) + self.p.r1 * cos(phi - psi) + self.p.r2 * cos(phi) + self.p.r2 * cos(phi - psi)) + self.p.m1 * self.p.r2 * (self.p.r1 + self.p.r2) + self.p.m2 * self.p.r2 * \
-                    (self.p.r1 + self.p.r2 + (self.p.r1 + self.p.r2) * cos(psi)) + self.p.m3 * self.p.r2 * (self.p.r1 + self.p.r2 + (self.p.r1 + self.p.r2) * cos(psi))) + self.p.r2 * self.p.theta1 * (self.p.r1 + self.p.r2)) / self.p.r1**2
-        A[1, 0] = -self.p.r2 * (self.p.r1**2 * (self.p.m1 * (self.p.r1 + self.p.r2) + self.p.m2 * (self.p.r1 + self.p.r2 + (self.p.r1 + self.p.r2) * cos(
-            psi)) + self.p.m3 * (self.p.r1 + self.p.r2 + (self.p.r1 + self.p.r2) * cos(psi))) + self.p.theta1 * (self.p.r1 + self.p.r2)) / self.p.r1**2
-        A[1, 1] = -self.p.l * self.p.m3 * ((self.p.r1 + self.p.r2) * sin(phi) * sin(
-            psi) + (self.p.r1 + self.p.r2 + (self.p.r1 + self.p.r2) * cos(psi)) * cos(phi))
-        A[1, 2] = (self.p.r1 + self.p.r2)**2 * (self.p.r1**2 * (self.p.m1 + 2 * self.p.m2 * cos(psi) + \
-                   2 * self.p.m2 + 2 * self.p.m3 * cos(psi) + 2 * self.p.m3) + self.p.theta1) / self.p.r1**2
-        A[2, 0] = -1
-        A[2, 1] = 1
-        A[2, 2] = 0
-
-        return A
-
-    def _compute_rhs(self, x, omega_cmd):
-        """computes state and input terms of system dynamics
-
-        The non-linear dynamics are of the form
-
-        A * [beta_ddot, phi_ddot, psi_ddot] = b
-
-        where A = A(phi, psi) and b=b(phi,psi,phi_dot,psi_dot,u)
-
-        This function computes vector b.
-
-        args:
-            x (numpy.ndarray): current state
-
-        Returns: 3x1 array of state and input terms
-        """
-        b = np.zeros(3)
-
-        phi = x[PHI_IDX]
-        psi = x[PSI_IDX]
         beta_dot = x[BETA_DOT_IDX]
         phi_dot = x[PHI_DOT_IDX]
         psi_dot = x[PSI_DOT_IDX]
 
-        # auto-generated symbolic expressions
-        b[0] = phi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi) + psi_dot**2 * self.p.l * self.p.m3 * self.p.r1 * sin(phi - psi) + psi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi - psi) - psi_dot**2 * self.p.m2 * self.p.r1 * self.p.r2 * sin(
-            psi) - psi_dot**2 * self.p.m2 * self.p.r2**2 * sin(psi) - psi_dot**2 * self.p.m3 * self.p.r1 * self.p.r2 * sin(psi) - psi_dot**2 * self.p.m3 * self.p.r2**2 * sin(psi) - self.p.g * self.p.l * self.p.m3 * sin(phi)
-        b[1] = -phi_dot**2 * self.p.l * self.p.m3 * self.p.r1 * sin(phi) - phi_dot**2 * self.p.l * self.p.m3 * self.p.r1 * sin(phi - psi) - phi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi) - phi_dot**2 * self.p.l * self.p.m3 * self.p.r2 * sin(phi - psi) + psi_dot**2 * self.p.m2 * self.p.r1**2 * sin(psi) + 2 * psi_dot**2 * self.p.m2 * self.p.r1 * self.p.r2 * sin(
-            psi) + psi_dot**2 * self.p.m2 * self.p.r2**2 * sin(psi) + psi_dot**2 * self.p.m3 * self.p.r1**2 * sin(psi) + 2 * psi_dot**2 * self.p.m3 * self.p.r1 * self.p.r2 * sin(psi) + psi_dot**2 * self.p.m3 * self.p.r2**2 * sin(psi) + self.p.g * self.p.m2 * self.p.r1 * sin(psi) + self.p.g * self.p.m2 * self.p.r2 * sin(psi) + self.p.g * self.p.m3 * self.p.r1 * sin(psi) + self.p.g * self.p.m3 * self.p.r2 * sin(psi)
-        b[2] = -(-beta_dot - omega_cmd + phi_dot) / self.p.tau
+        A = np.zeros([3, 3])
+        b = np.zeros(3)
 
-        return b
+        # auto-generated symbolic expressions
+        x0 = self.p.r2**2
+        x1 = cos(phi)
+        x2 = self.p.l * self.p.m3 * x1
+        x3 = self.p.r2 * x2
+        x4 = self.p.theta1 / self.p.r1**2
+        x5 = sin(phi)
+        x6 = self.p.l**2 * self.p.m3
+        x7 = self.p.l * self.p.m3 * x5
+        x8 = sin(psi)
+        x9 = self.p.r1 + self.p.r2
+        x10 = x8 * x9
+        x11 = cos(psi)
+        x12 = -self.p.r1 - self.p.r2
+        x13 = -x11 * x9 + x12
+        x14 = -x10 * x7 + x13 * x2
+        x15 = self.p.r2 * x9
+        x16 = self.p.r2 * x13
+        x17 = self.p.m1 * self.p.r2 * x12 + self.p.m2 * x16 + self.p.m3 * x16 - x15 * x4
+        x18 = x9**2
+        x19 = x18 * x8**2
+        x20 = x13**2
+        x21 = psi_dot**2
+        x22 = phi_dot**2
+        x23 = x21 * x8 * x9
+        x24 = self.p.m3 * x23 - x22 * x7
+        x25 = x11 * x21 * x9
+        x26 = self.p.g * self.p.m3 - self.p.m3 * x25 + x2 * x22
+        A[0, 0] = self.p.m1 * x0 + self.p.m2 * x0 + self.p.m3 * x0 + self.p.theta2 + x0 * x4 + x3
+        A[0, 1] = self.p.theta3 + x1**2 * x6 + x3 + x5**2 * x6
+        A[0, 2] = x14 + x17
+        A[1, 0] = x17
+        A[1, 1] = x14
+        A[1, 2] = self.p.m1 * x12**2 + self.p.m2 * x19 + self.p.m2 * \
+            x20 + self.p.m3 * x19 + self.p.m3 * x20 + x18 * x4
+        A[2, 0] = -1
+        A[2, 1] = 1
+        A[2, 2] = 0
+        b[0] = -self.p.l * x1 * x24 - self.p.l * x26 * \
+            x5 - self.p.m2 * x15 * x21 * x8 - self.p.r2 * x24
+        b[1] = -self.p.m2 * x13 * x23 + x10 * x26 + x10 * \
+            (self.p.g * self.p.m2 - self.p.m2 * x25) - x13 * x24
+        b[2] = (beta_dot + omega_cmd - phi_dot) / self.p.tau
+
+        return np.linalg.solve(A, b)
 
     def _compute_r_OSi(self, x):
         """computes center of mass locations of all bodies
@@ -295,11 +295,10 @@ class DynamicModel:
 
         r_OS1 = np.array([x, self.p.r1])
 
-        r12 = self.p.r1 + self.p.r2
-        r_S1S2 = np.array([-np.sin(psi) * r12, np.cos(psi) * r12])
+        r_S1S2 = (self.p.r1 + self.p.r2) * np.array([-np.sin(psi), np.cos(psi)])
         r_OS2 = r_OS1 + r_S1S2
 
-        r_S2S3 = np.array([self.p.l * np.sin(phi), -self.p.l * np.cos(phi)])
+        r_S2S3 = self.p.l * np.array([np.sin(phi), - np.cos(phi)])
         r_OS3 = r_OS2 + r_S2S3
         return [r_OS1, r_OS2, r_OS3]
 
