@@ -21,6 +21,7 @@ param.r2 = 2
 
 # initial state
 x0 = ModelState()
+# x0.q2 = np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])
 
 # instantiate model
 model = DynamicModel(param, x0)
