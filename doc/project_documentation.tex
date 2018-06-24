@@ -1,0 +1,269 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+\begin{document}
+
+\title{Double Ball Balancer}
+\author{Christof Dubs}
+
+\maketitle
+
+\section{Introduction}
+
+\section{Nomenclature}
+
+\begin{itemize}
+	\item{$a$: scalar $a \in \mathbb{R}$}
+	\item{$\vec{a}$: vector $\vec{a} \in \mathbb{R}^3$}
+	\item{${}_I \vec{a}$: vector $\vec{a}$, expressed in frame $I$}
+	\item{${}^I \vec{e}_x$: x-axis of frame $I$}
+	\item{${}_B^I \vec{e}_x$: x-axis of frame $I$, expressed in frame $B$}
+	\item{$R_{IB}$: rotation matrix $\in \mathbb{R}^{3 \times 3}$ to transform the representation of a vector from frame $B$ to $I$: ${}_I \vec{a} =R_{IB} \cdot  {}_B \vec{a}$}
+\end{itemize}
+Note that $R_{IB}$ can not only be used to express vectors in different frames as in ${}_I^I \vec{e}_x =R_{IB} \cdot  {}_B^I \vec{e}_x$, but also to rotate vectors as in ${}_I^B \vec{e}_x =R_{IB} \cdot  {}_I^I \vec{e}_x$.
+
+\section{Theory}
+
+%Note that this is most straight-forward in the inertial frame: ${}_I \vec{v}_{OSi} = {}_I \left(\dot{\vec{r}}_{OSi} \right) = ({}_I \vec{r}_{OSi})^.$)
+
+%\begin{equation}
+%0 = \sum_{i=1}^n \left[{}_A J_{Si} \cdot {}_A \left(\dot{\vec{p}}_i \right) + {}_B J_{Ri} \cdot {}_B \left(\dot{\vec{N}}_{Si} \right) - {}_C J_{Pi} \cdot {}_C \vec{F}_i - {}_D J_{Ri} \cdot {}_D \vec{M}_i \right]
+%\end{equation}
+
+\section{2D version}
+A simplified version of the double ball balancer is its two dimensional version, consisting of cylinders instead of spheres, and a single actuator.
+This version has been developed for the following reasons:
+\begin{itemize}
+	\item Simpler and faster testing of different general concepts
+	\item Improving the understanding of the more complex 3D version
+	\item Potential re-usability of components
+\end{itemize}
+
+\subsection{State / Input definition}
+The state of the 2D version is 6-dimensional; the following minimal coordinates are chosen:
+\begin{itemize}
+	\item $\beta$: rolling angle of upper ball [$rad$]
+	\item $\dot{\beta}$: angular velocity of upper ball [$rad/s$]
+	\item $\varphi$: angle of lever arm relative to inertial up direction [$rad$]
+	\item $\dot{\varphi}$: angular velocity of lever arm relative to inertial up direction [$rad/s$]
+	\item $\psi$: angle of contact point of upper ball on lower ball [$rad$]
+	\item $\dot{\psi}$: angle derivative of contact point of upper ball on lower ball [$rad/s$]
+\end{itemize}
+Additionally, the following states are introduced and later eliminated during the derivation of the equations of motion:
+\begin{itemize}
+	\item $\alpha$: rolling angle of lower ball [$rad$]
+	\item $\dot{\alpha}$: angular velocity of lower ball [$rad/s$]
+	\item $\varphi_m$: motor angle [$rad$]
+	\item $\dot{\varphi}_m$: motor angular velocity [$rad/s$]
+	\item $x$: position of lower ball [$m$]
+	\item $\dot{x}$: velocity  of lower ball [$m/s$]
+\end{itemize}
+To control the system, a simple speed-controller motor model will be used to make the motor follow an angular velocity command $\breve{\dot{\varphi}}_m$, which replaces the motor torque $T$.
+
+\subsection{Parameter definition}
+\begin{itemize}
+	\item $l$ : Arm length of lever [$m$] (distance from rotation axis to center of mass)
+	\item $m_1$: Mass of lower ball [$kg$]
+	\item $m_2$: Mass of upper ball [$kg$]
+	\item $m_3$: Mass of lever arm [$kg$]
+	\item $r_1$: Radius of lower ball [$m$]
+	\item $r_2$: Radius of upper ball [$m$]
+	\item $\tau$: Time constant of speed-controlled motor [$s$]
+	\item $\theta_1$: Mass moment of inertia of lower ball wrt. its center of mass [$kg*m^2$]
+	\item $\theta_2$: Mass moment of inertia of upper ball wrt. its center of mass [$kg*m^2$]
+	\item $\theta_3$: Mass moment of inertia of lever arm wrt. its center of mass [$kg*m^2$]
+	\end{itemize}
+
+\subsection{System description and kinematic relations}
+In the following subsection, the position and linear / angular velocities of each rigid body is mathematically expressed. Kinematic relations (rolling constraints) are derived in order to later eliminate the states that are not part of the minimal coordinates.
+
+\subsubsection{Lower ball state}
+Position, velocity and angular velocity of the lower ball are given as per definition of the states:
+\begin{equation}
+{}_I \vec{r}_{OS1} = 
+\left( {\begin{array}{c} x \\ r_1 \\ 0 \\ \end{array} } \right), \quad 
+{}_I \vec{v}_{S1} = {}_I \dot{\vec{r}}_{OS1} =
+\left( {\begin{array}{c} \dot{x} \\ 0 \\ 0 \\ \end{array} } \right), \quad 
+{}_I \vec{\Omega}_1 = 
+\left( {\begin{array}{c} 0 \\ 0 \\ \dot{\alpha} \\ \end{array} } \right)
+\end{equation}
+The external forces acting on the lower ball is the gravitational force:
+\begin{equation}
+{}_I \vec{F}_{1} = \left( {\begin{array}{c} 0 \\ -m_1 \cdot g \\ 0 \\ \end{array} } \right)
+\end{equation}
+
+\subsubsection{Rolling constraint: Lower ball on ground}
+Consider point G which is the contact point of the lower ball on the ground:
+\begin{equation}
+{}_I \vec{r}_{S1G} = 
+\left( {\begin{array}{c} 0 \\ -r_1 \\ 0 \\ \end{array} } \right)
+\end{equation}
+Momentarily, point G is both a point on the ball, as well as a point on the ground.
+Since it is a point on the ground, its velocity is zero; and since it is part of the lower ball's rigid body, its velocity is
+\begin{equation}
+{}_I \vec{v}_{G} = {}_I \vec{v}_{S1} + {}_I \vec{\Omega}_1 \times {}_I \vec{r}_{S1G} =
+\left( {\begin{array}{c} \dot{x} + r_1 \cdot \dot{\alpha} \\ 0 \\ 0 \\ \end{array} } \right) =
+\left( {\begin{array}{c} 0 \\ 0 \\ 0 \\ \end{array} } \right)
+\end{equation}
+This leads to the following rolling constraint:
+\begin{equation}
+\dot{x} = -r_1 \cdot \dot{\alpha} \quad and \quad x = -r_1 \cdot \alpha
+\end{equation}
+
+\subsubsection{Upper ball state}
+The angular velocity of the lower ball is given as per definition of the states:
+\begin{equation}
+{}_I \vec{\Omega}_2 = 
+\left( {\begin{array}{c} 0 \\ 0 \\ \dot{\beta} \\ \end{array} } \right)
+\end{equation}
+The directional vector from lower to upper ball is
+\begin{equation}
+{}_I \vec{e}_{S1S2} = 
+\left( {\begin{array}{c} -\sin{\psi} \\ \cos{\psi} \\ 0 \\ \end{array} } \right)
+\end{equation}
+and consequently, 
+\begin{equation}
+{}_I \vec{r}_{S1S2} = (r1+r2) \cdot {}_I \vec{e}_{S1S2} =
+(r1+r2) \cdot \left( {\begin{array}{c} -\sin{\psi} \\ \cos{\psi} \\ 0 \\ \end{array} } \right)
+\end{equation}
+Finally,
+\begin{equation}
+{}_I \vec{r}_{OS2} = {}_I \vec{r}_{OS1} + {}_I \vec{r}_{S1S2} =
+\left( {\begin{array}{c} x - (r1+r2) \cdot \sin{\psi} \\ r_1 + (r1+r2) \cdot \cos{\psi} \\ 0 \\ \end{array} } \right)
+\end{equation} 
+and
+\begin{equation}
+{}_I \vec{v}_{S2} = {}_I \dot{\vec{r}}_{OS2} =
+\left( {\begin{array}{c} \dot{x} - (r1+r2) \cdot \dot{\psi} \cdot \cos{\psi} \\ - (r1+r2) \cdot \dot{\psi} \cdot \sin{\psi} \\ 0 \\ \end{array} } \right)
+\end{equation} 
+The external forces acting on the upper ball is the gravitational force:
+\begin{equation}
+{}_I \vec{F}_{2} = \left( {\begin{array}{c} 0 \\ -m_2 \cdot g \\ 0 \\ \end{array} } \right)
+\end{equation}
+From accelerating the lever arm through the motor, the upper ball feels the reaction torque
+\begin{equation}
+{}_I \vec{M}_{2} = \left( {\begin{array}{c} 0 \\ 0 \\ -T \\ \end{array} } \right)
+\end{equation}
+
+\subsubsection{Rolling constraint: Upper ball on lower ball}
+Consider point P which is the contact point of the upper ball on the lower ball.
+Since it is both part of upper and lower ball, the rolling constraint is given by
+\begin{equation}
+{}_I \vec{v}_{P} = {}_I \vec{v}_{S1} + {}_I \vec{\Omega}_1 \times {}_I \vec{r}_{S1P} =
+{}_I \vec{v}_{S2} + {}_I \vec{\Omega}_2 \times {}_I \vec{r}_{S2P}
+\end{equation}
+where
+\begin{equation}
+{}_I \vec{r}_{S1P} = r1 \cdot {}_I \vec{e}_{S1S2} , \quad
+{}_I \vec{r}_{S2P} = -r2 \cdot {}_I \vec{e}_{S1S2}
+\end{equation}
+This leads to
+\begin{equation}
+\dot{\alpha} = \left( 1+\frac{r_2}{r_1} \right) \cdot \dot{\psi} -\frac{r_2}{r_1}  \cdot \dot{\beta}
+\end{equation}
+
+\subsubsection{Lever arm}
+
+The angular velocity of the lever arm is given as per definition of the states:
+\begin{equation}
+{}_I \vec{\Omega}_3 = 
+\left( {\begin{array}{c} 0 \\ 0 \\ \dot{\phi} \\ \end{array} } \right)
+\end{equation}
+The vector from the upper ball's center to the center of mass of the lever arm is
+\begin{equation}
+{}_I \vec{r}_{S2S3} = 
+l \cdot \left( {\begin{array}{c} \sin{\varphi} \\ -\cos{\varphi} \\ 0 \\ \end{array} } \right)
+\end{equation}
+The position of the center of mass of the lever arm is
+\begin{equation}
+{}_I \vec{r}_{OS3} = {}_I \vec{r}_{OS2} + {}_I \vec{r}_{S2S3} =
+\left( {\begin{array}{c} x - (r1+r2) \cdot \sin{\psi} + l \cdot \sin{\varphi} \\ r_1 + (r1+r2) \cdot \cos{\psi} - l \cdot \cos{\varphi} \\ 0 \\ \end{array} } \right)
+\end{equation} 
+The external forces acting on the lever arm is the gravitational force:
+\begin{equation}
+{}_I \vec{F}_{3} = \left( {\begin{array}{c} 0 \\ -m_3 \cdot g \\ 0 \\ \end{array} } \right)
+\end{equation}
+From accelerating the lever arm through the motor, the upper ball feels the motor torque
+\begin{equation}
+{}_I \vec{M}_{3} = \left( {\begin{array}{c} 0 \\ 0 \\ T \\ \end{array} } \right)
+\end{equation}
+%and
+%\begin{equation}
+%{}_I \vec{v}_{S3} = {}_I \dot{\vec{r}}_{OS3} =
+%\left( {\begin{array}{c} \dot{x} - (r1+r2) \cdot \dot{\psi} \cdot \cos{\psi} + l \dot{\varphi} \cdot \cos{\varphi} \\
+%- (r1+r2) \cdot \dot{\psi} \cdot \sin{\psi} + l \dot{\varphi} \cdot \sin{\varphi}\\
+%0 \\ \end{array} } \right)
+%\end{equation} 
+
+\subsection{Derivation of the equations of motion}
+To derive the equations of motion, the concept of projected Newton-Euler equations is used, for which the following terms are needed:
+For each rigid body $i$, 
+\begin{enumerate}
+	\item Express the position its center of mass ($\vec{r}_{OSi}$) and its angular velocity ($\vec{\omega}_i$) as a function of the minimal coordinates
+	\item Formulate the all external forces $F_i$ and torques $M_i$
+	\item Calculate the velocity of its center of mass ($\vec{v}_{OSi}$) as a function of the minimal coordinates using Euler's differentiation rule on $\vec{r}_{OSi}$
+	\item Calculate the velocity of its center of mass ($\vec{v}_{OSi}$) as a function of the minimal coordinates using Euler's differentiation rule on $\vec{r}_{OSi}$
+	\item Calculate the translational jacobian matrix $J_{Si}$ by taking the partial derivative of $\vec{v}_{OSi}$ with respect to the velocity states
+	\item Calculate the rotational jacobian matrix $J_{Ri}$ by taking the partial derivative of $\vec{\omega}_i$ with respect to the velocity states
+	\item Calculate the derivative of the impulse $\vec{p}_{i} = m_i \cdot \vec{v}_{OSi}$
+	\item Calculate the derivative of the spin $\vec{N}_{Si} = \theta_i \cdot \vec{\Omega}_{i}$
+\end{enumerate}
+Note that after formulating the first two items plus the rolling constraints to eliminate non-minimal coordinates, everything can be calculated (using a computer and a symbolic math library, e.g. sympy). The detailed individual steps for those calculations are therefore omitted.
+The projected Newton-Euler equations are then given by:
+\begin{equation}
+0 = \sum_{i=1}^n \left[{}_I J_{Si} \cdot \left( {}_I \left(\dot{\vec{p}}_i \right) - {}_I \vec{F}_i \right) + {}_I J_{Ri} \cdot \left( {}_I \left(\dot{\vec{N}}_{Si} \right) - {}_I \vec{M}_i \right) \right]
+\end{equation}
+This leads to three equations in the form $A \cdot [\ddot{\beta}, \ddot{\varphi}, \ddot{\psi}] = b$ where
+\begin{align*}
+A[0,0] &= \theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 \\
+A[0,1] &= l \cdot m_3 \cdot r_2 \cdot cos(\varphi) \\
+A[0,2] &= -r_2 \cdot (r_1 + r_2) \cdot (\theta_1/r_1^2  + m_1 + (m_2+m_3) \cdot (1+cos(\psi)))\\
+A[1,0] &= A[0,1] \\
+A[1,1] &= \theta_3 + l^2 \cdot m_3 \\
+A[1,2] &= -l \cdot m_3 \cdot (r_1 + r_2) \cdot (cos(\varphi) + cos(\psi - \varphi)) \\
+A[2,0] &= A[0,2] \\
+A[2,1] &= A[1,2] \\
+A[2,2] &= (r_1 + r_2)^2 \cdot (\theta_1/r_1^2 + m_1 + 2 \cdot (m_2+m_3) \cdot (1+cos(\psi))) \\
+b[0] &= T + \dot{\psi}^2 \cdot (m_2+m_3) \cdot r_2 \cdot (r_1 + r_2) \cdot sin(\psi) - m_3 \cdot r_2 \cdot  \dot{\varphi}^2 \cdot l \cdot sin(\varphi) \\
+b[1] &= -T + \dot{\psi}^2 \cdot l \cdot m_3 \cdot (r_1+r_2) \cdot sin(\psi - \varphi) + g \cdot l \cdot m_3 \cdot sin(\varphi) \\
+b[2] &= -(r_1 + r_2) \cdot (m_2+m_3) \cdot sin(\psi) \cdot ((r_1 + r_2) \cdot \dot{\psi}^2 + g) \\
+&\qquad -(r_1 + r_2) \cdot \dot{\varphi}^2 \cdot l \cdot m_3 \cdot (sin(\psi - \varphi)-sin(\varphi)) \\
+\end{align*}
+
+\subsection{Incorporating motor dynamics into the equations of motion}
+While applying torque is the most direct way to control above system, the ability to control the torque directly imposes some strong mechanical requirements: 
+A torque-controlled motor with a very high torque has to be used and the lever arm needs to be able to swing freely when the motor is off (no gearbox / low friction in general).
+A much simpler approach is controlling the velocity of a (DC)-motor with a gearbox and encoder instead. The simplest viable (requiring finite torques) model of a speed-controlled motor is a first order system, where the motor speed $\dot{\varphi}_m$ follows the speed command $\breve{\dot{\varphi}}$ with time constant $\tau_m$:
+\begin{equation}
+\ddot{\varphi}_m = \frac{1}{\tau_m} \cdot \left(\breve{\dot{\varphi}} - \dot{\varphi}_m \right)
+\label{eq:motordyn}
+\end{equation} 
+In order to incorporate this motor model into the equations of motion, the torque $T$ has to be eliminated from the equations of motion, and the motor dynamics have to be expressed in the minimal coordinates to replace the eliminated equation.
+By inspecting the $b[0]$ and $b[1]$ terms, it can be immediately seen that $T$ can be eliminated by adding the first two equations. 
+The relation between the motor dynamics and the minimal coordinates is $\beta + \varphi_m = \varphi$, and consequently $\varphi_m = \varphi - \beta$, $\dot{\varphi}_m = \dot{\varphi} - \dot{\beta}$ and $\ddot{\varphi}_m = \ddot{\varphi} - \ddot{\beta}$.
+Substituting back these expressions into eq. \ref{eq:motordyn}, we get:
+\begin{equation}
+\ddot{\varphi} - \ddot{\beta} = \frac{1}{\tau_m} \cdot \left(\breve{\dot{\varphi}} - \dot{\varphi} + \dot{\beta} \right)
+\end{equation}
+With those substitutions, the three equations $A \cdot [\ddot{\beta}, \ddot{\varphi}, \ddot{\psi}] = b$ become
+\begin{align*}
+A[0,0] &= \theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 + l \cdot m_3 \cdot r_2 \cdot cos(\varphi)\\
+A[0,1] &= l \cdot m_3 \cdot r_2 \cdot cos(\varphi) + \theta_3 + l^2 \cdot m_3 \\
+A[0,2] &= -r_2 \cdot (r_1 + r_2) \cdot (\theta_1/r_1^2  + m_1 + (m_2+m_3) \cdot (1+cos(\psi))) \\
+&\qquad -l \cdot m_3 \cdot (r_1 + r_2) \cdot (cos(\varphi) + cos(\psi - \varphi)) \\
+A[1,0] &= -1 \\
+A[1,1] &= 1 \\
+A[1,2] &= 0 \\
+A[2,0] &= -r_2 \cdot (r_1 + r_2) \cdot (\theta_1/r_1^2  + m_1 + (m_2+m_3) \cdot (1+cos(\psi))) \\
+A[2,1] &= -l \cdot m_3 \cdot (r_1 + r_2) \cdot (cos(\varphi) + cos(\psi - \varphi)) \\
+A[2,2] &= (r_1 + r_2)^2 \cdot (\theta_1/r_1^2 + m_1 + 2 \cdot (m_2+m_3) \cdot (1+cos(\psi))) \\
+b[0] &= \dot{\psi}^2 \cdot (r_1 + r_2) \cdot ( r_2 \cdot (m_2+m_3) \cdot sin(\psi) +  l \cdot m_3 \cdot sin(\psi - \varphi)) \\
+&\qquad  + l \cdot m_3 \cdot sin(\varphi) \cdot (g - r_2 \cdot  \dot{\varphi}^2) \\
+b[1] &= 1/\tau_m \cdot (-\dot{\beta} + \dot{\varphi} - \breve{\dot{\varphi}}) \\
+b[2] &= -(r_1 + r_2) \cdot (m_2+m_3) \cdot sin(\psi) \cdot ((r_1 + r_2) \cdot \dot{\psi}^2 + g) \\
+&\qquad -(r_1 + r_2) \cdot \dot{\varphi}^2 \cdot l \cdot m_3 \cdot (sin(\psi - \varphi)-sin(\varphi)) \\
+\end{align*}
+
+\end{document}

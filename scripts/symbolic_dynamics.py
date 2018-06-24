@@ -60,7 +60,6 @@ v_OS1 = v_OS1.subs(alpha_dot, constraint1[alpha_dot])
 om1 = om1.subs(alpha_dot, constraint1[alpha_dot])
 v_OS2 = v_OS2.subs(alpha_dot, constraint1[alpha_dot])
 
-
 r_S2S3 = l * Matrix([sin(phi), -cos(phi), 0])
 om3 = Matrix([0, 0, phi_dot])
 v_OS3 = v_OS2 + om3.cross(r_S2S3)
@@ -90,6 +89,53 @@ NS_dot_i = [NS.jacobian(omega) * omega_dot for NS in NS_i]
 dyn = Matrix([0, 0, 0])
 for i in range(3):
     dyn += J_i[i].T * (p_dot_i[i] - F_i[i]) + JR_i[i].T * (NS_dot_i[i] - M_i[i])
+
+A = dyn.jacobian(omega_dot)
+b = dyn.subs([(x, 0) for x in omega_dot])
+
+sub_list = [
+    ('m1',
+     'm_1'),
+    ('m2',
+     'm_2'),
+    ('m3',
+     'm_3'),
+    ('r1',
+     'r_1'),
+    ('r2',
+     'r_2'),
+    ('tau',
+     '\\tau'),
+    ('theta1',
+     '\\theta_1'),
+    ('theta2',
+     '\\theta_2'),
+    ('theta3',
+     '\\theta_3'),
+    ('beta',
+     '\\beta'),
+    ('phi',
+     '\\varphi'),
+    ('psi',
+     '\\psi'),
+    ('beta_dot',
+     '\\dot{\\beta}'),
+    ('phi_dot',
+     '\\dot{\\varphi}'),
+    ('psi_dot',
+     '\\dot{\\psi}')]
+
+for row in range(A.rows):
+    for col in range(A.cols):
+        if row > col and simplify(A[row, col] - A[col, row]) == 0:
+            print('A[{},{}] &= A[{},{}] \\\\'.format(row, col, col, row))
+        else:
+            print('A[{},{}] &= {}  \\\\'.format(
+                row, col, factor(simplify(A[row, col])).subs(sub_list)))
+
+
+for row in range(b.rows):
+    print('b[{}] &= {} \\\\'.format(row, simplify(factor(expand(b[row]))).subs(sub_list)))
 
 # eliminate torque T by inspection
 dyn_new = Matrix([0, 0, 0])

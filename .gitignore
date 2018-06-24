@@ -99,3 +99,9 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# latex
+*.aux
+*.bbl
+*.blg
+*.pdf
