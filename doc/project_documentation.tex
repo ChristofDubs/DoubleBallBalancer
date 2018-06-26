@@ -226,13 +226,14 @@ A[1,2] &= -l \cdot m_3 \cdot (r_1 + r_2) \cdot (cos(\varphi) + cos(\psi - \varph
 A[2,0] &= A[0,2] \\
 A[2,1] &= A[1,2] \\
 A[2,2] &= (r_1 + r_2)^2 \cdot (\theta_1/r_1^2 + m_1 + 2 \cdot (m_2+m_3) \cdot (1+cos(\psi))) \\
-b[0] &= T + \dot{\psi}^2 \cdot (m_2+m_3) \cdot r_2 \cdot (r_1 + r_2) \cdot sin(\psi) - m_3 \cdot r_2 \cdot  \dot{\varphi}^2 \cdot l \cdot sin(\varphi) \\
-b[1] &= -T + \dot{\psi}^2 \cdot l \cdot m_3 \cdot (r_1+r_2) \cdot sin(\psi - \varphi) + g \cdot l \cdot m_3 \cdot sin(\varphi) \\
-b[2] &= -(r_1 + r_2) \cdot (m_2+m_3) \cdot sin(\psi) \cdot ((r_1 + r_2) \cdot \dot{\psi}^2 + g) \\
-&\qquad -(r_1 + r_2) \cdot \dot{\varphi}^2 \cdot l \cdot m_3 \cdot (sin(\psi - \varphi)-sin(\varphi)) \\
+b[0] &= -T - \dot{\psi}^2 \cdot (m_2+m_3) \cdot r_2 \cdot (r_1 + r_2) \cdot sin(\psi) + m_3 \cdot r_2 \cdot  \dot{\varphi}^2 \cdot l \cdot sin(\varphi) \\
+b[1] &= T - \dot{\psi}^2 \cdot l \cdot m_3 \cdot (r_1+r_2) \cdot sin(\psi - \varphi) - g \cdot l \cdot m_3 \cdot sin(\varphi) \\
+b[2] &= (r_1 + r_2) \cdot (m_2+m_3) \cdot sin(\psi) \cdot ((r_1 + r_2) \cdot \dot{\psi}^2 + g) \\
+&\qquad +(r_1 + r_2) \cdot \dot{\varphi}^2 \cdot l \cdot m_3 \cdot (sin(\psi - \varphi)-sin(\varphi)) \\
 \end{align*}
 
 \subsection{Incorporating motor dynamics into the equations of motion}
+\label{ss:EoM}
 While applying torque is the most direct way to control above system, the ability to control the torque directly imposes some strong mechanical requirements: 
 A torque-controlled motor with a very high torque has to be used and the lever arm needs to be able to swing freely when the motor is off (no gearbox / low friction in general).
 A much simpler approach is controlling the velocity of a (DC)-motor with a gearbox and encoder instead. The simplest viable (requiring finite torques) model of a speed-controlled motor is a first order system, where the motor speed $\dot{\varphi}_m$ follows the speed command $\breve{\dot{\varphi}}$ with time constant $\tau_m$:
@@ -259,11 +260,65 @@ A[1,2] &= 0 \\
 A[2,0] &= -r_2 \cdot (r_1 + r_2) \cdot (\theta_1/r_1^2  + m_1 + (m_2+m_3) \cdot (1+cos(\psi))) \\
 A[2,1] &= -l \cdot m_3 \cdot (r_1 + r_2) \cdot (cos(\varphi) + cos(\psi - \varphi)) \\
 A[2,2] &= (r_1 + r_2)^2 \cdot (\theta_1/r_1^2 + m_1 + 2 \cdot (m_2+m_3) \cdot (1+cos(\psi))) \\
-b[0] &= \dot{\psi}^2 \cdot (r_1 + r_2) \cdot ( r_2 \cdot (m_2+m_3) \cdot sin(\psi) +  l \cdot m_3 \cdot sin(\psi - \varphi)) \\
-&\qquad  + l \cdot m_3 \cdot sin(\varphi) \cdot (g - r_2 \cdot  \dot{\varphi}^2) \\
-b[1] &= 1/\tau_m \cdot (-\dot{\beta} + \dot{\varphi} - \breve{\dot{\varphi}}) \\
-b[2] &= -(r_1 + r_2) \cdot (m_2+m_3) \cdot sin(\psi) \cdot ((r_1 + r_2) \cdot \dot{\psi}^2 + g) \\
-&\qquad -(r_1 + r_2) \cdot \dot{\varphi}^2 \cdot l \cdot m_3 \cdot (sin(\psi - \varphi)-sin(\varphi)) \\
+b[0] &= - \dot{\psi}^2 \cdot (r_1 + r_2) \cdot ( r_2 \cdot (m_2+m_3) \cdot sin(\psi) +  l \cdot m_3 \cdot sin(\psi - \varphi)) \\
+&\qquad  + l \cdot m_3 \cdot sin(\varphi) \cdot (r_2 \cdot  \dot{\varphi}^2 - g) \\
+b[1] &= 1/\tau_m \cdot (\dot{\beta} - \dot{\varphi} + \breve{\dot{\varphi}}) \\
+b[2] &= (r_1 + r_2) \cdot (m_2+m_3) \cdot sin(\psi) \cdot ((r_1 + r_2) \cdot \dot{\psi}^2 + g) \\
+&\qquad (r_1 + r_2) \cdot \dot{\varphi}^2 \cdot l \cdot m_3 \cdot (sin(\psi - \varphi)-sin(\varphi)) \\
+\end{align*}
+
+\subsection{Controller derivation}
+
+\subsubsection{System Linearization}
+
+A lot of concepts in control theory are based on linear systems of the form $\dot{x} = A \cdot x + B \cdot u$, where $A$ and $B$ are matrices that are just a function of system parameters (and potentially time), but not states.
+In order stabilize a non-linear systems, the system is linearized about its equilibrium.
+The concepts based on linear systems then work perfectly for infinitesimal deflections from the equilibrium, but fail further away from the equilibrium where the non-linear system behaves significantly different compared to its linearized version.
+
+The equilibrium of the system $(x^*, u^*)$ is at $\varphi^* = \psi^* = \dot{\beta}^* = \dot{\varphi}^* = \dot{\psi}^* = \breve{\dot{\varphi}}^* = 0$, and $\beta^*$ arbitrary\footnote{
+There is another equilibrium with the lever arm pointing up ($\dot{\varphi} = \pi$), which is much harder to control and not considered for now. Additionally, there are two equilibriums with the upper ball below the ground at $\psi = \pi$.}.
+
+Linearizing $A \cdot [\ddot{\beta}, \ddot{\varphi}, \ddot{\psi}] = b$ from subsec. \ref{ss:EoM} around the equilibrium results in
+\begin{equation}
+M \cdot \left( {\begin{array}{c} \ddot{\beta} \\ \ddot{\varphi} \\ \ddot{\psi} \\ \end{array} } \right) +
+D \cdot \left( {\begin{array}{c} \dot{\beta} \\ \dot{\varphi} \\ \dot{\psi} \\ \end{array} } \right) +
+K \cdot \left( {\begin{array}{c} \beta \\ \varphi \\ \psi \\ \end{array} } \right) =
+F \cdot \breve{\dot{\varphi}}
+\end{equation}
+where
+\begin{itemize}
+	\item $M = \frac{\partial \left(A \cdot [\ddot{\beta}, \ddot{\varphi}, \ddot{\psi}] \right)}{\partial [\ddot{\beta}, \ddot{\varphi}, \ddot{\psi}]} = A\Big|_{x=x^*}$
+	\item $D = -\frac{\partial b}{\partial [\dot{\beta}, \dot{\varphi}, \dot{\psi}]}\Big|_{x=x^*}$
+	\item $K = -\frac{\partial b}{\partial [\beta, \varphi, \psi]}\Big|_{x=x^*}$
+	\item $F = \frac{\partial b}{\partial \breve{\dot{\varphi}}}\Big|_{x=x^*}$
+\end{itemize}
+This system of three second order differential equations can be transformed into six equations of first order $\dot{x} = A \cdot x + B \cdot u$ by using:
+\begin{itemize}
+	\item state $x = [\beta, \varphi, \psi, \dot{\beta}, \dot{\varphi}, \dot{\psi}]$
+	\item input $u = \breve{\dot{\varphi}}$
+	\item system matrix $A = \left( {\begin{array}{cc} 0_{3 \times 3} & I_{3 \times 3} \\ -M^{-1} \cdot K & -M^{-1} \cdot D  \end{array} } \right)$
+	\item control matrix $B = \left( {\begin{array}{c} 0_{3 \times 1} \\ M^{-1} \cdot F \end{array} } \right)$
+\end{itemize}
+Evaluating the expressions for $M$, $D$, $K$ and $F$ results in
+\begin{align*}
+M[0,0] &= \theta_1 \cdot r_2^2/r_1^2 + \theta_2 + l \cdot m_3 \cdot r_2 + (m_1 + m_2 + m_3) \cdot r_2^2  \\
+M[0,1] &= \theta_3 + l^2 \cdot m_3 + l \cdot m_3 \cdot r_2  \\
+M[0,2] &= -(r_1 + r_2) \cdot (\theta_1 \cdot r_2 /r_1^2 + 2 \cdot l \cdot m_3 + m_1 \cdot r_2 + 2 \cdot m_2 \cdot r_2 + 2 \cdot m_3 \cdot r_2)  \\
+M[1,0] &= -1 \\
+M[1,1] &= 1 \\
+M[1,2] &= 0 \\
+M[2,0] &= -r_2 \cdot (r_1 + r_2) \cdot (\theta_1/r_1^2  + m_1 + 2 \cdot m_2 + 2 \cdot m_3) \\
+M[2,1] &= -2 \cdot l \cdot m_3 \cdot (r_1 + r_2) \\
+M[2,2] &= (r_1 + r_2)^2 \cdot (\theta_1/r_1^2 + m_1 + 4 \cdot m_2 + 4 \cdot m_3) \\
+D &= \left( {\begin{array}{ccc}
+0 & 0 & 0 \\
+-1/\tau & 1/\tau & 0 \\
+0 & 0 & 0 \end{array} } \right) \\
+K &= \left( {\begin{array}{ccc}
+0 & g \cdot l \cdot m_3 & 0 \\
+0 & 0 & 0 \\
+0 & 0 & -g \cdot (m_2 + m_3) \cdot (r_1 + r_2)  \end{array} } \right) \\
+F &= \left( {\begin{array}{c} 0 \\ 1/\tau \\ 0 \end{array} } \right)
 \end{align*}
 
 \end{document}
