@@ -4,6 +4,19 @@ Derivation of the rigid multi-body dynamics using the Projected Newton-Euler met
 """
 from sympy import *
 
+print_python_expressions = True
+print_latex_expressions = False
+
+
+def print_symbolic(mat, name, sub_list, func=lambda x: x, ignore_symmetry=True):
+    for row in range(mat.rows):
+        for col in range(mat.cols):
+            if not ignore_symmetry and row > col and simplify(mat[row, col] - mat[col, row]) == 0:
+                print('{}[{},{}] = {}[{},{}]'.format(name, row, col, name, col, row))
+            else:
+                print('{}[{},{}] = {}'.format(name, row, col, func(mat[row, col]).subs(sub_list)))
+
+
 # angles
 alpha, beta, phi, psi = symbols('alpha beta phi psi')
 ang = Matrix([beta, phi, psi])
@@ -90,88 +103,114 @@ dyn = Matrix([0, 0, 0])
 for i in range(3):
     dyn += J_i[i].T * (p_dot_i[i] - F_i[i]) + JR_i[i].T * (NS_dot_i[i] - M_i[i])
 
-A = dyn.jacobian(omega_dot)
-b = dyn.subs([(x, 0) for x in omega_dot])
+if print_latex_expressions:
+    A = dyn.jacobian(omega_dot)
+    b = -dyn.subs([(x, 0) for x in omega_dot])
 
-sub_list = [
-    ('m1',
-     'm_1'),
-    ('m2',
-     'm_2'),
-    ('m3',
-     'm_3'),
-    ('r1',
-     'r_1'),
-    ('r2',
-     'r_2'),
-    ('tau',
-     '\\tau'),
-    ('theta1',
-     '\\theta_1'),
-    ('theta2',
-     '\\theta_2'),
-    ('theta3',
-     '\\theta_3'),
-    ('beta',
-     '\\beta'),
-    ('phi',
-     '\\varphi'),
-    ('psi',
-     '\\psi'),
-    ('beta_dot',
-     '\\dot{\\beta}'),
-    ('phi_dot',
-     '\\dot{\\varphi}'),
-    ('psi_dot',
-     '\\dot{\\psi}')]
+    latex_sub_list = [
+        ('m1',
+         'm_1'),
+        ('m2',
+         'm_2'),
+        ('m3',
+         'm_3'),
+        ('r1',
+         'r_1'),
+        ('r2',
+         'r_2'),
+        ('tau',
+         '\\tau'),
+        ('theta1',
+         '\\theta_1'),
+        ('theta2',
+         '\\theta_2'),
+        ('theta3',
+         '\\theta_3'),
+        ('beta',
+         '\\beta'),
+        ('phi',
+         '\\varphi'),
+        ('psi',
+         '\\psi'),
+        ('beta_dot',
+         '\\dot{\\beta}'),
+        ('phi_dot',
+         '\\dot{\\varphi}'),
+        ('psi_dot',
+         '\\dot{\\psi}')]
 
-for row in range(A.rows):
-    for col in range(A.cols):
-        if row > col and simplify(A[row, col] - A[col, row]) == 0:
-            print('A[{},{}] &= A[{},{}] \\\\'.format(row, col, col, row))
-        else:
-            print('A[{},{}] &= {}  \\\\'.format(
-                row, col, factor(simplify(A[row, col])).subs(sub_list)))
-
-
-for row in range(b.rows):
-    print('b[{}] &= {} \\\\'.format(row, simplify(factor(expand(b[row]))).subs(sub_list)))
+    print_symbolic(A, 'A', latex_sub_list, lambda x: factor(simplify(x)), False)
+    print_symbolic(b, 'b', latex_sub_list, lambda x: simplify(factor(expand(x))))
 
 # eliminate torque T by inspection
 dyn_new = Matrix([0, 0, 0])
 dyn_new[0] = dyn[0] + dyn[1]
-dyn_new[1] = dyn[2]
+dyn_new[2] = dyn[2]
 
 # add motor dynamics
 gamma_ddot = phi_ddot - beta_ddot
 gamma_dot = phi_dot - beta_dot
 
-dyn_new[2] = gamma_ddot - 1 / tau * (omega_cmd - gamma_dot)
+dyn_new[1] = gamma_ddot - 1 / tau * (omega_cmd - gamma_dot)
 
-A = dyn_new.jacobian(omega_dot)
-b = dyn_new.subs([(x, 0) for x in omega_dot])
+if print_python_expressions:
+    A = dyn_new.jacobian(omega_dot)
+    b = -dyn_new.subs([(x, 0) for x in omega_dot])
 
-common_sub_expr = cse([A, b])
+    common_sub_expr = cse([A, b])
 
-sub_list = [(x, 'self.p.' + x)
-            for x in ['g', 'l', 'm1', 'm2', 'm3', 'r1', 'r2', 'tau', 'theta1', 'theta2', 'theta3']]
+    sub_list = [
+        (x,
+         'self.p.' +
+         x) for x in [
+            'g',
+            'l',
+            'm1',
+            'm2',
+            'm3',
+            'r1',
+            'r2',
+            'tau',
+            'theta1',
+            'theta2',
+            'theta3']]
 
-for term in common_sub_expr[0]:
-    print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
+    for term in common_sub_expr[0]:
+        print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
 
-for row in range(A.rows):
-    for col in range(A.cols):
-        print('        A[{},{}] = {}'.format(row, col,
-                                             common_sub_expr[1][0][row, col].subs(sub_list)))
-
-for row in range(b.rows):
-    print('        b[{}] = {}'.format(row, -common_sub_expr[1][1][row].subs(sub_list)))
+    print_symbolic(common_sub_expr[1][0], 'A', sub_list)
+    print_symbolic(common_sub_expr[1][1], 'b', sub_list)
 
 # linearize system around equilibrium [beta, 0, 0, 0, 0, 0]
-eq = [(x, 0) for x in ['phi', 'psi', 'beta_dot', 'phi_dot', 'psi_dot', 'beta_dd', 'phi_dd', 'psi_dd']]
+eq = [
+    (x,
+     0) for x in [
+        'phi',
+        'psi',
+        'beta_dot',
+        'phi_dot',
+        'psi_dot',
+        'beta_dd',
+        'phi_dd',
+        'psi_dd',
+        'omega_cmd']]
 
 dyn_lin = dyn_new.subs(eq)
 for vec in [ang, omega, omega_dot]:
     dyn_lin += dyn_new.jacobian(vec).subs(eq) * vec
 
-print(simplify(dyn_lin))
+dyn_lin += dyn_new.diff(omega_cmd, 1).subs(eq) * omega_cmd
+
+if print_python_expressions:
+    print(simplify(dyn_lin))
+
+if print_latex_expressions:
+    M = dyn_lin.jacobian(omega_dot)
+    D = dyn_lin.jacobian(omega)
+    K = dyn_lin.jacobian(ang)
+    F = -dyn_new.diff(omega_cmd, 1)
+
+    print_symbolic(M, 'M', latex_sub_list, lambda x: simplify(factor(expand(x))))
+    print_symbolic(D, 'D', latex_sub_list, lambda x: factor(simplify(x)))
+    print_symbolic(K, 'K', latex_sub_list, lambda x: factor(simplify(x)))
+    print_symbolic(F, 'F', latex_sub_list, lambda x: factor(simplify(x)))

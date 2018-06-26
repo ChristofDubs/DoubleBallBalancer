@@ -260,18 +260,18 @@ class DynamicModel:
         A[0, 0] = self.p.m1 * x0 + self.p.m2 * x0 + self.p.m3 * x0 + self.p.theta2 + x0 * x4 + x3
         A[0, 1] = self.p.theta3 + x1**2 * x6 + x3 + x5**2 * x6
         A[0, 2] = x14 + x17
-        A[1, 0] = x17
-        A[1, 1] = x14
-        A[1, 2] = self.p.m1 * x12**2 + self.p.m2 * x19 + self.p.m2 * \
+        A[1, 0] = -1
+        A[1, 1] = 1
+        A[1, 2] = 0
+        A[2, 0] = x17
+        A[2, 1] = x14
+        A[2, 2] = self.p.m1 * x12**2 + self.p.m2 * x19 + self.p.m2 * \
             x20 + self.p.m3 * x19 + self.p.m3 * x20 + x18 * x4
-        A[2, 0] = -1
-        A[2, 1] = 1
-        A[2, 2] = 0
         b[0] = -self.p.l * x1 * x24 - self.p.l * x26 * \
             x5 - self.p.m2 * x15 * x21 * x8 - self.p.r2 * x24
-        b[1] = -self.p.m2 * x13 * x23 + x10 * x26 + x10 * \
+        b[1] = (beta_dot + omega_cmd - phi_dot) / self.p.tau
+        b[2] = -self.p.m2 * x13 * x23 + x10 * x26 + x10 * \
             (self.p.g * self.p.m2 - self.p.m2 * x25) - x13 * x24
-        b[2] = (beta_dot + omega_cmd - phi_dot) / self.p.tau
 
         return np.linalg.solve(A, b)
 
