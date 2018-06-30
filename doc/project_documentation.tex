@@ -321,4 +321,43 @@ K &= \left( {\begin{array}{ccc}
 F &= \left( {\begin{array}{c} 0 \\ 1/\tau \\ 0 \end{array} } \right)
 \end{align*}
 
+\subsubsection{LQ-Regulator}
+Very little understanding of control theory is required to stabilize a system using the Linear-quadratic regulator (LQR):
+Given the dynamics of the system $\dot{x} = A \cdot x + B \cdot u$, one can select martices $R$ and $Q$, which results in a linear control law $u = -K \cdot x$ minimizing the cost $J = \int_0^{\infty} x^T \cdot Q \cdot x + u^T \cdot R \cdot u \, \mathrm{d}t$.
+The matrices $Q$ and $R$ are usually picked to be diagonal for simplicity.
+In order to pick $Q$ and $R$ to achieve a smooth and fast response, the following rules of thumb apply:
+\begin{itemize}
+	\item Reducing $R$ will allow larger input signals and therefore make the controller more aggressive
+	\item Increasing a $Q$ entry will result in a more aggressive behavior to reduce the corresponding state error.
+	In our specific system, increasing $Q$ entries corresponding to angular states will make the system move faster to reduce these errors and cause oscillatory behavior, whereas increasing $Q$ entries corresponding to angular velocity will make the system move slower and hence dampen the system to reduce oscillations.
+	\item Lastly note that the weights are relative, i.e. scaling all entries by the same (positive) number leads to the same result.
+\end{itemize}
+After deriving $A$ and $B$ and selecting $Q$ and $R$, the state feedback matrix $K$ can be calculated by solving the algebraic Riccati equation for $P$
+\begin{equation}
+P \cdot A + A^T \cdot P - P \cdot B \cdot R^{-1} \cdot B^T \cdot P + Q = 0
+\end{equation}
+and then calculating
+\begin{equation}
+K = R^{-1} \cdot B^T \cdot P
+\end{equation}
+Theoretically, selecting any combination of positive diagonal entries in $Q$ and $R$ will result in a solution $K$ that stabilizes the system.
+In practice however, there are some limitations; mainly that an overly aggressive controller with make the system unstable due to:
+\begin{itemize}
+	\item Delays: There will be time delays in the chain of change of state, observing this change with sensors, computing a command and the actuator starting to move according to the computed command.
+	\item Discrete Time Control: The frequency at which a digital controller runs is limited. This is not a problem though as long as this frequency is significantly faster than the system dynamics; and if that's not the case, this problem can be circumvented by discretizing the system and applying the discrete time LQR solution.
+	\item Imperfect state information / sensor noise: Above formulation assumes perfect state information; sensor noise will cause noise in the estimated state, which will be directly amplified to jitter in the command.
+	\item Model imperfections: In general, ''all models are wrong``.
+	Unmodelled / non-linear effects such as friction / slippage / elastic deformations / play and inaccurately measured physical parameters can make the system behave differently than intended.
+\end{itemize}
+
+\subsubsection{Pole Placement}
+Alternatively to using the LQR method, the state feedback matrix $K$ can be designed by analyzing the poles of the closed-loop system:
+Inserting the control law $u = -K \cdot x$ into the open-loop dynamics of the system $\dot{x} = A \cdot x + B \cdot u$ results in the closed-loop dynamics
+\begin{equation}
+\dot{x} = A \cdot x + B \cdot u = A \cdot x - B \cdot K \cdot x = (A - B \cdot K) \cdot x
+\end{equation}
+The poles of the closed-loop system are therefore the eigenvalues of $(A - B \cdot K)$:
+In a nutshell, one can calculate the characteristic polynomial $\lambda^n + a_{n-1} \cdot \lambda^{n-1} + ... + a_1  \cdot \lambda + a_0 = 0$ where $a_i$ are functions of $K$ entries.
+One can then expand the polynomial $(\lambda-\lambda_1) \cdot (\lambda-\lambda_2) \cdot ... \cdot (\lambda-\lambda_n)$ where $\lambda_i$ are the desired eigenvalues and equate the coefficients with the ones of the characteristic polynomial, which will give equations that can be solved for the $K$ entries.
+
 \end{document}
