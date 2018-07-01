@@ -12,6 +12,7 @@ from controller_3d import Controller
 print_sim_time = False
 plot_visualization = True
 plot_states = True
+create_gif = False
 
 # create parameter struct
 param = ModelParam()
@@ -40,13 +41,18 @@ sim_time_vec = [sim_time]
 state_vec = [copy.copy(model.state)]
 start_time = time.time()
 
-if plot_visualization:
+if plot_visualization or create_gif:
     fig = plt.figure(0)
     ax = fig.add_subplot(111, projection='3d')
+    if create_gif:
+        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+        import imageio
+        canvas = FigureCanvas(fig)
+        images = []
 
 # simulate until system is irrecoverable or max_sim_time reached
 while not model.is_irrecoverable() and sim_time < max_sim_time:
-    if plot_visualization:
+    if plot_visualization or create_gif:
         # get visualization
         vis = model.get_visualization()
 
@@ -57,29 +63,47 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
         ax.plot_wireframe(*vis['upper_ball'], color='r', linewidth=0.5)
         ax.plot_wireframe(*vis['lever_arm'], color='g')
 
-        plt.xlabel('x [m]')
-        plt.ylabel('y [m]')
+        ax.set_xlabel('x [m]')
+        ax.set_ylabel('y [m]')
+        ax.set_zlabel('z [m]')
+
         ball_pos = model.state.pos
         range = param.r1 + param.r2
         ax.set_xlim3d(ball_pos[0] - range, ball_pos[0] + range)
         ax.set_ylim3d(ball_pos[1] - range, ball_pos[1] + range)
         ax.set_zlim3d(0, 2 * range)
-        plt.show(block=False)
-        time_passed = time.time() - start_time
-        plt.pause(max(dt - time_passed, 0.001))
 
-        start_time = time.time()
+        if plot_visualization:
+            plt.show(block=False)
+            time_passed = time.time() - start_time
+            plt.pause(max(dt - time_passed, 0.001))
+            start_time = time.time()
 
     # simulate one time step
     model.simulate_step(dt, controller.compute_ctrl_input(model.state, beta_cmd))
     sim_time += dt
 
-    # save states as matrix, sim_time and inputs as lists
-    state_vec.append(copy.copy(model.state))
-    sim_time_vec.append(sim_time)
+    if plot_states:
+        # save states as matrix, sim_time and inputs as lists
+        state_vec.append(copy.copy(model.state))
+        sim_time_vec.append(sim_time)
 
     if print_sim_time:
         print('sim_time: {0:.3f} s'.format(sim_time))
+
+    if create_gif:
+        # convert figure to numpy image:
+        # https://stackoverflow.com/questions/21939658/matplotlib-render-into-buffer-access-pixel-data
+        fig.canvas.draw()
+
+        buf = fig.canvas.tostring_rgb()
+        ncols, nrows = fig.canvas.get_width_height()
+        image = np.fromstring(buf, dtype=np.uint8).reshape(nrows, ncols, 3)
+
+        images.append(image)
+
+if create_gif:
+    imageio.mimsave('doc/img/3d_demo.gif', images, fps=1 / dt, palettesize=64, subrectangles=True)
 
 if plot_states:
     plt.figure()
