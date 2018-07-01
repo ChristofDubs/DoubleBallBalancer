@@ -93,15 +93,17 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
 
     if create_gif:
         # convert figure to numpy image:
-        # https://stackoverflow.com/questions/35355930/matplotlib-figure-to-image-as-a-numpy-array
+        # https://stackoverflow.com/questions/21939658/matplotlib-render-into-buffer-access-pixel-data
         fig.canvas.draw()
-        image = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-        image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
+        buf = fig.canvas.tostring_rgb()
+        ncols, nrows = fig.canvas.get_width_height()
+        image = np.fromstring(buf, dtype=np.uint8).reshape(nrows, ncols, 3)
 
         images.append(image)
 
 if create_gif:
-    imageio.mimsave('doc/img/3d_demo.gif', images)
+    imageio.mimsave('doc/img/3d_demo.gif', images, fps=1 / dt, palettesize=64, subrectangles=True)
 
 if plot_states:
     plt.figure()
