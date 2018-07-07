@@ -270,7 +270,7 @@ b[2] &= (r_1 + r_2) \cdot (m_2+m_3) \cdot sin(\psi) \cdot ((r_1 + r_2) \cdot \do
 \subsection{Controller derivation}
 
 \subsubsection{System Linearization}
-
+\label{ss:syslin}
 A lot of concepts in control theory are based on linear systems of the form $\dot{x} = A \cdot x + B \cdot u$, where $A$ and $B$ are matrices that are just a function of system parameters (and potentially time), but not states.
 In order stabilize a non-linear systems, the system is linearized about its equilibrium.
 The concepts based on linear systems then work perfectly for infinitesimal deflections from the equilibrium, but fail further away from the equilibrium where the non-linear system behaves significantly different compared to its linearized version.
@@ -322,6 +322,7 @@ F &= \left( {\begin{array}{c} 0 \\ 1/\tau \\ 0 \end{array} } \right)
 \end{align*}
 
 \subsubsection{LQ-Regulator}
+\label{ss:lqr}
 Very little understanding of control theory is required to stabilize a system using the Linear-quadratic regulator (LQR):
 Given the dynamics of the system $\dot{x} = A \cdot x + B \cdot u$, one can select martices $R$ and $Q$, which results in a linear control law $u = -K \cdot x$ minimizing the cost $J = \int_0^{\infty} x^T \cdot Q \cdot x + u^T \cdot R \cdot u \, \mathrm{d}t$.
 The matrices $Q$ and $R$ are usually picked to be diagonal for simplicity.
@@ -335,10 +336,12 @@ In order to pick $Q$ and $R$ to achieve a smooth and fast response, the followin
 After deriving $A$ and $B$ and selecting $Q$ and $R$, the state feedback matrix $K$ can be calculated by solving the algebraic Riccati equation for $P$
 \begin{equation}
 P \cdot A + A^T \cdot P - P \cdot B \cdot R^{-1} \cdot B^T \cdot P + Q = 0
+\label{eq:lqrP}
 \end{equation}
 and then calculating
 \begin{equation}
 K = R^{-1} \cdot B^T \cdot P
+\label{eq:lqrK}
 \end{equation}
 Theoretically, selecting any combination of positive diagonal entries in $Q$ and $R$ will result in a solution $K$ that stabilizes the system.
 In practice however, there are some limitations; mainly that an overly aggressive controller with make the system unstable due to:
@@ -359,5 +362,33 @@ Inserting the control law $u = -K \cdot x$ into the open-loop dynamics of the sy
 The poles of the closed-loop system are therefore the eigenvalues of $(A - B \cdot K)$:
 In a nutshell, one can calculate the characteristic polynomial $\lambda^n + a_{n-1} \cdot \lambda^{n-1} + ... + a_1  \cdot \lambda + a_0 = 0$ where $a_i$ are functions of $K$ entries.
 One can then expand the polynomial $(\lambda-\lambda_1) \cdot (\lambda-\lambda_2) \cdot ... \cdot (\lambda-\lambda_n)$ where $\lambda_i$ are the desired eigenvalues and equate the coefficients with the ones of the characteristic polynomial, which will give equations that can be solved for the $K$ entries.
+
+\subsubsection{Linear stabilizing controller}
+As the first controller version, the LQR approach is used to stabilize the system at an arbitrary position $\beta$:
+Using the system matrices $A$ and $B$ derived in subsec. \ref{ss:syslin}, picking $Q = diag \left( \left[0, q_{\varphi}, q_{\psi}, q_{\dot{\beta}}, q_{\dot{\varphi}}, q_{\dot{\psi}} \right] \right)$ and $R = r_{\breve{\dot{\varphi}}}$, eq. \ref{eq:lqrP} can be solved for $P$, which subsequently is inserted into eq.\ref{eq:lqrK}, resulting in $K = \left[0, k_{\varphi}, k_{\psi}, k_{\dot{\beta}}, k_{\dot{\varphi}}, k_{\dot{\psi}} \right]$. The system can be stabilized for a small initial deflection from the equilibrium using the control law $u=\breve{\dot{\varphi}}=-K \cdot x$.
+
+\subsubsection{Linear $\dot{\beta}$ controller}
+Next, we add the capability of moving (rotating) the upper ball at a certain constant velocity $\breve{\dot{\beta}}$, while of course balancing on the lower ball.
+Intuitively, one can say that while the upper ball is rotating at $\breve{\dot{\beta}}$, the lever arm needs to keep pointing down, which is achieved by rotating the motor into the opposite direction $\dot{\varphi}_m = -\breve{\dot{\beta}}$, for which the motor has to be commanded to rotate at
+\begin{equation}
+\breve{\dot{\varphi}} = -\breve{\dot{\beta}}
+\label{eq:ssmcmd}
+\end{equation}
+It can be most easily verified using the non-linear equations $A \cdot [\ddot{\beta}, \ddot{\varphi}, \ddot{\psi}] = b$ in sec. \ref{ss:EoM} that state $x = [\beta(t), 0, 0, \breve{\dot{\beta}}, 0, 0]$ with command $\breve{\dot{\varphi}} = -\breve{\dot{\beta}}$ leads to an un-accelerated motion since $b=0$.
+In order to make the ball accelerate when being at equilibrium $x=[0,0,0,0,0,0]$, a feed-forward part $u_{ff} \left( \breve{\dot{\beta}} \right)$ has to be added to the control law: .
+\begin{equation}
+\breve{\dot{\varphi}}=-K \cdot x + u_{ff}
+\label{eq:ffwdmcmd}
+\end{equation}
+Inserting eq. \ref{eq:ssmcmd}, state $x = [\beta(t), 0, 0, \breve{\dot{\beta}}, 0, 0]$ and feedback gain \newline $K = \left[0, k_{\varphi}, k_{\psi}, k_{\dot{\beta}}, k_{\dot{\varphi}}, k_{\dot{\psi}} \right]$ into eq. \ref{eq:ffwdmcmd} results in
+\begin{equation}
+-\breve{\dot{\beta}} = -k_{\dot{\beta}} \cdot \breve{\dot{\beta}}  + u_{ff}
+\end{equation}
+which can be solved for the feed-forward part $u_{ff} = (k_{\dot{\beta}} - 1 ) \cdot \breve{\dot{\beta}}$ and inserted into the control law:
+\begin{equation}
+\breve{\dot{\varphi}}=-K \cdot x + \left(k_{\dot{\beta}} - 1 \right) \cdot \breve{\dot{\beta}}
+\end{equation}
+
+
 
 \end{document}
