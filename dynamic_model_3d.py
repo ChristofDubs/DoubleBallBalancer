@@ -7,7 +7,7 @@ author: Christof Dubs
 import numpy as np
 from numpy import sin, cos, tan
 from scipy.integrate import odeint
-from rotation import Quaternion, quat_from_angle_vector
+from pyrotation import Quaternion, quat_from_angle_vector
 
 
 class ModelParam:

@@ -5,7 +5,7 @@ from numpy import sin, cos
 import controller_2d
 from definitions_2d import BETA_IDX, PHI_IDX, PSI_IDX, BETA_DOT_IDX, PHI_DOT_IDX, PSI_DOT_IDX
 from dynamic_model_3d import ModelState
-from rotation import Quaternion
+from pyrotation import Quaternion
 
 
 class Controller:
