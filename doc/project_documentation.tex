@@ -264,8 +264,51 @@ b[0] &= - \dot{\psi}^2 \cdot (r_1 + r_2) \cdot ( r_2 \cdot (m_2+m_3) \cdot sin(\
 &\qquad  + l \cdot m_3 \cdot sin(\varphi) \cdot (r_2 \cdot  \dot{\varphi}^2 - g) \\
 b[1] &= 1/\tau_m \cdot (\dot{\beta} - \dot{\varphi} + \breve{\dot{\varphi}}) \\
 b[2] &= (r_1 + r_2) \cdot (m_2+m_3) \cdot sin(\psi) \cdot ((r_1 + r_2) \cdot \dot{\psi}^2 + g) \\
-&\qquad (r_1 + r_2) \cdot \dot{\varphi}^2 \cdot l \cdot m_3 \cdot (sin(\psi - \varphi)-sin(\varphi)) \\
+&\qquad +(r_1 + r_2) \cdot \dot{\varphi}^2 \cdot l \cdot m_3 \cdot (sin(\psi - \varphi)-sin(\varphi)) \\
 \end{align*}
+
+\subsection{System analysis}
+This subsection's purpose is to improve the overall understanding of the system.
+The mathematical analysis will further illustrate the basic working principle of the system:
+\begin{itemize}
+	\item Accelerate the upper (and lower) ball $\ddot{\beta}$ by keeping the upper ball at a certain angle deflection $\psi$ on top of the lower ball (control $\ddot{\beta}$ through $\psi$)
+	\item Keep pointing the lever arm opposite to the $\psi$ deflection to prevent the upper ball from rolling off (control $\ddot{\psi}$ through $\varphi$)
+	\item Send motor commands $\breve{\dot{\varphi}}$ to change the orientation of the lever arm $\varphi$ (control $\ddot{\varphi}$ through $\breve{\dot{\varphi}}$)
+\end{itemize}
+In order to show that there are $\varphi$ / $\psi$ constellations which result in constant $\ddot{\beta}$ acceleration of the ball, the non-linear equations of motion are evaluated at $\varphi = const$ and $\psi = const$, which implies $\dot{\varphi} = \ddot{\varphi} = \dot{\psi} = \ddot{\psi} = 0$.
+This results in the following three equations:
+\begin{align}
+0 &= \left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 + l \cdot m_3 \cdot r_2 \cdot cos(\varphi) \right) \cdot \ddot{\beta}  \nonumber \\
+&\qquad  + l \cdot m_3 \cdot g \cdot sin(\varphi) \\
+0 &= \ddot{\beta} + 1/\tau_m \cdot (\dot{\beta} + \breve{\dot{\varphi}}) \\
+0 &= (\theta_1/r_1^2  + m_1 + (m_2+m_3) \cdot (1+cos(\psi))) \cdot r_2 \cdot \ddot{\beta} + (m_2+m_3) \cdot g \cdot sin(\psi)
+\end{align}
+The first equation shows how far out the lever arm has to be rotated to balance under constant acceleration $\ddot{\beta}$.
+The second equation shows how the motor command $\breve{\dot{\varphi}}$ has to be selected to keep the $\ddot{\beta}$ acceleration constant, namely $\breve{\dot{\varphi}} = -\dot{\beta} - \tau_m \cdot \ddot{\beta}$.
+The third equation shows how large the $\ddot{\beta}$ acceleration is when keeping the ball at a certain $\psi$ angle.
+
+Intuitively, one can tell that the limiting factor in this system is the lever arm; keeping it at $\pm \pi/2$ is basically the maximum effort that can be put in to recover the system.
+The exact value can be found by solving the first equation for $\ddot{\beta}$ and setting its derivative wrt. $\varphi$ to 0:
+\begin{equation}
+\label{eq:beta_ddot_vs_phi}
+\ddot{\beta}(\varphi) = \frac{-l \cdot m_3 \cdot g \cdot sin(\varphi)}{\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 + l \cdot m_3 \cdot r_2 \cdot cos(\varphi)} = \frac{g(\varphi)}{h(\varphi)}
+\end{equation}
+For a function $f(x)$ in the form of $f(x) = g(x)/h(x)$, its derivative is given as $\frac{\partial f(x)}{\partial x} = f'(x) = \frac{g'(x) \cdot h(x) - h'(x) \cdot g(x)}{h(x)^2}$, hence the extrema $x^*$ are where $g'(x^*) \cdot h(x^*) - h'(x^*) \cdot g(x^*) = 0$.
+\begin{align*}
+0 = {}& \frac{\partial \ddot{\beta}(\varphi)}{\partial \varphi} = \frac{\partial g(\varphi)}{\partial \varphi} \cdot h(\varphi) - g(\varphi) \cdot \frac{\partial h(\varphi)}{\partial \varphi} \\
+= {}& -l \cdot m_3 \cdot g \cdot l \cdot m_3 \cdot r_2 \cdot \left(cos(\varphi)^2 + sin(\varphi)^2 \right) \\
+{}& -l \cdot m_3 \cdot g \cdot cos(\varphi) \cdot \left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 \right)
+\end{align*}
+Since $cos(\varphi)^2 + sin(\varphi)^2 = 1$, this equation can be reformulated to:
+\begin{equation*}
+cos(\varphi) \cdot \left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 \right) = -l \cdot m_3 \cdot r_2
+\end{equation*}
+resulting in the following equation for $cos(\varphi)$:
+\begin{equation*}
+cos(\varphi) = \frac{-l \cdot m_3 \cdot r_2}{\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2}
+\end{equation*}
+This corresponds to the previous statement about keeping the lever arm at about $\pm \pi/2$ during maximum acceleration $\ddot{\beta}$;
+the right hand side is some small negative value, hence the absolute value of $\varphi$ has to be just slightly above $\pi/2$ during maximum acceleration $\ddot{\beta}$.
 
 \subsection{Controller derivation}
 
