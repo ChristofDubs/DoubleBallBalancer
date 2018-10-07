@@ -2,6 +2,7 @@
 \usepackage{graphicx}
 \usepackage{amssymb}
 \usepackage{amsmath}
+\usepackage{hyperref}
 
 \begin{document}
 
@@ -309,6 +310,29 @@ cos(\varphi) = \frac{-l \cdot m_3 \cdot r_2}{\theta_1 \cdot r_2^2/r_1^2 + \theta
 \end{equation*}
 This corresponds to the previous statement about keeping the lever arm at about $\pm \pi/2$ during maximum acceleration $\ddot{\beta}$;
 the right hand side is some small negative value, hence the absolute value of $\varphi$ has to be just slightly above $\pi/2$ during maximum acceleration $\ddot{\beta}$.
+The maximum acceleration $\ddot{\beta}_{max}$ can be well approximated by setting $\varphi = -\pi/2$ in eq. \ref{eq:beta_ddot_vs_phi}:
+\begin{equation}
+\ddot{\beta}_{max} \approx \frac{l \cdot m_3 \cdot g}{\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2}
+\end{equation}
+It can be shown that angle $\varphi$ of the lever arm is the limiting factor for $\ddot{\beta}$ accelerations, and not the upper ball falling off the lower ball at $\psi = \pm \pi/2$, by solving the third equation for $\ddot{\beta}$ and inserting $\psi = -\pi/2$:
+\begin{align*}
+\ddot{\beta}(\psi=-\pi/2) &= -\frac{(m_2+m_3) \cdot g \cdot sin(\psi)}{(\theta_1/r_1^2  + m_1 + (m_2+m_3) \cdot (1+cos(\psi))) \cdot r_2} \Big|_{\psi=\pi/2} \\
+&= \frac{(m_2+m_3) \cdot g}{(\theta_1/r_1^2  + m_1 + m_2 + m_3) \cdot r_2} \\
+&> \frac{m_3 \cdot g}{(\theta_1/r_1^2  + m_1 + m_2 + m_3) \cdot r_2} \\
+&= \frac{m_3 \cdot g \cdot r_2}{(\theta_1/r_1^2  + m_1 + m_2 + m_3) \cdot r_2^2} \\
+&> \frac{m_3 \cdot g \cdot l}{(\theta_1/r_1^2  + m_1 + m_2 + m_3) \cdot r_2^2} \\
+&> \frac{m_3 \cdot g \cdot l}{(\theta_1/r_1^2 + \theta_2/r_2^2 + m_1 + m_2 + m_3) \cdot r_2^2} \\
+&\approx \ddot{\beta}_{max}
+\end{align*}
+That means that the upper ball is kept at some angle $|\psi|<\pi/2$ at maximum acceleration $\ddot{\beta}_{max}$ limited by the lever arm angle $\varphi$.
+Generally, for any feasible acceleration $\ddot{\beta}$, angle $\psi$ can be calculated by solving the third equation for it:
+\begin{align*}
+(m_2+m_3) \cdot (1+cos(\psi)) \cdot \ddot{\beta} + \frac{(m_2+m_3) \cdot g}{r_2} \cdot sin(\psi) = -(\theta_1/r_1^2  + m_1) \cdot \ddot{\beta} \\
+\rightarrow \ddot{\beta} \cdot cos(\psi) + \frac{g}{r_2} \cdot sin(\psi) = -\frac{\theta_1/r_1^2  + m_1}{m_2+m_3} \cdot \ddot{\beta} - \ddot{\beta}\\
+\rightarrow \sqrt{\ddot{\beta}^2 + \frac{g^2}{r_2^2}} \sin{\left( \psi + \arctan{\left( \frac{r_2 \cdot \ddot{\beta}}{g}\right)}\right)} = -\frac{\theta_1/r_1^2  + m_1 + m_2 + m_3}{m_2+m_3}\cdot \ddot{\beta} \\
+\rightarrow \psi = - \arctan{\left( \frac{r_2 \cdot \ddot{\beta}}{g}\right)} -\arcsin{\left(\frac{\theta_1/r_1^2  + m_1 + m_2 + m_3}{(m_2+m_3)} \cdot \frac{\ddot{\beta}}{\sqrt{\ddot{\beta}^2 + \frac{g^2}{r_2^2}}} \right)}
+\end{align*}
+using $a \cdot \sin{x} + b \cdot \cos {x} = \sqrt{a^2+b^2} \cdot \sin{\left(x+\arctan{\left(b/a\right)} \right)} \cite{trigsimpl}$
 
 \subsection{Controller derivation}
 
@@ -433,5 +457,10 @@ which can be solved for the feed-forward part $u_{ff} = (k_{\dot{\beta}} - 1 ) \
 \end{equation}
 
 
+\begin{thebibliography}{1}
+
+\bibitem{trigsimpl} \href{https://en.wikibooks.org/wiki/Trigonometry/Simplifying_a_sin(x)_+_b_cos(x)}{Wikibooks: Trigonometry/Simplifying a sin(x) + b cos(x)}
+
+\end{thebibliography}
 
 \end{document}
