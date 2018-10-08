@@ -313,6 +313,7 @@ the right hand side is some small negative value, hence the absolute value of $\
 The maximum acceleration $\ddot{\beta}_{max}$ can be well approximated by setting $\varphi = -\pi/2$ in eq. \ref{eq:beta_ddot_vs_phi}:
 \begin{equation}
 \ddot{\beta}_{max} \approx \frac{l \cdot m_3 \cdot g}{\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2}
+\label{eq:beta_ddot_max}
 \end{equation}
 It can be shown that angle $\varphi$ of the lever arm is the limiting factor for $\ddot{\beta}$ accelerations, and not the upper ball falling off the lower ball at $\psi = \pm \pi/2$, by solving the third equation for $\ddot{\beta}$ and inserting $\psi = -\pi/2$:
 \begin{align*}
@@ -455,7 +456,15 @@ which can be solved for the feed-forward part $u_{ff} = (k_{\dot{\beta}} - 1 ) \
 \begin{equation}
 \breve{\dot{\varphi}}=-K \cdot x + \left(k_{\dot{\beta}} - 1 \right) \cdot \breve{\dot{\beta}}
 \end{equation}
+With this controller, the system can be controlled to desired $\breve{\dot{\beta}$ velocities. There is a caveat though: Large $\breve{\dot{\beta}$ commands will make the upper ball fall off the lower ball. The easiest measure to prevent this is saturating the input, i.e. limiting the absolute value of $\breve{\dot{\beta}$ to $\breve{\dot{\beta}_{max}$. We'll not explore better alternatives at this point, since limiting $\breve{\dot{\beta}$ is a workaround: The system (at least the mathematical model) has no inherent $\dot{\beta}$ limitation, we are simply indirectly limiting the $\ddot{\beta}$ acceleration to not hit the $\ddot{\beta}_{max}$ limit (see eq. \ref{eq:beta_ddot_max}).
 
+\subsubsection{Linear $\beta$ controller}
+
+Through the $\dot{\beta}$ controller in the previous subsection, $\beta$ can be controlled using a classical PI-controller of the form
+\begin{equation}
+\breve{\dot{\beta}} = \frac{1}{\tau_{\beta}} \cdot \left( \breve{\beta} - \beta \right) - k_d \cdot \dot{\beta}
+\end{equation}
+where $\tau_{\beta}$ is the time-constant (inverse of the proportional gain) limited by the reactiveness of the $\dot{\beta}$ controller, and $k_d$ the derivative gain for dampening the response.
 
 \begin{thebibliography}{1}
 
