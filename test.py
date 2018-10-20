@@ -4,8 +4,9 @@ import numpy as np
 
 from controller_2d import Controller
 from definitions_2d import *
+from dynamic_model_2d import ModelParam
 
-controller = Controller()
+controller = Controller(ModelParam())
 delta = 1e-6
 
 K = np.array([0.447213596e+00, 1.03556079e+01, -4.73012271e+01,
