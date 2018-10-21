@@ -66,12 +66,23 @@ class Controller:
                            3.23606798e+00, 6.05877477e-01, -3.53469304e+01])
         self.kp = 0.2
         self.kd = 0.2
-        self.beta_dot_max = 2
 
         self.psi_max = 0.20
         self.beta_ddot_max = -1 / compute_psi_gain(param) * self.psi_max
         self.phi_max = compute_phi_max(param)
         self.param = param
+
+        self.psi_gain = compute_psi_gain(self.param)
+        self.phi_gain = compute_phi_gain(self.param)
+
+        self.K[BETA_DOT_IDX] = (self.K[BETA_DOT_IDX] - 1) / (self.psi_gain * \
+                                self.K[PSI_IDX] + self.phi_gain * self.K[PHI_IDX])
+
+        self.K[PSI_IDX] = (self.K[PSI_IDX] / self.K[PHI_IDX] + self.phi_gain / self.psi_gain)
+        self.K[PSI_DOT_IDX] = self.K[PSI_DOT_IDX] / self.K[PHI_IDX]
+
+        # self.K[PHI_IDX] = self.K[PHI_IDX]
+        # self.K[PHI_DOT_IDX] = self.K[PHI_DOT_IDX]
 
     def compute_ctrl_input(self, x, u, mode=BETA_IDX):
 
@@ -114,8 +125,7 @@ class Controller:
         beta_dot_cmd_max = np.sqrt(2 * self.beta_ddot_max * abs(delta_beta))
 
         # beta_dot command that results in psi_cmd = psi_cmd_max for beta_dot = 0
-        beta_dot_ff = -self.psi_max * \
-            self.K[PSI_IDX] / (compute_phi_gain(self.param) / compute_psi_gain(self.param) * (self.K[BETA_DOT_IDX] - 1))
+        beta_dot_ff = -self.psi_max / (self.K[BETA_DOT_IDX] * self.psi_gain)
 
         # augment beta_dot_max such that if beta_dot = beta_dot_max, psi_cmd = psi_cmd_max
         beta_dot_cmd_max -= beta_dot_ff
@@ -132,13 +142,7 @@ class Controller:
         return beta_dot_cmd
 
     def compute_psi_cmd(self, x, beta_dot_cmd):
-        beta_ddot_des = (self.K[BETA_DOT_IDX] - 1) / self.K[PSI_IDX] * \
-            (beta_dot_cmd - x[BETA_DOT_IDX])
-
-        beta_ddot_des *= 1 / compute_psi_gain(self.param)
-
-        beta_ddot_des *= 1 / (1 + compute_phi_gain(self.param) /
-                              compute_psi_gain(self.param) * self.K[PHI_IDX] / self.K[PSI_IDX])
+        beta_ddot_des = self.K[BETA_DOT_IDX] * (beta_dot_cmd - x[BETA_DOT_IDX])
 
         return compute_psi(beta_ddot_des, self.param)
 
@@ -148,13 +152,8 @@ class Controller:
 
         phi_ff = compute_phi(compute_beta_ddot_from_psi(x[PSI_IDX], self.param), self.param)
 
-        psi_to_phi_gain = compute_phi_gain(
-            self.param) / compute_psi_gain(self.param) if x[PSI_IDX] == 0 else phi_ff / x[PSI_IDX]
-
-        self.temp = compute_beta_ddot_from_psi(psi_cmd, self.param)
-
-        return (self.K[PSI_IDX] / self.K[PHI_IDX] + psi_to_phi_gain) * (psi_cmd -
-                                                                        x[PSI_IDX]) - self.K[PSI_DOT_IDX] / self.K[PHI_IDX] * x[PSI_DOT_IDX] + phi_ff
+        return self.K[PSI_IDX] * (psi_cmd - x[PSI_IDX]) - \
+            self.K[PSI_DOT_IDX] * x[PSI_DOT_IDX] + phi_ff
 
     def compute_phi_dot_cmd(self, x, phi_cmd):
         # prevent phi commands outside approx. [-pi/2, pi/2]
