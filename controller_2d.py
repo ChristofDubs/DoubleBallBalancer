@@ -62,27 +62,23 @@ def compute_beta_ddot_from_psi(psi, param):
 
 class Controller:
     def __init__(self, param):
-        self.K = np.array([2.67619260e-15, 1.03556079e+01, -4.73012271e+01,
-                           3.23606798e+00, 6.05877477e-01, -3.53469304e+01])
+        # beta dot controller gains
+        self.K = np.array([0.0, 10.3556079, -1.54595284, 0.268081501, 0.605877477, -3.41331294])
+
+        # beta controller gains
         self.kp = 0.2
         self.kd = 0.2
 
+        # beta_ddot -> psi gain
+        self.psi_gain = compute_psi_gain(param)
+
+        # limits
         self.psi_max = 0.20
-        self.beta_ddot_max = -1 / compute_psi_gain(param) * self.psi_max
+        self.beta_ddot_max = -1 / self.psi_gain * self.psi_max
         self.phi_max = compute_phi_max(param)
+
+        # save param
         self.param = param
-
-        self.psi_gain = compute_psi_gain(self.param)
-        self.phi_gain = compute_phi_gain(self.param)
-
-        self.K[BETA_DOT_IDX] = (self.K[BETA_DOT_IDX] - 1) / (self.psi_gain * \
-                                self.K[PSI_IDX] + self.phi_gain * self.K[PHI_IDX])
-
-        self.K[PSI_IDX] = (self.K[PSI_IDX] / self.K[PHI_IDX] + self.phi_gain / self.psi_gain)
-        self.K[PSI_DOT_IDX] = self.K[PSI_DOT_IDX] / self.K[PHI_IDX]
-
-        # self.K[PHI_IDX] = self.K[PHI_IDX]
-        # self.K[PHI_DOT_IDX] = self.K[PHI_DOT_IDX]
 
     def compute_ctrl_input(self, x, u, mode=BETA_IDX):
 
