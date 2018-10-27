@@ -237,9 +237,9 @@ b[2] &= (r_1 + r_2) \cdot (m_2+m_3) \cdot sin(\psi) \cdot ((r_1 + r_2) \cdot \do
 \label{ss:EoM}
 While applying torque is the most direct way to control above system, the ability to control the torque directly imposes some strong mechanical requirements: 
 A torque-controlled motor with a very high torque has to be used and the lever arm needs to be able to swing freely when the motor is off (no gearbox / low friction in general).
-A much simpler approach is controlling the velocity of a (DC)-motor with a gearbox and encoder instead. The simplest viable (requiring finite torques) model of a speed-controlled motor is a first order system, where the motor speed $\dot{\varphi}_m$ follows the speed command $\breve{\dot{\varphi}}$ with time constant $\tau_m$:
+A much simpler approach is controlling the velocity of a (DC)-motor with a gearbox and encoder instead. The simplest viable (requiring finite torques) model of a speed-controlled motor is a first order system, where the motor speed $\dot{\varphi}_m$ follows the speed command $\breve{\dot{\varphi}}_m$ with time constant $\tau_m$:
 \begin{equation}
-\ddot{\varphi}_m = \frac{1}{\tau_m} \cdot \left(\breve{\dot{\varphi}} - \dot{\varphi}_m \right)
+\ddot{\varphi}_m = \frac{1}{\tau_m} \cdot \left(\breve{\dot{\varphi}}_m - \dot{\varphi}_m \right)
 \label{eq:motordyn}
 \end{equation} 
 In order to incorporate this motor model into the equations of motion, the torque $T$ has to be eliminated from the equations of motion, and the motor dynamics have to be expressed in the minimal coordinates to replace the eliminated equation.
@@ -247,7 +247,7 @@ By inspecting the $b[0]$ and $b[1]$ terms, it can be immediately seen that $T$ c
 The relation between the motor dynamics and the minimal coordinates is $\beta + \varphi_m = \varphi$, and consequently $\varphi_m = \varphi - \beta$, $\dot{\varphi}_m = \dot{\varphi} - \dot{\beta}$ and $\ddot{\varphi}_m = \ddot{\varphi} - \ddot{\beta}$.
 Substituting back these expressions into eq. \ref{eq:motordyn}, we get:
 \begin{equation}
-\ddot{\varphi} - \ddot{\beta} = \frac{1}{\tau_m} \cdot \left(\breve{\dot{\varphi}} - \dot{\varphi} + \dot{\beta} \right)
+\ddot{\varphi} - \ddot{\beta} = \frac{1}{\tau_m} \cdot \left(\breve{\dot{\varphi}}_m - \dot{\varphi} + \dot{\beta} \right)
 \end{equation}
 With those substitutions, the three equations $A \cdot [\ddot{\beta}, \ddot{\varphi}, \ddot{\psi}] = b$ become
 \begin{align*}
@@ -263,29 +263,30 @@ A[2,1] &= -l \cdot m_3 \cdot (r_1 + r_2) \cdot (cos(\varphi) + cos(\psi - \varph
 A[2,2] &= (r_1 + r_2)^2 \cdot (\theta_1/r_1^2 + m_1 + 2 \cdot (m_2+m_3) \cdot (1+cos(\psi))) \\
 b[0] &= - \dot{\psi}^2 \cdot (r_1 + r_2) \cdot ( r_2 \cdot (m_2+m_3) \cdot sin(\psi) +  l \cdot m_3 \cdot sin(\psi - \varphi)) \\
 &\qquad  + l \cdot m_3 \cdot sin(\varphi) \cdot (r_2 \cdot  \dot{\varphi}^2 - g) \\
-b[1] &= 1/\tau_m \cdot (\dot{\beta} - \dot{\varphi} + \breve{\dot{\varphi}}) \\
+b[1] &= 1/\tau_m \cdot (\dot{\beta} - \dot{\varphi} + \breve{\dot{\varphi}}_m) \\
 b[2] &= (r_1 + r_2) \cdot (m_2+m_3) \cdot sin(\psi) \cdot ((r_1 + r_2) \cdot \dot{\psi}^2 + g) \\
 &\qquad +(r_1 + r_2) \cdot \dot{\varphi}^2 \cdot l \cdot m_3 \cdot (sin(\psi - \varphi)-sin(\varphi)) \\
 \end{align*}
 
 \subsection{System analysis}
+\label{ss:systemanalysis}
 This subsection's purpose is to improve the overall understanding of the system.
 The mathematical analysis will further illustrate the basic working principle of the system:
 \begin{itemize}
 	\item Accelerate the upper (and lower) ball $\ddot{\beta}$ by keeping the upper ball at a certain angle deflection $\psi$ on top of the lower ball (control $\ddot{\beta}$ through $\psi$)
 	\item Keep pointing the lever arm opposite to the $\psi$ deflection to prevent the upper ball from rolling off (control $\ddot{\psi}$ through $\varphi$)
-	\item Send motor commands $\breve{\dot{\varphi}}$ to change the orientation of the lever arm $\varphi$ (control $\ddot{\varphi}$ through $\breve{\dot{\varphi}}$)
+	\item Send motor commands $\breve{\dot{\varphi}}_m$ to change the orientation of the lever arm $\varphi$ (control $\ddot{\varphi}$ through $\breve{\dot{\varphi}}_m$)
 \end{itemize}
 In order to show that there are $\varphi$ / $\psi$ constellations which result in constant $\ddot{\beta}$ acceleration of the ball, the non-linear equations of motion are evaluated at $\varphi = const$ and $\psi = const$, which implies $\dot{\varphi} = \ddot{\varphi} = \dot{\psi} = \ddot{\psi} = 0$.
 This results in the following three equations:
 \begin{align}
 0 &= \left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 + l \cdot m_3 \cdot r_2 \cdot cos(\varphi) \right) \cdot \ddot{\beta}  \nonumber \\
 &\qquad  + l \cdot m_3 \cdot g \cdot sin(\varphi) \\
-0 &= \ddot{\beta} + 1/\tau_m \cdot (\dot{\beta} + \breve{\dot{\varphi}}) \\
+0 &= \ddot{\beta} + 1/\tau_m \cdot (\dot{\beta} + \breve{\dot{\varphi}}_m) \\
 0 &= (\theta_1/r_1^2  + m_1 + (m_2+m_3) \cdot (1+cos(\psi))) \cdot r_2 \cdot \ddot{\beta} + (m_2+m_3) \cdot g \cdot sin(\psi)
 \end{align}
 The first equation shows how far out the lever arm has to be rotated to balance under constant acceleration $\ddot{\beta}$.
-The second equation shows how the motor command $\breve{\dot{\varphi}}$ has to be selected to keep the $\ddot{\beta}$ acceleration constant, namely $\breve{\dot{\varphi}} = -\dot{\beta} - \tau_m \cdot \ddot{\beta}$.
+The second equation shows how the motor command $\breve{\dot{\varphi}}_m$ has to be selected to keep the $\ddot{\beta}$ acceleration constant, namely $\breve{\dot{\varphi}}_m = -\dot{\beta} - \tau_m \cdot \ddot{\beta}$.
 The third equation shows how large the $\ddot{\beta}$ acceleration is when keeping the ball at a certain $\psi$ angle.
 
 Intuitively, one can tell that the limiting factor in this system is the lever arm; keeping it at $\pm \pi/2$ is basically the maximum effort that can be put in to recover the system.
@@ -307,6 +308,7 @@ cos(\varphi) \cdot \left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_
 resulting in the following equation for $cos(\varphi)$:
 \begin{equation*}
 cos(\varphi) = \frac{-l \cdot m_3 \cdot r_2}{\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2}
+\label{eq:phi_max}
 \end{equation*}
 This corresponds to the previous statement about keeping the lever arm at about $\pm \pi/2$ during maximum acceleration $\ddot{\beta}$;
 the right hand side is some small negative value, hence the absolute value of $\varphi$ has to be just slightly above $\pi/2$ during maximum acceleration $\ddot{\beta}$.
@@ -327,13 +329,27 @@ It can be shown that angle $\varphi$ of the lever arm is the limiting factor for
 \end{align*}
 That means that the upper ball is kept at some angle $|\psi|<\pi/2$ at maximum acceleration $\ddot{\beta}_{max}$ limited by the lever arm angle $\varphi$.
 Generally, for any feasible acceleration $\ddot{\beta}$, angle $\psi$ can be calculated by solving the third equation for it:
+\begin{align}
+(m_2+m_3) \cdot (1+cos(\psi)) \cdot \ddot{\beta} + \frac{(m_2+m_3) \cdot g}{r_2} \cdot sin(\psi) = -(\theta_1/r_1^2  + m_1) \cdot \ddot{\beta} \nonumber \\
+\rightarrow \ddot{\beta} \cdot cos(\psi) + \frac{g}{r_2} \cdot sin(\psi) = -\frac{\theta_1/r_1^2  + m_1}{m_2+m_3} \cdot \ddot{\beta} - \ddot{\beta} \nonumber \\
+\rightarrow \sqrt{\ddot{\beta}^2 + \frac{g^2}{r_2^2}} \sin{\left( \psi + \arctan{\left( \frac{r_2 \cdot \ddot{\beta}}{g}\right)}\right)} = -\left( 1 + \frac{\theta_1/r_1^2  + m_1}{m_2+m_3} \right) \cdot \ddot{\beta} \nonumber \\
+\rightarrow \psi = - \arctan{\left( \frac{r_2 \cdot \ddot{\beta}}{g}\right)} -\arcsin{\left(\left( 1 + \frac{\theta_1/r_1^2  + m_1}{m_2+m_3} \right) \cdot \frac{\ddot{\beta}}{\sqrt{\ddot{\beta}^2 + \frac{g^2}{r_2^2}}} \right)}
+\label{eq:psi_vs_beta_ddot}
+\end{align}
+using $a \cdot \sin{x} + b \cdot \cos {x} = \sqrt{a^2+b^2} \cdot \sin{\left(x+\arctan{\left(b/a\right)} \right)} \cite{trigsimpl}$.
+For later purposes, we'll solve eq. \ref{psi_vs_beta_ddot} for $\ddot{\beta}$:
+\begin{align}
+0 &= (\theta_1/r_1^2  + m_1 + (m_2+m_3) \cdot (1+cos(\psi))) \cdot r_2 \cdot \ddot{\beta} + (m_2+m_3) \cdot g \cdot sin(\psi) \nonumber \\
+\rightarrow \ddot{\beta} &= \frac{-(m_2+m_3) \cdot g \cdot sin(\psi) }{(\theta_1/r_1^2  + m_1 + (m_2+m_3) \cdot (1+cos(\psi))) \cdot r_2}
+\end{align}
+and eq. \ref{eq:beta_ddot_vs_phi} for $\varphi$ instead:
 \begin{align*}
-(m_2+m_3) \cdot (1+cos(\psi)) \cdot \ddot{\beta} + \frac{(m_2+m_3) \cdot g}{r_2} \cdot sin(\psi) = -(\theta_1/r_1^2  + m_1) \cdot \ddot{\beta} \\
-\rightarrow \ddot{\beta} \cdot cos(\psi) + \frac{g}{r_2} \cdot sin(\psi) = -\frac{\theta_1/r_1^2  + m_1}{m_2+m_3} \cdot \ddot{\beta} - \ddot{\beta}\\
-\rightarrow \sqrt{\ddot{\beta}^2 + \frac{g^2}{r_2^2}} \sin{\left( \psi + \arctan{\left( \frac{r_2 \cdot \ddot{\beta}}{g}\right)}\right)} = -\frac{\theta_1/r_1^2  + m_1 + m_2 + m_3}{m_2+m_3}\cdot \ddot{\beta} \\
-\rightarrow \psi = - \arctan{\left( \frac{r_2 \cdot \ddot{\beta}}{g}\right)} -\arcsin{\left(\frac{\theta_1/r_1^2  + m_1 + m_2 + m_3}{(m_2+m_3)} \cdot \frac{\ddot{\beta}}{\sqrt{\ddot{\beta}^2 + \frac{g^2}{r_2^2}}} \right)}
+0 = \left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 + l \cdot m_3 \cdot r_2 \cdot cos(\varphi) \right) \cdot \ddot{\beta}  \nonumber \\
+\qquad  + l \cdot m_3 \cdot g \cdot sin(\varphi) \\
+\rightarrow  g \cdot sin(\varphi) + r_2 \cdot \ddot{\beta} \cdot cos(\varphi) = -\frac{\left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 \right) \cdot \ddot{\beta} }{l \cdot m_3} \\
+\rightarrow \sin{\left( \varphi + \arctan{\left( \frac{r_2 \cdot \ddot{\beta}}{g}\right)} \right)} = -\frac{\left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 \right) \cdot \ddot{\beta} }{l \cdot m_3 \cdot \sqrt{g^2 + r_2^2 \ddot{\beta}^2}} \\
+\rightarrow \varphi = -\arctan{\left( \frac{r_2 \cdot \ddot{\beta}}{g}\right)} - \arcsin{\left( \frac{\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 }{l \cdot m_3 \cdot \sqrt{r_2^2 + \frac{g^2}{\ddot{\beta}^2}}} \right)}
 \end{align*}
-using $a \cdot \sin{x} + b \cdot \cos {x} = \sqrt{a^2+b^2} \cdot \sin{\left(x+\arctan{\left(b/a\right)} \right)} \cite{trigsimpl}$
 
 \subsection{Controller derivation}
 
@@ -343,7 +359,7 @@ A lot of concepts in control theory are based on linear systems of the form $\do
 In order stabilize a non-linear systems, the system is linearized about its equilibrium.
 The concepts based on linear systems then work perfectly for infinitesimal deflections from the equilibrium, but fail further away from the equilibrium where the non-linear system behaves significantly different compared to its linearized version.
 
-The equilibrium of the system $(x^*, u^*)$ is at $\varphi^* = \psi^* = \dot{\beta}^* = \dot{\varphi}^* = \dot{\psi}^* = \breve{\dot{\varphi}}^* = 0$, and $\beta^*$ arbitrary\footnote{
+The equilibrium of the system $(x^*, u^*)$ is at $\varphi^* = \psi^* = \dot{\beta}^* = \dot{\varphi}^* = \dot{\psi}^* = \breve{\dot{\varphi}}_m^* = 0$, and $\beta^*$ arbitrary\footnote{
 There is another equilibrium with the lever arm pointing up ($\dot{\varphi} = \pi$), which is much harder to control and not considered for now. Additionally, there are two equilibriums with the upper ball below the ground at $\psi = \pi$.}.
 
 Linearizing $A \cdot [\ddot{\beta}, \ddot{\varphi}, \ddot{\psi}] = b$ from subsec. \ref{ss:EoM} around the equilibrium results in
@@ -351,19 +367,19 @@ Linearizing $A \cdot [\ddot{\beta}, \ddot{\varphi}, \ddot{\psi}] = b$ from subse
 M \cdot \left( {\begin{array}{c} \ddot{\beta} \\ \ddot{\varphi} \\ \ddot{\psi} \\ \end{array} } \right) +
 D \cdot \left( {\begin{array}{c} \dot{\beta} \\ \dot{\varphi} \\ \dot{\psi} \\ \end{array} } \right) +
 K \cdot \left( {\begin{array}{c} \beta \\ \varphi \\ \psi \\ \end{array} } \right) =
-F \cdot \breve{\dot{\varphi}}
+F \cdot \breve{\dot{\varphi}}_m
 \end{equation}
 where
 \begin{itemize}
 	\item $M = \frac{\partial \left(A \cdot [\ddot{\beta}, \ddot{\varphi}, \ddot{\psi}] \right)}{\partial [\ddot{\beta}, \ddot{\varphi}, \ddot{\psi}]} = A\Big|_{x=x^*}$
 	\item $D = -\frac{\partial b}{\partial [\dot{\beta}, \dot{\varphi}, \dot{\psi}]}\Big|_{x=x^*}$
 	\item $K = -\frac{\partial b}{\partial [\beta, \varphi, \psi]}\Big|_{x=x^*}$
-	\item $F = \frac{\partial b}{\partial \breve{\dot{\varphi}}}\Big|_{x=x^*}$
+	\item $F = \frac{\partial b}{\partial \breve{\dot{\varphi}}_m}\Big|_{x=x^*}$
 \end{itemize}
 This system of three second order differential equations can be transformed into six equations of first order $\dot{x} = A \cdot x + B \cdot u$ by using:
 \begin{itemize}
 	\item state $x = [\beta, \varphi, \psi, \dot{\beta}, \dot{\varphi}, \dot{\psi}]$
-	\item input $u = \breve{\dot{\varphi}}$
+	\item input $u = \breve{\dot{\varphi}}_m$
 	\item system matrix $A = \left( {\begin{array}{cc} 0_{3 \times 3} & I_{3 \times 3} \\ -M^{-1} \cdot K & -M^{-1} \cdot D  \end{array} } \right)$
 	\item control matrix $B = \left( {\begin{array}{c} 0_{3 \times 1} \\ M^{-1} \cdot F \end{array} } \right)$
 \end{itemize}
@@ -433,19 +449,19 @@ One can then expand the polynomial $(\lambda-\lambda_1) \cdot (\lambda-\lambda_2
 
 \subsubsection{Linear stabilizing controller}
 As the first controller version, the LQR approach is used to stabilize the system at an arbitrary position $\beta$:
-Using the system matrices $A$ and $B$ derived in subsec. \ref{ss:syslin}, picking $Q = diag \left( \left[0, q_{\varphi}, q_{\psi}, q_{\dot{\beta}}, q_{\dot{\varphi}}, q_{\dot{\psi}} \right] \right)$ and $R = r_{\breve{\dot{\varphi}}}$, eq. \ref{eq:lqrP} can be solved for $P$, which subsequently is inserted into eq.\ref{eq:lqrK}, resulting in $K = \left[0, k_{\varphi}, k_{\psi}, k_{\dot{\beta}}, k_{\dot{\varphi}}, k_{\dot{\psi}} \right]$. The system can be stabilized for a small initial deflection from the equilibrium using the control law $u=\breve{\dot{\varphi}}=-K \cdot x$.
+Using the system matrices $A$ and $B$ derived in subsec. \ref{ss:syslin}, picking $Q = diag \left( \left[0, q_{\varphi}, q_{\psi}, q_{\dot{\beta}}, q_{\dot{\varphi}}, q_{\dot{\psi}} \right] \right)$ and $R = r_{\breve{\dot{\varphi}}_m}$, eq. \ref{eq:lqrP} can be solved for $P$, which subsequently is inserted into eq.\ref{eq:lqrK}, resulting in $K = \left[0, k_{\varphi}, k_{\psi}, k_{\dot{\beta}}, k_{\dot{\varphi}}, k_{\dot{\psi}} \right]$. The system can be stabilized for a small initial deflection from the equilibrium using the control law $u=\breve{\dot{\varphi}}_m=-K \cdot x$.
 
 \subsubsection{Linear $\dot{\beta}$ controller}
 Next, we add the capability of moving (rotating) the upper ball at a certain constant velocity $\breve{\dot{\beta}}$, while of course balancing on the lower ball.
 Intuitively, one can say that while the upper ball is rotating at $\breve{\dot{\beta}}$, the lever arm needs to keep pointing down, which is achieved by rotating the motor into the opposite direction $\dot{\varphi}_m = -\breve{\dot{\beta}}$, for which the motor has to be commanded to rotate at
 \begin{equation}
-\breve{\dot{\varphi}} = -\breve{\dot{\beta}}
+\breve{\dot{\varphi}}_m = -\breve{\dot{\beta}}
 \label{eq:ssmcmd}
 \end{equation}
-It can be most easily verified using the non-linear equations $A \cdot [\ddot{\beta}, \ddot{\varphi}, \ddot{\psi}] = b$ in sec. \ref{ss:EoM} that state $x = [\beta(t), 0, 0, \breve{\dot{\beta}}, 0, 0]$ with command $\breve{\dot{\varphi}} = -\breve{\dot{\beta}}$ leads to an un-accelerated motion since $b=0$.
+It can be most easily verified using the non-linear equations $A \cdot [\ddot{\beta}, \ddot{\varphi}, \ddot{\psi}] = b$ in sec. \ref{ss:EoM} that state $x = [\beta(t), 0, 0, \breve{\dot{\beta}}, 0, 0]$ with command $\breve{\dot{\varphi}}_m = -\breve{\dot{\beta}}$ leads to an un-accelerated motion since $b=0$.
 In order to make the ball accelerate when being at equilibrium $x=[0,0,0,0,0,0]$, a feed-forward part $u_{ff} \left( \breve{\dot{\beta}} \right)$ has to be added to the control law: .
 \begin{equation}
-\breve{\dot{\varphi}}=-K \cdot x + u_{ff}
+\breve{\dot{\varphi}}_m=-K \cdot x + u_{ff}
 \label{eq:ffwdmcmd}
 \end{equation}
 Inserting eq. \ref{eq:ssmcmd}, state $x = [\beta(t), 0, 0, \breve{\dot{\beta}}, 0, 0]$ and feedback gain \newline $K = \left[0, k_{\varphi}, k_{\psi}, k_{\dot{\beta}}, k_{\dot{\varphi}}, k_{\dot{\psi}} \right]$ into eq. \ref{eq:ffwdmcmd} results in
@@ -454,17 +470,71 @@ Inserting eq. \ref{eq:ssmcmd}, state $x = [\beta(t), 0, 0, \breve{\dot{\beta}}, 
 \end{equation}
 which can be solved for the feed-forward part $u_{ff} = (k_{\dot{\beta}} - 1 ) \cdot \breve{\dot{\beta}}$ and inserted into the control law:
 \begin{equation}
-\breve{\dot{\varphi}}=-K \cdot x + \left(k_{\dot{\beta}} - 1 \right) \cdot \breve{\dot{\beta}}
+\breve{\dot{\varphi}}_m=-K \cdot x + \left(k_{\dot{\beta}} - 1 \right) \cdot \breve{\dot{\beta}}
+\label{eq:betadotctrl}
 \end{equation}
-With this controller, the system can be controlled to desired $\breve{\dot{\beta}$ velocities. There is a caveat though: Large $\breve{\dot{\beta}$ commands will make the upper ball fall off the lower ball. The easiest measure to prevent this is saturating the input, i.e. limiting the absolute value of $\breve{\dot{\beta}$ to $\breve{\dot{\beta}_{max}$. We'll not explore better alternatives at this point, since limiting $\breve{\dot{\beta}$ is a workaround: The system (at least the mathematical model) has no inherent $\dot{\beta}$ limitation, we are simply indirectly limiting the $\ddot{\beta}$ acceleration to not hit the $\ddot{\beta}_{max}$ limit (see eq. \ref{eq:beta_ddot_max}).
+With this controller, the system can be controlled to desired $\breve{\dot{\beta}}$ velocities.
+There is a caveat though: Large $\breve{\dot{\beta}}$ commands will make the upper ball fall off the lower ball.
+The easiest measure to prevent this is saturating the input, i.e. limiting the absolute value of $\breve{\dot{\beta}}$ to $\breve{\dot{\beta}}_{max}$.
+We'll not explore better alternatives at this point, since limiting $\breve{\dot{\beta}}$ is a workaround:
+The system (at least the mathematical model) has no inherent $\dot{\beta}$ limitation, we are simply indirectly limiting the $\ddot{\beta}$ acceleration to not hit the $\ddot{\beta}_{max}$ limit (see eq. \ref{eq:beta_ddot_max}).
 
 \subsubsection{Linear $\beta$ controller}
 
 Through the $\dot{\beta}$ controller in the previous subsection, $\beta$ can be controlled using a classical PI-controller of the form
 \begin{equation}
 \breve{\dot{\beta}} = \frac{1}{\tau_{\beta}} \cdot \left( \breve{\beta} - \beta \right) - k_d \cdot \dot{\beta}
+\label{eq:betactrl}
 \end{equation}
 where $\tau_{\beta}$ is the time-constant (inverse of the proportional gain) limited by the reactiveness of the $\dot{\beta}$ controller, and $k_d$ the derivative gain for dampening the response.
+
+\subsubsection{Stacked controller}
+
+In the subsections above, a controller structure (eqs. \ref{eq:betactrl}, \ref{eq:betadotctrl}) has been derived that can control the ball to go to any position $\beta$.
+However, along the way a $\breve{\dot{\beta}}$ limitation was introduced, to indirectly prevent the upper ball from falling off the lower one.
+As mentioned above, the system does not have an inherent $\dot{\beta}$ limitation, so this $\breve{\dot{\beta}}$ limitation prevents us from fully exploiting the systems' capabilities, which is why we want to get rid of it.
+Instead, the actual limitations of the system have to be addressed directly.
+In the system analysis (subsec. \ref{ss:systemanalysis}), we saw that:
+\begin{itemize}
+	\item Acceleration $\ddot{\beta}$ is limited to some value $\ddot{\beta}_{max}$ (eq. \ref{eq:beta_ddot_max})
+	\item Lever arm angle $\varphi$ should be limited to approximately $[-\pi/2, \pi/2]$ (eq. \ref{eq:phi_max})
+\end{itemize}
+However, these limitations can't just be inserted into the $\dot{\beta}$ controller.
+Therefore, the $\dot{\beta}$ controller is first reformulated into a mathematically equivalent cascade of controllers:
+Note that there is already a separation into a $\beta$ and $\dot{\beta}$ controller, which allowed to limit $\breve{\dot{\beta}}$ commands;
+further separation will allow to limit $\breve{\ddot{\beta}}$ and $\breve{\varphi}$.
+First, recall the structure of the $\dot{\beta}$ controller:
+\begin{equation}
+\breve{\dot{\varphi}}_m=- k_{\varphi} \varphi - k_{\psi}\psi - k_{\dot{\beta}}\dot{\beta} - k_{\dot{\varphi}} \dot{\varphi} - k_{\dot{\psi}} \dot{\psi} + \left(k_{\dot{\beta}} - 1 \right) \cdot \breve{\dot{\beta}}
+\label{eq:betadotctrl2}
+\end{equation}
+We'll work our way up from the lowest level controller, the $\dot{\varphi}$ controller:
+Since the motor is fixed to the upper ball and the lever arm, $\dot{\varphi} = \dot{\varphi}_m + \dot{\beta}$, so to control $\dot{\varphi}$, we use:
+\begin{equation}
+\breve{\dot{\varphi}}_m = \breve{\dot{\varphi}} - \dot{\beta}
+\end{equation}
+Next, $\breve{\dot{\varphi}}$ is the output of a $\varphi$ PD-controller:
+\begin{equation}
+\breve{\dot{\varphi}} = k_{\varphi} \cdot \left( \breve{\varphi} - \varphi \right) - k_{\dot{\varphi}} \dot{\varphi}
+\end{equation}
+A PD controller controls $\psi$ through commanding the lever arm angle $\breve{\varphi}$:
+\begin{equation}
+\breve{\varphi} =  \frac{k_{\psi}}{k_{\varphi}}  \cdot \left( \breve{\psi} - \psi \right) - \frac{k_{\dot{\psi}}}{k_{\varphi}} \cdot \dot{\psi}
+\end{equation}
+Lastly, changes of $\dot{\beta}$ (which is $\ddot{\beta}$) is controlled through $\breve{\psi}$:
+\begin{equation}
+\breve{\psi} = \frac{k_{\dot{\beta}} - 1}{k_{\psi}}  \cdot \left( \breve{\dot{\beta}} - \dot{\beta} \right)
+\end{equation}
+Note that:
+\begin{itemize}
+	\item The gain from $\dot{\varphi} \rightarrow \breve{\dot{\varphi}} \rightarrow \breve{\dot{\varphi}}_m$ is $-k_{\dot{\varphi}} \cdot 1 = -k_{\dot{\varphi}}$
+	\item The gain from $\varphi \rightarrow \breve{\dot{\varphi}} \rightarrow \breve{\dot{\varphi}}_m$ is $-k_{\varphi} \cdot 1 = -k_{\varphi}$
+	\item The gain from $\dot{\psi} \rightarrow \breve{\varphi} \rightarrow \breve{\dot{\varphi}} \rightarrow \breve{\dot{\varphi}}_m$ is $-\frac{k_{\dot{\psi}}}{k_{\varphi}} \cdot k_{\varphi} \cdot 1 = -k_{\dot{\psi}}$
+	\item The gain from $\psi \rightarrow \breve{\varphi} \rightarrow \breve{\dot{\varphi}} \rightarrow \breve{\dot{\varphi}}_m$ is $-\frac{k_{\psi}}{k_{\varphi}} \cdot k_{\varphi} \cdot 1 = -k_{\psi}$
+	\item The gain from $\dot{\beta} \rightarrow \breve{\psi} \rightarrow \breve{\varphi} \rightarrow \breve{\dot{\varphi}} \rightarrow \breve{\dot{\varphi}}_m$ is $-\frac{k_{\dot{\beta}} - 1}{k_{\psi}} \cdot \frac{k_{\psi}}{k_{\varphi}} \cdot k_{\varphi} \cdot 1 - 1 = -k_{\dot{\beta}}$
+  \item The gain from $\breve{\dot{\beta}} \rightarrow \breve{\psi} \rightarrow \breve{\varphi} \rightarrow \breve{\dot{\varphi}} \rightarrow \breve{\dot{\varphi}}_m$ is $\frac{k_{\dot{\beta}} - 1}{k_{\psi}} \cdot \frac{k_{\psi}}{k_{\varphi}} \cdot k_{\varphi} \cdot 1= k_{\dot{\beta}} - 1$
+\end{itemize}
+as in eq. \ref{eq:betadotctrl2}, which means that this is indeed a mathematically equivalent formulation.
 
 \begin{thebibliography}{1}
 
