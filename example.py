@@ -32,7 +32,7 @@ x0 = np.zeros(STATE_SIZE)
 model = DynamicModel(param, x0)
 
 # instantiate controller
-controller = Controller()
+controller = Controller(param)
 
 # simulation time step
 dt = 0.05

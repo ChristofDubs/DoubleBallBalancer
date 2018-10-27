@@ -4,8 +4,21 @@ import numpy as np
 
 from controller_2d import Controller
 from definitions_2d import *
+from dynamic_model_2d import ModelParam
 
-controller = Controller()
+param = ModelParam()
+param.l = 1
+param.m1 = 1
+param.m2 = 1
+param.m3 = 1
+param.r1 = 3
+param.r2 = 2
+param.tau = 0.100
+param.theta1 = 1
+param.theta2 = 1
+param.theta3 = 1
+
+controller = Controller(param)
 delta = 1e-6
 
 K = np.array([0.447213596e+00, 1.03556079e+01, -4.73012271e+01,
@@ -23,6 +36,7 @@ class TestController(unittest.TestCase):
 
         # input gain
         x0 = np.zeros(STATE_SIZE)
+
         u = controller.compute_ctrl_input(x0, delta)
         self.assertAlmostEqual(u / delta, K[0])
 
