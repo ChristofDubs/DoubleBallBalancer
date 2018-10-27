@@ -28,36 +28,39 @@ class LQRController:
 
 
 def compute_phi_max(param):
-    return np.arccos(-param.l * param.m3 * param.r2 / (param.theta1 * param.r2**2 / \
-                     param.r1**2 + param.theta2 + (param.m1 + param.m2 + param.m3) * param.r2**2))
+    """compute lever arm angle for maximum beta_ddot acceleration"""
+    return np.arccos(-param.l * param.m3 * param.r2 / (param.theta1 * param.r2**2 /
+                                                       param.r1**2 + param.theta2 + (param.m1 + param.m2 + param.m3) * param.r2**2))
 
 
-def compute_psi(beta_ddot, param):
-    return -np.arctan(param.r2 * beta_ddot / param.g) - np.arcsin((1 + (param.theta1 / param.r1**2 + \
-                      param.m1) / (param.m2 + param.m3)) * beta_ddot / np.sqrt(beta_ddot**2 + param.g**2 / param.r2**2))
-
-
-def compute_psi_gain(param):
-    # gain beta_ddot -> psi
-    return -param.r2 / param.g * (2 + (param.theta1 / param.r1**2 +
-                                       param.m1) / (param.m2 + param.m3))
-
-
-def compute_phi(beta_ddot, param):
-
+def compute_phi_from_beta_ddot(beta_ddot, param):
+    """compute lever arm angle during constant beta_ddot acceleration"""
     return -np.arctan(param.r2 * beta_ddot / param.g) - np.arcsin((param.theta1 * param.r2**2 / param.r1**2 + param.theta2 + (
         param.m1 + param.m2 + param.m3) * param.r2**2) * beta_ddot / (param.l * param.m3 * np.sqrt(param.g**2 + beta_ddot**2 * param.r2**2)))
 
 
-def compute_phi_gain(param):
-    # gain beta_ddot -> phi
-    return -param.r2 / param.g - (param.theta1 * param.r2**2 / param.r1**2 + param.theta2 + (
-        param.m1 + param.m2 + param.m3) * param.r2**2) / (param.l * param.m3 * param.g)
+def compute_psi_from_beta_ddot(beta_ddot, param):
+    """compute angle of upper on lower ball during constant beta_ddot acceleration"""
+    return -np.arctan(param.r2 * beta_ddot / param.g) - np.arcsin((1 + (param.theta1 / param.r1**2 +
+                                                                        param.m1) / (param.m2 + param.m3)) * beta_ddot / np.sqrt(beta_ddot**2 + param.g**2 / param.r2**2))
+
+
+def compute_beta_ddot_to_psi_gain(param):
+    """beta_ddot to psi gain for small accelerations"""
+    return -param.r2 / param.g * (2 + (param.theta1 / param.r1**2 +
+                                       param.m1) / (param.m2 + param.m3))
 
 
 def compute_beta_ddot_from_psi(psi, param):
+    """compute acceleration beta_ddot from psi angle"""
     return -(param.m2 + param.m3) * param.g * np.sin(psi) / ((param.theta1 / param.r1 **
                                                               2 + param.m1 + (param.m2 + param.m3) * (1 + np.cos(psi))) * param.r2)
+
+
+def compute_phi_from_psi(psi, param):
+    """compute lever arm angle for stabilizing upper and lower ball at angle psi"""
+    beta_ddot = compute_beta_ddot_from_psi(psi, param)
+    return compute_phi_from_beta_ddot(beta_ddot, param)
 
 
 class Controller:
@@ -70,11 +73,11 @@ class Controller:
         self.kd = 0.2
 
         # beta_ddot -> psi gain
-        self.psi_gain = compute_psi_gain(param)
+        self.beta_ddot_to_psi_gain = compute_beta_ddot_to_psi_gain(param)
 
         # limits
         self.psi_max = 0.20
-        self.beta_ddot_max = -1 / self.psi_gain * self.psi_max
+        self.beta_ddot_max = -self.psi_max / self.beta_ddot_to_psi_gain
         self.phi_max = compute_phi_max(param)
 
         # save param
@@ -109,7 +112,8 @@ class Controller:
         if phi_dot_cmd is not None:
             return self.compute_motor_cmd(x, phi_dot_cmd)
 
-        print('unknown mode: {} is not in [0,{}]'.format(mode, STATE_SIZE - 1))
+        print('invalid mode: {} is not in {}'.format(
+            mode, [BETA_IDX, PHI_IDX, PSI_IDX, BETA_DOT_IDX, PHI_DOT_IDX]))
         return 0
 
     def compute_beta_dot_cmd(self, x, beta_cmd):
@@ -121,7 +125,7 @@ class Controller:
         beta_dot_cmd_max = np.sqrt(2 * self.beta_ddot_max * abs(delta_beta))
 
         # beta_dot command that results in psi_cmd = psi_cmd_max for beta_dot = 0
-        beta_dot_ff = -self.psi_max / (self.K[BETA_DOT_IDX] * self.psi_gain)
+        beta_dot_ff = -self.psi_max / (self.K[BETA_DOT_IDX] * self.beta_ddot_to_psi_gain)
 
         # augment beta_dot_max such that if beta_dot = beta_dot_max, psi_cmd = psi_cmd_max
         beta_dot_cmd_max -= beta_dot_ff
@@ -140,13 +144,13 @@ class Controller:
     def compute_psi_cmd(self, x, beta_dot_cmd):
         beta_ddot_des = self.K[BETA_DOT_IDX] * (beta_dot_cmd - x[BETA_DOT_IDX])
 
-        return compute_psi(beta_ddot_des, self.param)
+        return compute_psi_from_beta_ddot(beta_ddot_des, self.param)
 
     def compute_phi_cmd(self, x, psi_cmd):
         # prevent irrecoverable state by limiting psi
         psi_cmd = saturate(psi_cmd, self.psi_max)
 
-        phi_ff = compute_phi(compute_beta_ddot_from_psi(x[PSI_IDX], self.param), self.param)
+        phi_ff = compute_phi_from_psi(x[PSI_IDX], self.param)
 
         return self.K[PSI_IDX] * (psi_cmd - x[PSI_IDX]) - \
             self.K[PSI_DOT_IDX] * x[PSI_DOT_IDX] + phi_ff
