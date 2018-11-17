@@ -281,9 +281,10 @@ In order to show that there are $\varphi$ / $\psi$ constellations which result i
 This results in the following three equations:
 \begin{align}
 0 &= \left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 + l \cdot m_3 \cdot r_2 \cdot cos(\varphi) \right) \cdot \ddot{\beta}  \nonumber \\
-&\qquad  + l \cdot m_3 \cdot g \cdot sin(\varphi) \\
+&\qquad  + l \cdot m_3 \cdot g \cdot sin(\varphi) \label{eq:phi_betaddot_relation} \\
 0 &= \ddot{\beta} + 1/\tau_m \cdot (\dot{\beta} + \breve{\dot{\varphi}}_m) \\
 0 &= (\theta_1/r_1^2  + m_1 + (m_2+m_3) \cdot (1+cos(\psi))) \cdot r_2 \cdot \ddot{\beta} + (m_2+m_3) \cdot g \cdot sin(\psi)
+\label{eq:psi_betaddot_relation}
 \end{align}
 The first equation shows how far out the lever arm has to be rotated to balance under constant acceleration $\ddot{\beta}$.
 The second equation shows how the motor command $\breve{\dot{\varphi}}_m$ has to be selected to keep the $\ddot{\beta}$ acceleration constant, namely $\breve{\dot{\varphi}}_m = -\dot{\beta} - \tau_m \cdot \ddot{\beta}$.
@@ -295,21 +296,21 @@ The exact value can be found by solving the first equation for $\ddot{\beta}$ an
 \label{eq:beta_ddot_vs_phi}
 \ddot{\beta}(\varphi) = \frac{-l \cdot m_3 \cdot g \cdot sin(\varphi)}{\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 + l \cdot m_3 \cdot r_2 \cdot cos(\varphi)} = \frac{g(\varphi)}{h(\varphi)}
 \end{equation}
-For a function $f(x)$ in the form of $f(x) = g(x)/h(x)$, its derivative is given as $\frac{\partial f(x)}{\partial x} = f'(x) = \frac{g'(x) \cdot h(x) - h'(x) \cdot g(x)}{h(x)^2}$, hence the extrema $x^*$ are where $g'(x^*) \cdot h(x^*) - h'(x^*) \cdot g(x^*) = 0$.
+For a function $f(x)$ in the form of $f(x) = g(x)/h(x)$, its derivative is given as $\frac{\partial f(x)}{\partial x} = f'(x) = \frac{g'(x) \cdot h(x) - h'(x) \cdot g(x)}{h(x)^2}$, hence the extrema $x^*$ are where $g'(x) \cdot h(x) - h'(x) \cdot g(x) \Big|_{x=x^*} = 0$.
 \begin{align*}
-0 = {}& \frac{\partial \ddot{\beta}(\varphi)}{\partial \varphi} = \frac{\partial g(\varphi)}{\partial \varphi} \cdot h(\varphi) - g(\varphi) \cdot \frac{\partial h(\varphi)}{\partial \varphi} \\
-= {}& -l \cdot m_3 \cdot g \cdot l \cdot m_3 \cdot r_2 \cdot \left(cos(\varphi)^2 + sin(\varphi)^2 \right) \\
-{}& -l \cdot m_3 \cdot g \cdot cos(\varphi) \cdot \left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 \right)
+0 = {}& \frac{\partial \ddot{\beta}(\varphi)}{\partial \varphi} \Big|_{\varphi=\varphi_{max}} = \frac{\partial g(\varphi)}{\partial \varphi} \cdot h(\varphi) - g(\varphi) \cdot \frac{\partial h(\varphi)}{\partial \varphi} \Big|_{\varphi=\varphi_{max}} \\
+= {}& -l \cdot m_3 \cdot g \cdot l \cdot m_3 \cdot r_2 \cdot \left(cos(\varphi_{max})^2 + sin(\varphi_{max})^2 \right) \\
+{}& -l \cdot m_3 \cdot g \cdot cos(\varphi_{max}) \cdot \left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 \right)
 \end{align*}
 Since $cos(\varphi)^2 + sin(\varphi)^2 = 1$, this equation can be reformulated to:
 \begin{equation*}
-cos(\varphi) \cdot \left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 \right) = -l \cdot m_3 \cdot r_2
+cos(\varphi_{max}) \cdot \left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 \right) = -l \cdot m_3 \cdot r_2
 \end{equation*}
-resulting in the following equation for $cos(\varphi)$:
-\begin{equation*}
-cos(\varphi) = \frac{-l \cdot m_3 \cdot r_2}{\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2}
+resulting in the following equation for $\varphi_{max}$:
+\begin{equation}
+\varphi_{max} = \arccos{ \left( \frac{-l \cdot m_3 \cdot r_2}{\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2} \right) }
 \label{eq:phi_max}
-\end{equation*}
+\end{equation}
 This corresponds to the previous statement about keeping the lever arm at about $\pm \pi/2$ during maximum acceleration $\ddot{\beta}$;
 the right hand side is some small negative value, hence the absolute value of $\varphi$ has to be just slightly above $\pi/2$ during maximum acceleration $\ddot{\beta}$.
 The maximum acceleration $\ddot{\beta}_{max}$ can be well approximated by setting $\varphi = -\pi/2$ in eq. \ref{eq:beta_ddot_vs_phi}:
@@ -337,19 +338,21 @@ Generally, for any feasible acceleration $\ddot{\beta}$, angle $\psi$ can be cal
 \label{eq:psi_vs_beta_ddot}
 \end{align}
 using $a \cdot \sin{x} + b \cdot \cos {x} = \sqrt{a^2+b^2} \cdot \sin{\left(x+\arctan{\left(b/a\right)} \right)} \cite{trigsimpl}$.
-For later purposes, we'll solve eq. \ref{psi_vs_beta_ddot} for $\ddot{\beta}$:
+For later purposes, we'll solve eq. \ref{eq:psi_betaddot_relation} for $\ddot{\beta}$:
 \begin{align}
 0 &= (\theta_1/r_1^2  + m_1 + (m_2+m_3) \cdot (1+cos(\psi))) \cdot r_2 \cdot \ddot{\beta} + (m_2+m_3) \cdot g \cdot sin(\psi) \nonumber \\
 \rightarrow \ddot{\beta} &= \frac{-(m_2+m_3) \cdot g \cdot sin(\psi) }{(\theta_1/r_1^2  + m_1 + (m_2+m_3) \cdot (1+cos(\psi))) \cdot r_2}
+\label{eq:beta_ddot_vs_psi}
 \end{align}
-and eq. \ref{eq:beta_ddot_vs_phi} for $\varphi$ instead:
-\begin{align*}
+and eq. \ref{eq:phi_betaddot_relation} for $\varphi$ instead:
+\begin{align}
 0 = \left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 + l \cdot m_3 \cdot r_2 \cdot cos(\varphi) \right) \cdot \ddot{\beta}  \nonumber \\
-\qquad  + l \cdot m_3 \cdot g \cdot sin(\varphi) \\
-\rightarrow  g \cdot sin(\varphi) + r_2 \cdot \ddot{\beta} \cdot cos(\varphi) = -\frac{\left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 \right) \cdot \ddot{\beta} }{l \cdot m_3} \\
-\rightarrow \sin{\left( \varphi + \arctan{\left( \frac{r_2 \cdot \ddot{\beta}}{g}\right)} \right)} = -\frac{\left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 \right) \cdot \ddot{\beta} }{l \cdot m_3 \cdot \sqrt{g^2 + r_2^2 \ddot{\beta}^2}} \\
+\qquad  + l \cdot m_3 \cdot g \cdot sin(\varphi) \nonumber \\
+\rightarrow  g \cdot sin(\varphi) + r_2 \cdot \ddot{\beta} \cdot cos(\varphi) = -\frac{\left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 \right) \cdot \ddot{\beta} }{l \cdot m_3} \nonumber \\
+\rightarrow \sin{\left( \varphi + \arctan{\left( \frac{r_2 \cdot \ddot{\beta}}{g}\right)} \right)} = -\frac{\left(\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 \right) \cdot \ddot{\beta} }{l \cdot m_3 \cdot \sqrt{g^2 + r_2^2 \ddot{\beta}^2}} \nonumber \\
 \rightarrow \varphi = -\arctan{\left( \frac{r_2 \cdot \ddot{\beta}}{g}\right)} - \arcsin{\left( \frac{\theta_1 \cdot r_2^2/r_1^2 + \theta_2 + (m_1 + m_2 + m_3) \cdot r_2^2 }{l \cdot m_3 \cdot \sqrt{r_2^2 + \frac{g^2}{\ddot{\beta}^2}}} \right)}
-\end{align*}
+\label{eq:phi_vs_beta_ddot}
+\end{align}
 
 \subsection{Controller derivation}
 
@@ -488,7 +491,7 @@ Through the $\dot{\beta}$ controller in the previous subsection, $\beta$ can be 
 \end{equation}
 where $\tau_{\beta}$ is the time-constant (inverse of the proportional gain) limited by the reactiveness of the $\dot{\beta}$ controller, and $k_d$ the derivative gain for dampening the response.
 
-\subsubsection{Stacked controller}
+\subsubsection{Stacked $\dot{\beta}$ controller}
 
 In the subsections above, a controller structure (eqs. \ref{eq:betactrl}, \ref{eq:betadotctrl}) has been derived that can control the ball to go to any position $\beta$.
 However, along the way a $\breve{\dot{\beta}}$ limitation was introduced, to indirectly prevent the upper ball from falling off the lower one.
@@ -535,6 +538,24 @@ Note that:
   \item The gain from $\breve{\dot{\beta}} \rightarrow \breve{\psi} \rightarrow \breve{\varphi} \rightarrow \breve{\dot{\varphi}} \rightarrow \breve{\dot{\varphi}}_m$ is $\frac{k_{\dot{\beta}} - 1}{k_{\psi}} \cdot \frac{k_{\psi}}{k_{\varphi}} \cdot k_{\varphi} \cdot 1= k_{\dot{\beta}} - 1$
 \end{itemize}
 as in eq. \ref{eq:betadotctrl2}, which means that this is indeed a mathematically equivalent formulation.
+
+\subsubsection{Non-linear stacked  $\dot{\beta}$ controller}
+
+A crucial step towards a controller that properly handles the system's limitations is incorporating the results of the system analysis in subsec. \ref{ss:systemanalysis}.
+The $\dot{\beta}$ controller stack consists of the following structure:
+\begin{itemize}
+	\item{$\dot{\beta}$ controller: $\breve{\ddot{\beta}} = k_{\dot{\beta}} \cdot \left( \breve{\dot{\beta}} - \dot{\beta} \right)$}
+	\item{Convert $\breve{\ddot{\beta}}$ to $\breve{\psi}$ using eq. \ref{eq:psi_vs_beta_ddot}}
+	\item{Clip $\breve{\psi}$ to some magnitude $\breve{\psi}_{max}$. This value should be below the theoretical maximum to account for potential overshoot of underlying controllers, reactivity (controller margin), controller imperfections etc. (ignoring additional real-world considerations here)}
+  \item{To stabilize the upper ball at current angle $\psi$, calculate a feed-forward part $\breve{\varphi}_{ff}$ by inserting $\psi$ into eq. \ref{eq:beta_ddot_vs_psi}, and the resulting $\ddot{\beta}$ into eq. \ref{eq:phi_vs_beta_ddot}}
+  \item{Correct additional errors from $\breve{\psi}$ using a PD controller: $\Delta \breve{\varphi} =  k_{\psi} \cdot \left( \breve{\psi} - \psi \right) - k_{\dot{\psi}} \cdot \dot{\psi} $}
+	\item{The total $\varphi$ command is then: $\breve{\varphi} = \Delta \breve{\varphi} + \breve{\varphi}_{ff} $}
+  \item{Clip $\breve{\varphi}$ to magnitude $\varphi_{max}$ from eq. \ref{eq:phi_max}}
+	\item{Control $\breve{\varphi}$ using a PD controller: $\breve{\dot{\varphi}} = k_{\varphi} \cdot \left( \breve{\varphi} - \varphi \right) - k_{\dot{\varphi}} \dot{\varphi}$}
+	\item{As above, set the motor command to $\breve{\dot{\varphi}}_m = \breve{\dot{\varphi}} - \dot{\beta}$}
+\end{itemize}
+Similarly to above subsection, each gain of this new structure can be set such that a change of state $\delta x$ leads to the same change in output $\breve{\dot{\varphi}}$ as before the reformulation.
+Note that since above controller is non-linear, this only applies for infinitesimal deflections from the equilibrium.
 
 \begin{thebibliography}{1}
 
