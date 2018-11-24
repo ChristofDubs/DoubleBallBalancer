@@ -557,6 +557,47 @@ The $\dot{\beta}$ controller stack consists of the following structure:
 Similarly to above subsection, each gain of this new structure can be set such that a change of state $\delta x$ leads to the same change in output $\breve{\dot{\varphi}}$ as before the reformulation.
 Note that since above controller is non-linear, this only applies for infinitesimal deflections from the equilibrium.
 
+\subsubsection{Saturated $\beta$ controller}
+
+The $\beta$ controller introduced in eq. \ref{eq:betactrl}
+\[
+\breve{\dot{\beta}} = \frac{1}{\tau_{\beta}} \cdot \left( \breve{\beta} - \beta \right) - k_d \cdot \dot{\beta}
+\]
+needs to take the acceleration limit $\ddot{\beta}_{max}$ into account in order to prevent overshoot.
+When accelerating with $\ddot{\beta}_{max}$ from the equilibrium $\dot{\beta}(0) = 0$, $\beta(0) = \beta_0$ arbitrary, $\dot{\beta}$ linearly increases by
+\[
+\dot{\beta}(\Delta t) = \ddot{\beta}_{max} \cdot \Delta t
+\]
+and the angular deflection $\Delta \beta(\Delta t)$ from the initial angle $\beta_0$ will grow as
+\[
+\Delta \beta = \beta(\Delta t) - \beta_0 = \int_0^{\Delta t}{\dot{\beta}(t) \delta t} = 1/2 \cdot \ddot{\beta}_{max} \cdot \Delta t^2
+\]
+The relation between $\dot{\beta}$ and $\Delta \beta$ can be obtained by solving the second equation for $\Delta t$, and inserting it into the first one:
+\begin{equation}
+\dot{\beta}(\Delta \beta) = \ddot{\beta}_{max} \cdot \Delta t(\Delta \beta) = \ddot{\beta}_{max} \cdot \sqrt{\frac{2 \cdot \Delta \beta}{\ddot{\beta}_{max}}} = \sqrt{2 \cdot \ddot{\beta}_{max} \cdot \Delta \beta }
+\end{equation}
+As a consequence, when approaching a desired $\breve{\beta}$ and being a distance $|\Delta \beta|$ away, if the angular speed $|\dot{\beta}|$ is greater than $\sqrt{2 \cdot \ddot{\beta}_{max} \cdot |\Delta \beta|}$, there will be overshoot even if the controller is decelerating at $\ddot{\beta}_{max}$.
+The first step in the $\beta$ controller is to incorporate this relation:
+\begin{equation}
+\breve{\dot{\beta}}_{max} = \sqrt{2 \cdot \ddot{\beta}_{max} \cdot |\breve{\beta} - \beta|}
+\end{equation}
+Additionally, there needs to be a feed-forward part that makes sure that if $\dot{\beta} = \breve{\dot{\beta}}_{max}$, the resulting acceleration command is actually full deceleration $-\ddot{\beta}_{max}$, which is $\dot{\beta}_{ff} = -\ddot{\beta}_{max} / k_{\dot{\beta}}$.
+Therefore, above limit changes into
+\begin{equation}
+\breve{\dot{\beta}}_{max} = \sqrt{2 \cdot \ddot{\beta}_{max} \cdot |\breve{\beta} - \beta|} - \ddot{\beta}_{max} / k_{\dot{\beta}}
+\end{equation}
+At this point, remember that this limitation is introduced to prevent the controller from building too much speed and then trying to command accelerations greater than $\ddot{\beta}_{max}$, and massively overshooting since this is not possible.
+A simple method to let the controller take over when approaching the $\breve{\beta}$ setpoint is setting a lower bound of $\dot{\beta}_{ff}$ on the limit:
+\begin{equation}
+\breve{\dot{\beta}}_{max} = \max{ \left\{ \sqrt{2 \cdot \ddot{\beta}_{max} \cdot |\breve{\beta} - \beta|} - \ddot{\beta}_{max} / k_{\dot{\beta}}, \, \ddot{\beta}_{max} / k_{\dot{\beta}} \right\} }
+\label{eq:beta_dot_max}
+\end{equation}
+Summary:
+\begin{itemize}
+	\item{Control $\beta$ with a PD-controller: $\breve{\dot{\beta}} = \frac{1}{\tau_{\beta}} \cdot \left( \breve{\beta} - \beta \right) - k_d \cdot \dot{\beta}$ }
+	\item{Clip the magintude of $\breve{\dot{\beta}}$ to $\breve{\dot{\beta}}_{max}$ from eq. \ref{eq:beta_dot_max}}
+\end{itemize}
+
 \begin{thebibliography}{1}
 
 \bibitem{trigsimpl} \href{https://en.wikibooks.org/wiki/Trigonometry/Simplifying_a_sin(x)_+_b_cos(x)}{Wikibooks: Trigonometry/Simplifying a sin(x) + b cos(x)}
