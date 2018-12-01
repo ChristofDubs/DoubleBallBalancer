@@ -47,8 +47,8 @@ The state of the 2D version is 6-dimensional; the following minimal coordinates 
 \begin{itemize}
 	\item $\beta$: rolling angle of upper ball [$rad$]
 	\item $\dot{\beta}$: angular velocity of upper ball [$rad/s$]
-	\item $\varphi$: angle of lever arm relative to inertial up direction [$rad$]
-	\item $\dot{\varphi}$: angular velocity of lever arm relative to inertial up direction [$rad/s$]
+	\item $\varphi$: angle of lever arm relative to inertial down direction [$rad$]
+	\item $\dot{\varphi}$: angular velocity of lever arm relative to inertial down direction [$rad/s$]
 	\item $\psi$: angle of contact point of upper ball on lower ball [$rad$]
 	\item $\dot{\psi}$: angle derivative of contact point of upper ball on lower ball [$rad/s$]
 \end{itemize}
@@ -61,7 +61,7 @@ Additionally, the following states are introduced and later eliminated during th
 	\item $x$: position of lower ball [$m$]
 	\item $\dot{x}$: velocity  of lower ball [$m/s$]
 \end{itemize}
-To control the system, a simple speed-controller motor model will be used to make the motor follow an angular velocity command $\breve{\dot{\varphi}}_m$, which replaces the motor torque $T$.
+To control the system, a speed-controlled motor will be used; simplifying the motor model to one following an angular velocity command $\breve{\dot{\varphi}}_m$ will eliminate the motor torque $T$.
 
 \subsection{Parameter definition}
 \begin{itemize}
@@ -71,7 +71,7 @@ To control the system, a simple speed-controller motor model will be used to mak
 	\item $m_3$: Mass of lever arm [$kg$]
 	\item $r_1$: Radius of lower ball [$m$]
 	\item $r_2$: Radius of upper ball [$m$]
-	\item $\tau$: Time constant of speed-controlled motor [$s$]
+	\item $\tau_m$: Time constant of speed-controlled motor [$s$]
 	\item $\theta_1$: Mass moment of inertia of lower ball wrt. its center of mass [$kg*m^2$]
 	\item $\theta_2$: Mass moment of inertia of upper ball wrt. its center of mass [$kg*m^2$]
 	\item $\theta_3$: Mass moment of inertia of lever arm wrt. its center of mass [$kg*m^2$]
@@ -170,7 +170,7 @@ This leads to
 The angular velocity of the lever arm is given as per definition of the states:
 \begin{equation}
 {}_I \vec{\Omega}_3 = 
-\left( {\begin{array}{c} 0 \\ 0 \\ \dot{\phi} \\ \end{array} } \right)
+\left( {\begin{array}{c} 0 \\ 0 \\ \dot{\varphi} \\ \end{array} } \right)
 \end{equation}
 The vector from the upper ball's center to the center of mass of the lever arm is
 \begin{equation}
@@ -202,14 +202,13 @@ From accelerating the lever arm through the motor, the upper ball feels the moto
 To derive the equations of motion, the concept of projected Newton-Euler equations is used, for which the following terms are needed:
 For each rigid body $i$, 
 \begin{enumerate}
-	\item Express the position its center of mass ($\vec{r}_{OSi}$) and its angular velocity ($\vec{\omega}_i$) as a function of the minimal coordinates
+	\item Express the position its center of mass ($\vec{r}_{OSi}$) and its angular velocity ($\vec{\Omega}_i$) as a function of the minimal coordinates
 	\item Formulate the all external forces $F_i$ and torques $M_i$
 	\item Calculate the velocity of its center of mass ($\vec{v}_{OSi}$) as a function of the minimal coordinates using Euler's differentiation rule on $\vec{r}_{OSi}$
-	\item Calculate the velocity of its center of mass ($\vec{v}_{OSi}$) as a function of the minimal coordinates using Euler's differentiation rule on $\vec{r}_{OSi}$
 	\item Calculate the translational jacobian matrix $J_{Si}$ by taking the partial derivative of $\vec{v}_{OSi}$ with respect to the velocity states
-	\item Calculate the rotational jacobian matrix $J_{Ri}$ by taking the partial derivative of $\vec{\omega}_i$ with respect to the velocity states
-	\item Calculate the derivative of the impulse $\vec{p}_{i} = m_i \cdot \vec{v}_{OSi}$
-	\item Calculate the derivative of the spin $\vec{N}_{Si} = \theta_i \cdot \vec{\Omega}_{i}$
+	\item Calculate the rotational jacobian matrix $J_{Ri}$ by taking the partial derivative of $\vec{\Omega}_i$ with respect to the angular velocity states
+	\item Calculate the time derivative of the impulse $\vec{p}_{i} = m_i \cdot \vec{v}_{OSi}$
+	\item Calculate the time derivative of the spin $\vec{N}_{Si} = \theta_i \cdot \vec{\Omega}_{i}$
 \end{enumerate}
 Note that after formulating the first two items plus the rolling constraints to eliminate non-minimal coordinates, everything can be calculated (using a computer and a symbolic math library, e.g. sympy). The detailed individual steps for those calculations are therefore omitted.
 The projected Newton-Euler equations are then given by:
@@ -235,7 +234,7 @@ b[2] &= (r_1 + r_2) \cdot (m_2+m_3) \cdot sin(\psi) \cdot ((r_1 + r_2) \cdot \do
 
 \subsection{Incorporating motor dynamics into the equations of motion}
 \label{ss:EoM}
-While applying torque is the most direct way to control above system, the ability to control the torque directly imposes some strong mechanical requirements: 
+While applying torque is the most direct way to control above system, the necessity to be able to control the torque directly imposes some demanding mechanical requirements:
 A torque-controlled motor with a very high torque has to be used and the lever arm needs to be able to swing freely when the motor is off (no gearbox / low friction in general).
 A much simpler approach is controlling the velocity of a (DC)-motor with a gearbox and encoder instead. The simplest viable (requiring finite torques) model of a speed-controlled motor is a first order system, where the motor speed $\dot{\varphi}_m$ follows the speed command $\breve{\dot{\varphi}}_m$ with time constant $\tau_m$:
 \begin{equation}
@@ -328,8 +327,8 @@ It can be shown that angle $\varphi$ of the lever arm is the limiting factor for
 &> \frac{m_3 \cdot g \cdot l}{(\theta_1/r_1^2 + \theta_2/r_2^2 + m_1 + m_2 + m_3) \cdot r_2^2} \\
 &\approx \ddot{\beta}_{max}
 \end{align*}
-That means that the upper ball is kept at some angle $|\psi|<\pi/2$ at maximum acceleration $\ddot{\beta}_{max}$ limited by the lever arm angle $\varphi$.
-Generally, for any feasible acceleration $\ddot{\beta}$, angle $\psi$ can be calculated by solving the third equation for it:
+This means that the upper ball is kept at some angle $|\psi|<\pi/2$ for any constant acceleration $\ddot{\beta}_{max}$, which is limited by the maximum lever arm angle $\varphi_{max}$.
+Generally, for any feasible acceleration $\ddot{\beta}$, angle $\psi$ can be calculated by solving eq. \ref{eq:psi_betaddot_relation} for it:
 \begin{align}
 (m_2+m_3) \cdot (1+cos(\psi)) \cdot \ddot{\beta} + \frac{(m_2+m_3) \cdot g}{r_2} \cdot sin(\psi) = -(\theta_1/r_1^2  + m_1) \cdot \ddot{\beta} \nonumber \\
 \rightarrow \ddot{\beta} \cdot cos(\psi) + \frac{g}{r_2} \cdot sin(\psi) = -\frac{\theta_1/r_1^2  + m_1}{m_2+m_3} \cdot \ddot{\beta} - \ddot{\beta} \nonumber \\
@@ -359,11 +358,11 @@ and eq. \ref{eq:phi_betaddot_relation} for $\varphi$ instead:
 \subsubsection{System Linearization}
 \label{ss:syslin}
 A lot of concepts in control theory are based on linear systems of the form $\dot{x} = A \cdot x + B \cdot u$, where $A$ and $B$ are matrices that are just a function of system parameters (and potentially time), but not states.
-In order stabilize a non-linear systems, the system is linearized about its equilibrium.
-The concepts based on linear systems then work perfectly for infinitesimal deflections from the equilibrium, but fail further away from the equilibrium where the non-linear system behaves significantly different compared to its linearized version.
+These concepts can also be used to stabilize a non-linear system, by applying them after linearizing the system's dynamics about the equilibrium.
+Doing that works perfectly for infinitesimal deflections from the equilibrium, but fails further away from the equilibrium where the non-linear system behaves significantly different compared to its linearized version.
 
-The equilibrium of the system $(x^*, u^*)$ is at $\varphi^* = \psi^* = \dot{\beta}^* = \dot{\varphi}^* = \dot{\psi}^* = \breve{\dot{\varphi}}_m^* = 0$, and $\beta^*$ arbitrary\footnote{
-There is another equilibrium with the lever arm pointing up ($\dot{\varphi} = \pi$), which is much harder to control and not considered for now. Additionally, there are two equilibriums with the upper ball below the ground at $\psi = \pi$.}.
+The system's equilibrium $(x^*, u^*)$ is at $\varphi^* = \psi^* = \dot{\beta}^* = \dot{\varphi}^* = \dot{\psi}^* = \breve{\dot{\varphi}}_m^* = 0$, and $\beta^*$ arbitrary\footnote{There is another equilibrium with the lever arm pointing up ($\dot{\varphi} = \pi$), which is much harder to control and not considered for now.
+Additionally, there are two equilibriums with the upper ball below the ground at $\psi = \pi$.}.
 
 Linearizing $A \cdot [\ddot{\beta}, \ddot{\varphi}, \ddot{\psi}] = b$ from subsec. \ref{ss:EoM} around the equilibrium results in
 \begin{equation}
@@ -399,13 +398,13 @@ M[2,1] &= -2 \cdot l \cdot m_3 \cdot (r_1 + r_2) \\
 M[2,2] &= (r_1 + r_2)^2 \cdot (\theta_1/r_1^2 + m_1 + 4 \cdot m_2 + 4 \cdot m_3) \\
 D &= \left( {\begin{array}{ccc}
 0 & 0 & 0 \\
--1/\tau & 1/\tau & 0 \\
+-1/\tau_m & 1/\tau_m & 0 \\
 0 & 0 & 0 \end{array} } \right) \\
 K &= \left( {\begin{array}{ccc}
 0 & g \cdot l \cdot m_3 & 0 \\
 0 & 0 & 0 \\
 0 & 0 & -g \cdot (m_2 + m_3) \cdot (r_1 + r_2)  \end{array} } \right) \\
-F &= \left( {\begin{array}{c} 0 \\ 1/\tau \\ 0 \end{array} } \right)
+F &= \left( {\begin{array}{c} 0 \\ 1/\tau_m \\ 0 \end{array} } \right)
 \end{align*}
 
 \subsubsection{LQ-Regulator}
@@ -436,7 +435,7 @@ In practice however, there are some limitations; mainly that an overly aggressiv
 	\item Delays: There will be time delays in the chain of change of state, observing this change with sensors, computing a command and the actuator starting to move according to the computed command.
 	\item Discrete Time Control: The frequency at which a digital controller runs is limited. This is not a problem though as long as this frequency is significantly faster than the system dynamics; and if that's not the case, this problem can be circumvented by discretizing the system and applying the discrete time LQR solution.
 	\item Imperfect state information / sensor noise: Above formulation assumes perfect state information; sensor noise will cause noise in the estimated state, which will be directly amplified to jitter in the command.
-	\item Model imperfections: In general, ''all models are wrong``.
+	\item Model imperfections: In general, ``all models are wrong''.
 	Unmodelled / non-linear effects such as friction / slippage / elastic deformations / play and inaccurately measured physical parameters can make the system behave differently than intended.
 \end{itemize}
 
@@ -451,10 +450,11 @@ In a nutshell, one can calculate the characteristic polynomial $\lambda^n + a_{n
 One can then expand the polynomial $(\lambda-\lambda_1) \cdot (\lambda-\lambda_2) \cdot ... \cdot (\lambda-\lambda_n)$ where $\lambda_i$ are the desired eigenvalues and equate the coefficients with the ones of the characteristic polynomial, which will give equations that can be solved for the $K$ entries.
 
 \subsubsection{Linear stabilizing controller}
-As the first controller version, the LQR approach is used to stabilize the system at an arbitrary position $\beta$:
-Using the system matrices $A$ and $B$ derived in subsec. \ref{ss:syslin}, picking $Q = diag \left( \left[0, q_{\varphi}, q_{\psi}, q_{\dot{\beta}}, q_{\dot{\varphi}}, q_{\dot{\psi}} \right] \right)$ and $R = r_{\breve{\dot{\varphi}}_m}$, eq. \ref{eq:lqrP} can be solved for $P$, which subsequently is inserted into eq.\ref{eq:lqrK}, resulting in $K = \left[0, k_{\varphi}, k_{\psi}, k_{\dot{\beta}}, k_{\dot{\varphi}}, k_{\dot{\psi}} \right]$. The system can be stabilized for a small initial deflection from the equilibrium using the control law $u=\breve{\dot{\varphi}}_m=-K \cdot x$.
+As a first controller version, the LQR approach is used to achieve stabilization of the system at an arbitrary position $\beta$:
+Using the system matrices $A$ and $B$ derived in subsec. \ref{ss:syslin}, picking $Q = diag \left( \left[0, q_{\varphi}, q_{\psi}, q_{\dot{\beta}}, q_{\dot{\varphi}}, q_{\dot{\psi}} \right] \right)$ and $R = r_{\breve{\dot{\varphi}}_m}$, eq. \ref{eq:lqrP} can be solved for $P$, which subsequently is inserted into eq. \ref{eq:lqrK}, resulting in $K = \left[0, k_{\varphi}, k_{\psi}, k_{\dot{\beta}}, k_{\dot{\varphi}}, k_{\dot{\psi}} \right]$.
+The system can be stabilized for small initial deflections from the equilibrium using the control law $u=\breve{\dot{\varphi}}_m=-K \cdot x$.
 
-\subsubsection{Linear $\dot{\beta}$ controller}
+\subsubsection{Linear \texorpdfstring{$\dot{\beta}$}{betadot} controller}
 Next, we add the capability of moving (rotating) the upper ball at a certain constant velocity $\breve{\dot{\beta}}$, while of course balancing on the lower ball.
 Intuitively, one can say that while the upper ball is rotating at $\breve{\dot{\beta}}$, the lever arm needs to keep pointing down, which is achieved by rotating the motor into the opposite direction $\dot{\varphi}_m = -\breve{\dot{\beta}}$, for which the motor has to be commanded to rotate at
 \begin{equation}
@@ -482,8 +482,7 @@ The easiest measure to prevent this is saturating the input, i.e. limiting the a
 We'll not explore better alternatives at this point, since limiting $\breve{\dot{\beta}}$ is a workaround:
 The system (at least the mathematical model) has no inherent $\dot{\beta}$ limitation, we are simply indirectly limiting the $\ddot{\beta}$ acceleration to not hit the $\ddot{\beta}_{max}$ limit (see eq. \ref{eq:beta_ddot_max}).
 
-\subsubsection{Linear $\beta$ controller}
-
+\subsubsection{Linear \texorpdfstring{$\beta$}{beta} controller}
 Through the $\dot{\beta}$ controller in the previous subsection, $\beta$ can be controlled using a classical PI-controller of the form
 \begin{equation}
 \breve{\dot{\beta}} = \frac{1}{\tau_{\beta}} \cdot \left( \breve{\beta} - \beta \right) - k_d \cdot \dot{\beta}
@@ -491,21 +490,20 @@ Through the $\dot{\beta}$ controller in the previous subsection, $\beta$ can be 
 \end{equation}
 where $\tau_{\beta}$ is the time-constant (inverse of the proportional gain) limited by the reactiveness of the $\dot{\beta}$ controller, and $k_d$ the derivative gain for dampening the response.
 
-\subsubsection{Stacked $\dot{\beta}$ controller}
-
+\subsubsection{Stacked \texorpdfstring{$\dot{\beta}$}{betadot} controller}
 In the subsections above, a controller structure (eqs. \ref{eq:betactrl}, \ref{eq:betadotctrl}) has been derived that can control the ball to go to any position $\beta$.
 However, along the way a $\breve{\dot{\beta}}$ limitation was introduced, to indirectly prevent the upper ball from falling off the lower one.
-As mentioned above, the system does not have an inherent $\dot{\beta}$ limitation, so this $\breve{\dot{\beta}}$ limitation prevents us from fully exploiting the systems' capabilities, which is why we want to get rid of it.
-Instead, the actual limitations of the system have to be addressed directly.
+As mentioned above, the system does not have an inherent $\dot{\beta}$ limitation, so this $\breve{\dot{\beta}}$ limitation prevents full exploitation of the system's capabilities.
+To get around that, the actual limitations of the system have to be addressed directly instead.
 In the system analysis (subsec. \ref{ss:systemanalysis}), we saw that:
 \begin{itemize}
-	\item Acceleration $\ddot{\beta}$ is limited to some value $\ddot{\beta}_{max}$ (eq. \ref{eq:beta_ddot_max})
-	\item Lever arm angle $\varphi$ should be limited to approximately $[-\pi/2, \pi/2]$ (eq. \ref{eq:phi_max})
+	\item{Lever arm angle $\varphi$ should be limited to approximately $[-\pi/2, \pi/2]$ (eq. \ref{eq:phi_max})}
+	\item{As a consequence, acceleration $\ddot{\beta}$ is limited to some value $\ddot{\beta}_{max}$ (eq. \ref{eq:beta_ddot_max}), and accordingly angle $\psi$ is limited to $\psi_{max} = \psi\left(\ddot{\beta} = \ddot{\beta}_{max} \right)$ using eq. \ref{eq:psi_vs_beta_ddot}}
 \end{itemize}
 However, these limitations can't just be inserted into the $\dot{\beta}$ controller.
 Therefore, the $\dot{\beta}$ controller is first reformulated into a mathematically equivalent cascade of controllers:
 Note that there is already a separation into a $\beta$ and $\dot{\beta}$ controller, which allowed to limit $\breve{\dot{\beta}}$ commands;
-further separation will allow to limit $\breve{\ddot{\beta}}$ and $\breve{\varphi}$.
+further separation will allow to limit $\breve{\ddot{\beta}}$, $\breve{\psi}$ and $\breve{\varphi}$.
 First, recall the structure of the $\dot{\beta}$ controller:
 \begin{equation}
 \breve{\dot{\varphi}}_m=- k_{\varphi} \varphi - k_{\psi}\psi - k_{\dot{\beta}}\dot{\beta} - k_{\dot{\varphi}} \dot{\varphi} - k_{\dot{\psi}} \dot{\psi} + \left(k_{\dot{\beta}} - 1 \right) \cdot \breve{\dot{\beta}}
@@ -539,8 +537,7 @@ Note that:
 \end{itemize}
 as in eq. \ref{eq:betadotctrl2}, which means that this is indeed a mathematically equivalent formulation.
 
-\subsubsection{Non-linear stacked  $\dot{\beta}$ controller}
-
+\subsubsection{Non-linear stacked \texorpdfstring{$\dot{\beta}$}{betadot} controller}
 A crucial step towards a controller that properly handles the system's limitations is incorporating the results of the system analysis in subsec. \ref{ss:systemanalysis}.
 The $\dot{\beta}$ controller stack consists of the following structure:
 \begin{itemize}
@@ -555,10 +552,9 @@ The $\dot{\beta}$ controller stack consists of the following structure:
 	\item{As above, set the motor command to $\breve{\dot{\varphi}}_m = \breve{\dot{\varphi}} - \dot{\beta}$}
 \end{itemize}
 Similarly to above subsection, each gain of this new structure can be set such that a change of state $\delta x$ leads to the same change in output $\breve{\dot{\varphi}}$ as before the reformulation.
-Note that since above controller is non-linear, this only applies for infinitesimal deflections from the equilibrium.
+Note that due to the non-linear nature of above controller, this statement only applies for infinitesimal deflections from the equilibrium.
 
-\subsubsection{Saturated $\beta$ controller}
-
+\subsubsection{Saturated \texorpdfstring{$\beta$}{beta} controller}
 The $\beta$ controller introduced in eq. \ref{eq:betactrl}
 \[
 \breve{\dot{\beta}} = \frac{1}{\tau_{\beta}} \cdot \left( \breve{\beta} - \beta \right) - k_d \cdot \dot{\beta}

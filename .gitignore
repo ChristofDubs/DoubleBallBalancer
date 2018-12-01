@@ -104,4 +104,5 @@ ENV/
 *.aux
 *.bbl
 *.blg
+*.out
 *.pdf
