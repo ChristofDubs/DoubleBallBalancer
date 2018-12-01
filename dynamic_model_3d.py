@@ -16,7 +16,7 @@ class ModelParam:
     The Double Ball Balancer consists of 3 bodies:
         1: lower ball
         2: upper ball
-        3: lever arm (todo: add this)
+        3: lever arm
 
     Physical parameters that multiple bodies have are indexed accordingly.
 
@@ -28,7 +28,7 @@ class ModelParam:
         m3: Mass of lever arm [kg]
         r1: Radius of lower ball [m]
         r2: Radius of upper ball [m]
-        tau: time constant of speed controlled motor [s] (todo: add this)
+        tau: time constant of speed controlled motor [s]
         theta1: Mass moment of inertia of lower ball wrt. its center of mass around all axes [kg*m^2]
         theta2: Mass moment of inertia of upper ball wrt. its center of mass around all axes [kg*m^2]
         theta3x: Mass moment of inertia of lever arm wrt. its center of mass around x axis [kg*m^2]
@@ -326,7 +326,7 @@ class DynamicModel:
 
     Attributes:
         p (ModelParam): physical parameters
-        state (ModelState): 24-dimensional state
+        state (ModelState): 22-dimensional state
 
     Functions that are not meant to be called from outside the class (private methods) are prefixed with a single underline.
     """
@@ -431,7 +431,7 @@ class DynamicModel:
             t: time [s]. Since this system is time invariant, this argument is unused.
             omega_cmd (np.ndarray): motor speed commands [rad/s]
         returns:
-            array containing the time derivatives of all states
+            ModelState containing the time derivatives of all states
         """
         eval_state = ModelState(x, skip_checks=True)
 
