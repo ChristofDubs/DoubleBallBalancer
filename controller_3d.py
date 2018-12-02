@@ -9,8 +9,8 @@ from pyrotation import Quaternion
 
 
 class Controller:
-    def __init__(self,):
-        self.ctrl_2d = controller_2d.Controller()
+    def __init__(self, param):
+        self.ctrl_2d = controller_2d.Controller(param)
 
     def compute_ctrl_input(self, state, beta_cmd):
         [phi_x, phi_y] = state.phi

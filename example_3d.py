@@ -26,7 +26,7 @@ x0 = ModelState()
 
 # instantiate model
 model = DynamicModel(param, x0)
-controller = Controller()
+controller = Controller(param)
 
 # simulation time step
 dt = 0.05
