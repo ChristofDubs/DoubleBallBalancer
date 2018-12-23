@@ -1,7 +1,7 @@
 """Simple test script for 3D Double Ball Balancer
 """
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import Axes3D  # needed for resolving projection='3d'
 import numpy as np
 import time
 import copy

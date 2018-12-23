@@ -167,7 +167,6 @@ class DynamicModel(object):
 
         vis = {}
         beta = x[BETA_IDX]
-        phi = x[PHI_IDX]
         psi = x[PSI_IDX]
 
         # rolling constraint
@@ -218,7 +217,6 @@ class DynamicModel(object):
 
         Returns: array containing the time derivative of the angular velocities
         """
-        beta = x[BETA_IDX]
         phi = x[PHI_IDX]
         psi = x[PSI_IDX]
 

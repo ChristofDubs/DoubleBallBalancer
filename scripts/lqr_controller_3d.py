@@ -4,7 +4,6 @@ import sympy as sp
 import numpy as np
 from scipy.linalg import solve_continuous_are
 import matplotlib.pyplot as plt
-import copy
 
 
 # angles
