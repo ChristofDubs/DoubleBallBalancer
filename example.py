@@ -3,14 +3,20 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import time
+import argparse
 
 from dynamic_model_2d import ModelParam, DynamicModel
 from controller_2d import Controller
 from definitions_2d import *
 
-print_sim_time = False
-plot_visualization = True
-plot_states = True
+parser = argparse.ArgumentParser(description="Test 2D double ball balancer")
+parser.add_argument("-a", "--no-animation", help="disable animation", action="store_true")
+parser.add_argument("-p", "--no-plot", help="disable plotting states", action="store_true")
+parser.add_argument("-v", "--verbose", help="print simulation time", action="store_true")
+args = parser.parse_args()
+
+enable_plot = not args.no_plot
+enable_animation = not args.no_animation
 
 # create parameter struct
 param = ModelParam()
@@ -50,7 +56,7 @@ start_time = time.time()
 
 # simulate until system is irrecoverable or max_sim_time reached
 while not model.is_irrecoverable() and sim_time < max_sim_time:
-    if plot_visualization:
+    if enable_animation:
         plt.figure(0)
 
         # get visualization
@@ -82,10 +88,10 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
     sim_time_vec.append(sim_time)
     input_vec.append(u)
 
-    if print_sim_time:
+    if args.verbose:
         print('sim_time: {0:.3f} s'.format(sim_time))
 
-if plot_states:
+if enable_plot:
     plt.figure()
     plt.plot(sim_time_vec, state_vec[:, BETA_IDX], label='beta')
     plt.plot(sim_time_vec, state_vec[:, PHI_IDX], label='phi')
