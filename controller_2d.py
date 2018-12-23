@@ -10,7 +10,7 @@ def saturate(x, limit):
     return max(-limit, min(limit, x))
 
 
-class LQRController:
+class LQRController(object):
     def __init__(self,):
         self.K = np.array([2.67619260e-15, 1.03556079e+01, -4.73012271e+01,
                            3.23606798e+00, 6.05877477e-01, -3.53469304e+01])
@@ -63,7 +63,7 @@ def compute_phi_from_psi(psi, param):
     return compute_phi_from_beta_ddot(beta_ddot, param)
 
 
-class Controller:
+class Controller(object):
     def __init__(self, param):
         # beta dot controller gains
         self.K = np.array([0.0, 10.3556079, -1.54595284, 0.268081501, 0.605877477, -3.41331294])

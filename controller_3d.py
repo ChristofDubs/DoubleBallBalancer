@@ -8,7 +8,7 @@ from dynamic_model_3d import ModelState
 from pyrotation import Quaternion
 
 
-class Controller:
+class Controller(object):
     def __init__(self, param):
         self.ctrl_2d = controller_2d.Controller(param)
 
