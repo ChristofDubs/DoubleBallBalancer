@@ -1,18 +1,25 @@
 """Simple test script for 3D Double Ball Balancer
 """
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import Axes3D  # needed for resolving projection='3d'
 import numpy as np
 import time
 import copy
+import argparse
 
 from dynamic_model_3d import ModelParam, DynamicModel, ModelState
 from controller_3d import Controller
 
-print_sim_time = False
-plot_visualization = True
-plot_states = True
-create_gif = False
+parser = argparse.ArgumentParser(description="Test double ball balancer")
+parser.add_argument("-a", "--no-animation", help="disable animation", action="store_true")
+parser.add_argument("-g", "--gif", help="create gif of animation", action="store_true")
+parser.add_argument("-p", "--no-plot", help="disable plotting states", action="store_true")
+parser.add_argument("-v", "--verbose", help="print simulation time", action="store_true")
+args = parser.parse_args()
+
+enable_plot = not args.no_plot
+enable_animation = not args.no_animation
+
 
 # create parameter struct
 param = ModelParam()
@@ -26,7 +33,7 @@ x0 = ModelState()
 
 # instantiate model
 model = DynamicModel(param, x0)
-controller = Controller()
+controller = Controller(param)
 
 # simulation time step
 dt = 0.05
@@ -41,10 +48,10 @@ sim_time_vec = [sim_time]
 state_vec = [copy.copy(model.state)]
 start_time = time.time()
 
-if plot_visualization or create_gif:
+if enable_animation or args.gif:
     fig = plt.figure(0)
     ax = fig.add_subplot(111, projection='3d')
-    if create_gif:
+    if args.gif:
         from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
         import imageio
         canvas = FigureCanvas(fig)
@@ -52,7 +59,7 @@ if plot_visualization or create_gif:
 
 # simulate until system is irrecoverable or max_sim_time reached
 while not model.is_irrecoverable() and sim_time < max_sim_time:
-    if plot_visualization or create_gif:
+    if enable_animation or args.gif:
         # get visualization
         vis = model.get_visualization()
 
@@ -73,7 +80,7 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
         ax.set_ylim3d(ball_pos[1] - range, ball_pos[1] + range)
         ax.set_zlim3d(0, 2 * range)
 
-        if plot_visualization:
+        if enable_animation:
             plt.show(block=False)
             time_passed = time.time() - start_time
             plt.pause(max(dt - time_passed, 0.001))
@@ -83,15 +90,15 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
     model.simulate_step(dt, controller.compute_ctrl_input(model.state, beta_cmd))
     sim_time += dt
 
-    if plot_states:
+    if enable_plot:
         # save states as matrix, sim_time and inputs as lists
         state_vec.append(copy.copy(model.state))
         sim_time_vec.append(sim_time)
 
-    if print_sim_time:
+    if args.verbose:
         print('sim_time: {0:.3f} s'.format(sim_time))
 
-    if create_gif:
+    if args.gif:
         # convert figure to numpy image:
         # https://stackoverflow.com/questions/21939658/matplotlib-render-into-buffer-access-pixel-data
         fig.canvas.draw()
@@ -102,10 +109,10 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
 
         images.append(image)
 
-if create_gif:
+if args.gif:
     imageio.mimsave('doc/img/3d_demo.gif', images, fps=1 / dt, palettesize=64, subrectangles=True)
 
-if plot_states:
+if enable_plot:
     plt.figure()
     plt.plot(sim_time_vec, [state.psi_x for state in state_vec], label='psi_x')
     plt.plot(sim_time_vec, [state.phi_x for state in state_vec], label='phi_x')

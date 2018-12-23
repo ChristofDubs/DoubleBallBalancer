@@ -10,7 +10,7 @@ from scipy.integrate import odeint
 from pyrotation import Quaternion, quat_from_angle_vector
 
 
-class ModelParam:
+class ModelParam(object):
     """Physical parameters of 3D Double Ball Balancer
 
     The Double Ball Balancer consists of 3 bodies:
@@ -87,7 +87,7 @@ Y_IDX = 21
 STATE_SIZE = 22
 
 
-class ModelState:
+class ModelState(object):
     """Class to represent state of 3D Double Ball Balancer
 
     The state is stored in this class as a numpy array, for ease of interfacing
@@ -321,7 +321,7 @@ class ModelState:
         self.x[OMEGA_2_X_IDX:OMEGA_2_Z_IDX + 1] = value
 
 
-class DynamicModel:
+class DynamicModel(object):
     """Simulation interface for the 3D Double Ball Balancer
 
     Attributes:

@@ -2,12 +2,11 @@
 
 Derivation of the rigid multi-body dynamics using the Projected Newton-Euler method.
 """
-from sympy import symbols, Matrix, sin, cos, solve, diff, eye, diag, zeros, cse
+from sympy import symbols, Matrix, solve, diff, eye, diag, zeros, cse
 from sympy.matrices.dense import rot_axis1, rot_axis2, rot_axis3
 
 # position
 x, y = symbols('x y')
-x_dot, y_dot = symbols('x_dot y_dot')
 
 # angles
 alpha_z, beta_x, beta_y, beta_z, phi_x, phi_y, phi_z, psi_x, psi_y = symbols(

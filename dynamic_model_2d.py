@@ -11,7 +11,7 @@ from scipy.integrate import odeint
 from definitions_2d import *
 
 
-class ModelParam:
+class ModelParam(object):
     """Physical parameters of 2D Double Ball Balancer
 
     The Double Ball Balancer consists of 3 bodies:
@@ -58,7 +58,7 @@ class ModelParam:
         return self.g > 0 and self.l > 0 and self.m1 > 0 and self.m2 > 0 and self.m3 > 0 and self.r1 > 0 and self.r2 > 0 and self.tau > 0 and self.theta1 > 0 and self.theta2 > 0 and self.theta3 > 0
 
 
-class DynamicModel:
+class DynamicModel(object):
     """Simulation interface for the 2D Double Ball Balancer
 
     Attributes:
@@ -167,7 +167,6 @@ class DynamicModel:
 
         vis = {}
         beta = x[BETA_IDX]
-        phi = x[PHI_IDX]
         psi = x[PSI_IDX]
 
         # rolling constraint
@@ -218,7 +217,6 @@ class DynamicModel:
 
         Returns: array containing the time derivative of the angular velocities
         """
-        beta = x[BETA_IDX]
         phi = x[PHI_IDX]
         psi = x[PSI_IDX]
 
