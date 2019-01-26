@@ -23,9 +23,9 @@ enable_animation = not args.no_animation
 
 # create parameter struct
 param = ModelParam()
-param.l = 1
-param.r1 = 3
-param.r2 = 2
+param.l = 1.0
+param.r1 = 3.0
+param.r2 = 2.0
 
 # initial state
 x0 = ModelState()
