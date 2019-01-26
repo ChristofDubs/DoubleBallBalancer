@@ -5,9 +5,11 @@ import numpy as np
 import time
 import argparse
 
-from dynamic_model_2d import ModelParam, DynamicModel
-from controller_2d import Controller
-from definitions_2d import *
+import context
+
+from model_2d.dynamic_model import ModelParam, DynamicModel
+from model_2d.controller import Controller
+from model_2d.definitions import *
 
 parser = argparse.ArgumentParser(description="Test 2D double ball balancer")
 parser.add_argument("-a", "--no-animation", help="disable animation", action="store_true")
