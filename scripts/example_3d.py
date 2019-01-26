@@ -7,8 +7,10 @@ import time
 import copy
 import argparse
 
-from dynamic_model_3d import ModelParam, DynamicModel, ModelState
-from controller_3d import Controller
+import context
+
+from model_3d.dynamic_model import ModelParam, DynamicModel, ModelState
+from model_3d.controller import Controller
 
 parser = argparse.ArgumentParser(description="Test double ball balancer")
 parser.add_argument("-a", "--no-animation", help="disable animation", action="store_true")

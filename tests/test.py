@@ -2,9 +2,11 @@ import unittest
 
 import numpy as np
 
-from controller_2d import Controller
-from definitions_2d import *
-from dynamic_model_2d import ModelParam
+import context
+
+from model_2d.controller import Controller
+from model_2d.definitions import *
+from model_2d.dynamic_model import ModelParam
 
 param = ModelParam()
 param.l = 1.0

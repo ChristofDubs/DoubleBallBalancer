@@ -8,7 +8,7 @@ import numpy as np
 from numpy import sin, cos
 from scipy.integrate import odeint
 
-from definitions_2d import *
+from definitions import *
 
 
 class ModelParam(object):
