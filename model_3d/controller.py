@@ -2,14 +2,17 @@
 """
 import numpy as np
 from numpy import sin, cos
-import controller_2d
-from definitions_2d import BETA_IDX, PHI_IDX, PSI_IDX, BETA_DOT_IDX, PHI_DOT_IDX, PSI_DOT_IDX
 from pyrotation import Quaternion
+
+import context
+
+from model_2d.controller import Controller as Controller2D
+from model_2d.definitions import BETA_IDX, PHI_IDX, PSI_IDX, BETA_DOT_IDX, PHI_DOT_IDX, PSI_DOT_IDX
 
 
 class Controller(object):
     def __init__(self, param):
-        self.ctrl_2d = controller_2d.Controller(param)
+        self.ctrl_2d = Controller2D(param)
 
     def compute_ctrl_input(self, state, beta_cmd):
         [phi_x, phi_y] = state.phi

@@ -5,9 +5,11 @@ import numpy as np
 import time
 import argparse
 
-from dynamic_model_2d import ModelParam, DynamicModel
-from controller_2d import Controller
-from definitions_2d import *
+import context
+
+from model_2d.dynamic_model import ModelParam, DynamicModel
+from model_2d.controller import Controller
+from model_2d.definitions import *
 
 parser = argparse.ArgumentParser(description="Test 2D double ball balancer")
 parser.add_argument("-a", "--no-animation", help="disable animation", action="store_true")
@@ -20,16 +22,16 @@ enable_animation = not args.no_animation
 
 # create parameter struct
 param = ModelParam()
-param.l = 1
-param.m1 = 1
-param.m2 = 1
-param.m3 = 1
-param.r1 = 3
-param.r2 = 2
+param.l = 1.0
+param.m1 = 1.0
+param.m2 = 1.0
+param.m3 = 1.0
+param.r1 = 3.0
+param.r2 = 2.0
 param.tau = 0.100
-param.theta1 = 1
-param.theta2 = 1
-param.theta3 = 1
+param.theta1 = 1.0
+param.theta2 = 1.0
+param.theta3 = 1.0
 
 # initial state
 x0 = np.zeros(STATE_SIZE)

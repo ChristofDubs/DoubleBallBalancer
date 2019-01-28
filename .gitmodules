@@ -1,4 +1,0 @@
-[submodule "pyrotation"]
-	path = pyrotation
-	url = https://github.com/ChristofDubs/pyrotation
-	branch = master

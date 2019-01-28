@@ -2,21 +2,23 @@ import unittest
 
 import numpy as np
 
-from controller_2d import Controller
-from definitions_2d import *
-from dynamic_model_2d import ModelParam
+import context
+
+from model_2d.controller import Controller
+from model_2d.definitions import *
+from model_2d.dynamic_model import ModelParam
 
 param = ModelParam()
-param.l = 1
-param.m1 = 1
-param.m2 = 1
-param.m3 = 1
-param.r1 = 3
-param.r2 = 2
+param.l = 1.0
+param.m1 = 1.0
+param.m2 = 1.0
+param.m3 = 1.0
+param.r1 = 3.0
+param.r2 = 2.0
 param.tau = 0.100
-param.theta1 = 1
-param.theta2 = 1
-param.theta3 = 1
+param.theta1 = 1.0
+param.theta2 = 1.0
+param.theta3 = 1.0
 
 controller = Controller(param)
 delta = 1e-6

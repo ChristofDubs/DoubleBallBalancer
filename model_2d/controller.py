@@ -2,7 +2,7 @@
 """
 import numpy as np
 
-from definitions_2d import *
+from .definitions import *
 
 
 def saturate(x, limit):
