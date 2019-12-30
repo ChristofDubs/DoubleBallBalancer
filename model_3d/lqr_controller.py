@@ -3,6 +3,8 @@
 import numpy as np
 import context
 
+from pyrotation import Quaternion
+
 
 class LQRController(object):
     def __init__(self, param):
@@ -17,15 +19,31 @@ class LQRController(object):
 
         w2 = state.omega_2
 
+        R_IB2 = Quaternion(state.q2).rotation_matrix()
+
+        # construct horizontal ball frame (cannot use yaw angle of roll-pitch-yaw,
+        # because the primary rotation axis is the y-axis, driving straight into
+        # the 90deg pitch singularity)
+        z = np.array([0, 0, 1])
+        x = np.cross(R_IB2[:, 1], z)
+        x *= 1 / np.linalg.norm(x)
+        y = np.cross(z, x)
+
+        R_IB2h = np.column_stack([x, y, z])[:2, :2]
+
+        # express psi vector in B2h frame
+        B2h_psi = np.dot(R_IB2h.T, state.psi)
+        B2h_psi_dot = np.dot(R_IB2h.T, state.psi_dot)
+
         # [psi_x, psi_y, beta_x, beta_y, phi_x, phi_y, psi_x_dot, psi_y_dot, w_2x, w_2y, phi_x_dot, phi_y_dot]
-        reduced_state = np.array([state.psi_x,
-                                  state.psi_y,
+        reduced_state = np.array([B2h_psi[0],
+                                  B2h_psi[1],
                                   beta_x,
                                   beta_y,
                                   state.phi_x,
                                   state.phi_y,
-                                  state.psi_x_dot,
-                                  state.psi_y_dot,
+                                  B2h_psi_dot[0],
+                                  B2h_psi_dot[1],
                                   w2[0],
                                   w2[1] - w2_y_cmd,
                                   state.phi_x_dot,
