@@ -2,11 +2,14 @@
 """
 import numpy as np
 from scipy.linalg import solve_continuous_are
+from scipy.signal import place_poles
 import matplotlib.pyplot as plt
 
 import pickle
 
-from symbolic_dynamics import *
+from symbolic_dynamics_linearization import ang, omega, omega_dot, omega_cmd
+
+use_pole_placement = True
 
 dyn_lin = pickle.load(open("linear_dynamics.p", "rb"))
 
@@ -45,10 +48,6 @@ B[8:, :] = np.array(-M.LUsolve(Bd))
 # eigenvalues
 print('open loop eigenvalues: \n{}'.format(np.linalg.eigvals(A)))
 
-# LQR controller:
-# https://en.wikipedia.org/wiki/Linear%E2%80%93quadratic_regulator
-R = np.eye(2, dtype=float) * 1
-
 # remove uncontrollable states of the linear system:
 # angles: alpha_z, beta_z
 # omega: w_1z, w_2z
@@ -61,17 +60,38 @@ A = np.delete(A, delete_mask, 1)
 
 B = np.delete(B, delete_mask, 0)
 
-q_diag = np.array([0, 0, 0, 0, 0, 0, 4, 4, 4, 4, 0, 0])
-Q = np.diag(q_diag)
+if use_pole_placement:
+    # [beta, phi, psi, beta_dot, phi_dot, psi_dot]
+    poles_2D = np.array([-2.07789478e+01 + 0.j, -1.23128756e-15 + 0.j, -1.48613821e+00 + 1.18812958j, -
+                         1.48613821e+00 - 1.18812958j, -5.80068041e-01 + 0.27468173j, -5.80068041e-01 - 0.27468173j])
 
-# eigenvalues
-print('open loop eigenvalues: \n{}'.format(np.linalg.eigvals(A)))
+    p = np.array([poles_2D[2],
+                  poles_2D[2],
+                  poles_2D[0],
+                  poles_2D[0],
+                  poles_2D[1],
+                  poles_2D[1],
+                  poles_2D[5],
+                  poles_2D[5],
+                  poles_2D[3],
+                  poles_2D[3],
+                  poles_2D[4],
+                  poles_2D[4]])
 
-# solve continuous Riccati equation
-P = solve_continuous_are(A, B, Q, R)
+    K = place_poles(A, B, p, method='YT').gain_matrix
 
-# compute controller gain
-K = np.dot(np.linalg.inv(R), np.dot(B.T, P))
+else:
+    # LQR controller:
+    # https://en.wikipedia.org/wiki/Linear%E2%80%93quadratic_regulator
+    R = np.eye(2, dtype=float) * 1
+    q_diag = np.array([0, 0, 0, 0, 0, 0, 4, 4, 4, 4, 0, 0])
+    Q = np.diag(q_diag)
+
+    # solve continuous Riccati equation
+    P = solve_continuous_are(A, B, Q, R)
+
+    # compute controller gain
+    K = np.dot(np.linalg.inv(R), np.dot(B.T, P))
 
 # compute eigenvalues of closed loop system
 eig = np.linalg.eigvals(A - np.dot(B, K))
