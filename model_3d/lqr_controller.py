@@ -49,4 +49,4 @@ class LQRController(object):
                                   state.phi_x_dot,
                                   state.phi_y_dot + w2_y_cmd])
 
-        return -np.dot(self.K, reduced_state)
+        return -np.dot(self.K, reduced_state) - np.array([0, w2_y_cmd])
