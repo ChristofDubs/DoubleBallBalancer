@@ -8,6 +8,22 @@ import pickle
 from sympy import symbols, Matrix, solve, diff, eye, diag, zeros, cse
 from sympy.matrices.dense import rot_axis1, rot_axis2, rot_axis3
 
+
+def print_common_terms(mat, sub_list):
+    for term in mat:
+        print('{} = {}'.format(term[0], term[1].subs(sub_list)))
+
+
+def print_symbolic(mat, name, sub_list):
+    for row in range(mat.rows):
+        if mat.cols == 1:
+            for col in range(mat.cols):
+                print('{}[{}] = {}'.format(name, row, mat[row, 0].subs(sub_list)))
+        else:
+            for col in range(mat.cols):
+                print('{}[{},{}] = {}'.format(name, row, col, mat[row, col].subs(sub_list)))
+
+
 # position
 x, y = symbols('x y')
 
@@ -191,7 +207,7 @@ if __name__ == '__main__':
     if args.print_dynamics:
 
         A = dyn.jacobian(omega_dot)
-        b = dyn.subs([(x, 0) for x in omega_dot])
+        b = -dyn.subs([(x, 0) for x in omega_dot])
 
         common_sub_expr = cse([A, b])
 
@@ -213,35 +229,22 @@ if __name__ == '__main__':
                 'theta3y',
                 'theta3z']]
 
-        for term in common_sub_expr[0]:
-            print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
-
-        for row in range(A.rows):
-            for col in range(A.cols):
-                print('        A[{},{}] = {}'.format(
-                    row, col, common_sub_expr[1][0][row, col].subs(sub_list)))
-
-        for row in range(b.rows):
-            print('        b[{}] = {}'.format(row, -common_sub_expr[1][1][row].subs(sub_list)))
+        print_common_terms(common_sub_expr[0], sub_list)
+        print_symbolic(common_sub_expr[1][0], 'A', sub_list)
+        print_symbolic(common_sub_expr[1][1], 'b', sub_list)
 
         # kinematic relations
         common_sub_expr = cse(omega_1)
-        for term in common_sub_expr[0]:
-            print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
 
-        for row in range(omega_1.rows):
-            print('        omega_1[{}] = {}'.format(row, common_sub_expr[1][0][row].subs(sub_list)))
+        print_common_terms(common_sub_expr[0], sub_list)
+        print_symbolic(common_sub_expr[1][0], 'omega_1', sub_list)
 
         # position vectors
         common_sub_expr = cse([r_S1S2, r_S2S3])
-        for term in common_sub_expr[0]:
-            print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
 
-        for row in range(r_S1S2.rows):
-            print('        r_S1S2[{}] = {}'.format(row, common_sub_expr[1][0][row].subs(sub_list)))
-
-        for row in range(r_S2S3.rows):
-            print('        r_S2S3[{}] = {}'.format(row, common_sub_expr[1][1][row].subs(sub_list)))
+        print_common_terms(common_sub_expr[0], sub_list)
+        print_symbolic(common_sub_expr[1][0], 'r_S1S2', sub_list)
+        print_symbolic(common_sub_expr[1][1], 'r_S2S3', sub_list)
 
     if args.save_linear:
 
