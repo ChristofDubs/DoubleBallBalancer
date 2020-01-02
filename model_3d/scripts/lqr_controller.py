@@ -1,102 +1,97 @@
-"""Script to compute LQR-controller gain for stabilizing the 2D Double Ball Balancer, based on numerical parameter values.
+"""Script to compute LQR-controller gain for stabilizing the 3D Double Ball Balancer, based on numerical parameter values.
 """
-import sympy as sp
 import numpy as np
 from scipy.linalg import solve_continuous_are
+from scipy.signal import place_poles
 import matplotlib.pyplot as plt
 
+import pickle
 
-# angles
-alpha_z, beta_x, beta_y, beta_z, phi_x, phi_y, phi_z, psi_x, psi_y = sp.symbols(
-    'alpha_z beta_x beta_y beta_z phi_x phi_y phi_z psi_x psi_y')
+from symbolic_dynamics_linearization import ang, omega, omega_dot, omega_cmd
 
-# angular velocities
-phi_x_dot, phi_y_dot, phi_z_dot = sp.symbols('phi_x_dot phi_y_dot phi_z_dot')
-psi_x_dot, psi_y_dot = sp.symbols('psi_x_dot psi_y_dot')
-w_1z = sp.symbols('w_1z')
-w_2x, w_2y, w_2z = sp.symbols('w_2x w_2y w_2z')
-w_3x, w_3y, w_3z = sp.symbols('w_3x w_3y w_3z')
+use_pole_placement = True
 
+dyn_lin = pickle.load(open("linear_dynamics.p", "rb"))
 
-# angular accelerations
-w_1_dot_z, w_3_dot_x, w_3_dot_y, w_3_dot_z, psi_x_ddot, psi_y_ddot, w_2_dot_x, w_2_dot_y, w_2_dot_z = sp.symbols(
-    'w_1_dot_z w_3_dot_x w_3_dot_y w_3_dot_z psi_x_ddot psi_y_ddot w_2_dot_x w_2_dot_y w_2_dot_z')
-
-
-omega_dot = sp.Matrix([w_1_dot_z, psi_x_ddot, psi_y_ddot, w_2_dot_x,
-                       w_2_dot_y, w_2_dot_z, w_3_dot_x, w_3_dot_y, w_3_dot_z])
-omega = sp.Matrix([w_1z, psi_x_dot, psi_y_dot, w_2x, w_2y, w_2z, w_3x, w_3y, w_3z])
-ang = sp.Matrix([alpha_z, psi_x, psi_y, beta_x, beta_y, beta_z, phi_x, phi_y, phi_z])
-
-# inputs
-Tx, Ty, Tz = sp.symbols('Tx Ty Tz')
-T = sp.Matrix([Tx, Ty, Tz])
-
-# parameter
-l, m1, m2, m3, r1, r2, theta1, theta2, theta3x, theta3y, theta3z = (
-    1.0, 1.0, 1.0, 1.0, 3.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0)
-
-# constants
-g = 9.81
-
-# linearized dynamics
-dyn_lin = sp.Matrix([[theta1 * w_1_dot_z],
-                     [l * m3 * w_3_dot_x * (-2 * r1 - 2 * r2) + psi_x * (-g * m2 * (r1 + r2) - g * m3 * (r1 + r2)) + psi_x_ddot * (m1 * (r1 + r2)**2 + m2 * (-2 * r1 - 2 * r2)**2 + m3 * (-2 * r1 - 2 * r2)**2 + theta1 * (r1 + r2)**2 / r1**2) + w_2_dot_x * (-m1 * r2 * (r1 + r2) + m2 * r2 * (-2 * r1 - 2 * r2) + m3 * r2 * (-2 * r1 - 2 * r2) - r2 * theta1 * (r1 + r2) / r1**2)],
-                     [-l * m3 * w_3_dot_y * (2 * r1 + 2 * r2) + psi_y * (-g * m2 * (r1 + r2) - g * m3 * (r1 + r2)) + psi_y_ddot * (m1 * (r1 + r2)**2 + m2 * (2 * r1 + 2 * r2)**2 + m3 * (2 * r1 + 2 * r2)**2 + theta1 * (r1 + r2)**2 / r1**2) + w_2_dot_y * (-m1 * r2 * (r1 + r2) - m2 * r2 * (2 * r1 + 2 * r2) - m3 * r2 * (2 * r1 + 2 * r2) - r2 * theta1 * (r1 + r2) / r1**2)],
-                     [Tx + l * m3 * r2 * w_3_dot_x + psi_x_ddot * (-m1 * r2 * (r1 + r2) + m2 * r2 * (-2 * r1 - 2 * r2) + m3 * r2 * (-2 * r1 - 2 * r2) - r2 * theta1 * (r1 + r2) / r1**2) + w_2_dot_x * (m1 * r2**2 + m2 * r2**2 + m3 * r2**2 + theta2 + r2**2 * theta1 / r1**2)],
-                     [Ty + l * m3 * r2 * w_3_dot_y + psi_y_ddot * (-m1 * r2 * (r1 + r2) - m2 * r2 * (2 * r1 + 2 * r2) - m3 * r2 * (2 * r1 + 2 * r2) - r2 * theta1 * (r1 + r2) / r1**2) + w_2_dot_y * (m1 * r2**2 + m2 * r2**2 + m3 * r2**2 + theta2 + r2**2 * theta1 / r1**2)],
-                     [Tz + theta2 * w_2_dot_z],
-                     [-Tx + g * l * m3 * phi_x + l * m3 * psi_x_ddot * (-2 * r1 - 2 * r2) + l * m3 * r2 * w_2_dot_x + w_3_dot_x * (l**2 * m3 + theta3x)],
-                     [-Ty + g * l * m3 * phi_y - l * m3 * psi_y_ddot * (2 * r1 + 2 * r2) + l * m3 * r2 * w_2_dot_y + w_3_dot_y * (l**2 * m3 + theta3y)],
-                     [-Tz + theta3z * w_3_dot_z]])
-
+# substitute parameters with numerical values
+dyn_lin = dyn_lin.subs("l", 1.0)
+dyn_lin = dyn_lin.subs("m1", 1.0)
+dyn_lin = dyn_lin.subs("m2", 1.0)
+dyn_lin = dyn_lin.subs("m3", 1.0)
+dyn_lin = dyn_lin.subs("r1", 3.0)
+dyn_lin = dyn_lin.subs("r2", 2.0)
+dyn_lin = dyn_lin.subs("theta1", 1.0)
+dyn_lin = dyn_lin.subs("theta2", 1.0)
+dyn_lin = dyn_lin.subs("theta3x", 1.0)
+dyn_lin = dyn_lin.subs("theta3y", 1.0)
+dyn_lin = dyn_lin.subs("theta3z", 1.0)
+dyn_lin = dyn_lin.subs("g", 9.81)
+dyn_lin = dyn_lin.subs("tau", 0.1)
 
 # extract matrices such that M*x_ddot + D*x_dot + K*x = Bd*u
 M = dyn_lin.jacobian(omega_dot)
 D = dyn_lin.jacobian(omega)
 K = dyn_lin.jacobian(ang)
-Bd = dyn_lin.jacobian(T)
+Bd = dyn_lin.jacobian(omega_cmd)
 
 # convert to first order x_ddot = A*x + B*u
-A = np.zeros([18, 18], dtype=float)
+A = np.zeros([16, 16], dtype=float)
 
-A[:9, 9:] = np.eye(9)
-A[9:, :9] = np.array(-M.LUsolve(K))
-A[9:, 9:] = np.array(-M.LUsolve(D))
+A[:8, 8:] = np.eye(8)
+A[8:, :8] = np.array(-M.LUsolve(K))
+A[8:, 8:] = np.array(-M.LUsolve(D))
 
-B = np.zeros([18, 3], dtype=float)
+B = np.zeros([16, 2], dtype=float)
 
-B[9:, :] = np.array(-M.LUsolve(Bd))
+B[8:, :] = np.array(-M.LUsolve(Bd))
 
 # eigenvalues
 print('open loop eigenvalues: \n{}'.format(np.linalg.eigvals(A)))
 
-# LQR controller:
-# https://en.wikipedia.org/wiki/Linear%E2%80%93quadratic_regulator
-R = np.eye(3, dtype=float) * 0.05
-
-# remove uncontrollable / irrelevant states for stabilization:
-# angles: alpha_z, beta_x, beta_y, beta_z, phi_z
-# omega: w_1z, w_2z,w_3z
+# remove uncontrollable states of the linear system:
+# angles: alpha_z, beta_z
+# omega: w_1z, w_2z
 # resulting state:
-# [psi_x, psi_y, phi_x, phi_y, psi_x_dot, psi_y_dot, w_2x, w_2y, w_3x, w_3y]
-delete_mask = (0, 3, 4, 5, 8, 9, 14, 17)
+# [psi_x, psi_y, beta_x, beta_y, phi_x, phi_y, psi_x_dot, psi_y_dot, w_2x, w_2y, phi_x_dot, phi_y_dot]
+delete_mask = (0, 5, 8, 13)
 
 A = np.delete(A, delete_mask, 0)
 A = np.delete(A, delete_mask, 1)
 
 B = np.delete(B, delete_mask, 0)
 
-Q = np.diag(np.array([1, 1, 0.5, 0.5, 2, 2, 1, 1, 8, 8], dtype=float))
+if use_pole_placement:
+    # [beta, phi, psi, beta_dot, phi_dot, psi_dot]
+    poles_2D = np.array([-2.07789478e+01 + 0.j, -1.23128756e-15 + 0.j, -1.48613821e+00 + 1.18812958j, -
+                         1.48613821e+00 - 1.18812958j, -5.80068041e-01 + 0.27468173j, -5.80068041e-01 - 0.27468173j])
 
-# eigenvalues
-print('open loop eigenvalues: \n{}'.format(np.linalg.eigvals(A)))
+    p = np.array([poles_2D[2],
+                  poles_2D[2],
+                  poles_2D[0],
+                  poles_2D[0],
+                  poles_2D[1],
+                  poles_2D[1],
+                  poles_2D[5],
+                  poles_2D[5],
+                  poles_2D[3],
+                  poles_2D[3],
+                  poles_2D[4],
+                  poles_2D[4]])
 
-# solve continuous Riccati equation
-P = solve_continuous_are(A, B, Q, R)
+    K = place_poles(A, B, p, method='YT').gain_matrix
 
-# compute controller gain
-K = np.dot(np.linalg.inv(R), np.dot(B.T, P))
+else:
+    # LQR controller:
+    # https://en.wikipedia.org/wiki/Linear%E2%80%93quadratic_regulator
+    R = np.eye(2, dtype=float) * 1
+    q_diag = np.array([0, 0, 0, 0, 0, 0, 4, 4, 4, 4, 0, 0])
+    Q = np.diag(q_diag)
+
+    # solve continuous Riccati equation
+    P = solve_continuous_are(A, B, Q, R)
+
+    # compute controller gain
+    K = np.dot(np.linalg.inv(R), np.dot(B.T, P))
 
 # compute eigenvalues of closed loop system
 eig = np.linalg.eigvals(A - np.dot(B, K))
