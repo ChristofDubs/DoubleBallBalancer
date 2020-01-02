@@ -214,3 +214,34 @@ if print_latex_expressions:
     print_symbolic(D, 'D', latex_sub_list, lambda x: factor(simplify(x)))
     print_symbolic(K, 'K', latex_sub_list, lambda x: factor(simplify(x)))
     print_symbolic(F, 'F', latex_sub_list, lambda x: factor(simplify(x)))
+
+if print_python_expressions:
+    # calculate contact forces
+    F23 = p_dot_i[2] - F_i[2]
+    F12 = p_dot_i[1] - F_i[1] + F23
+    F1 = p_dot_i[0] - F_i[0] + F12
+
+    common_sub_expr = cse([F1, F12, F23])
+
+    sub_list = [
+        (x,
+         'self.p.' +
+         x) for x in [
+            'g',
+            'l',
+            'm1',
+            'm2',
+            'm3',
+            'r1',
+            'r2',
+            'tau',
+            'theta1',
+            'theta2',
+            'theta3']]
+
+    for term in common_sub_expr[0]:
+        print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
+
+    print_symbolic(common_sub_expr[1][0], 'F1', sub_list)
+    print_symbolic(common_sub_expr[1][1], 'F12', sub_list)
+    print_symbolic(common_sub_expr[1][2], 'F23', sub_list)

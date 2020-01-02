@@ -13,12 +13,18 @@ from model_2d.definitions import *
 
 parser = argparse.ArgumentParser(description="Test 2D double ball balancer")
 parser.add_argument("-a", "--no-animation", help="disable animation", action="store_true")
+parser.add_argument(
+    "-c",
+    "--contact-forces",
+    help="enable visualization of contact forces in the animation",
+    action="store_true")
 parser.add_argument("-p", "--no-plot", help="disable plotting states", action="store_true")
 parser.add_argument("-v", "--verbose", help="print simulation time", action="store_true")
 args = parser.parse_args()
 
 enable_plot = not args.no_plot
 enable_animation = not args.no_animation
+enable_contact_forces = args.contact_forces
 
 # create parameter struct
 param = ModelParam()
@@ -55,20 +61,34 @@ sim_time_vec = [sim_time]
 state_vec = [model.x]
 input_vec = []
 start_time = time.time()
+u = 0
+contact_forces = None
 
 # simulate until system is irrecoverable or max_sim_time reached
-while not model.is_irrecoverable() and sim_time < max_sim_time:
+while not model.is_irrecoverable(
+        contact_forces=contact_forces,
+        omega_cmd=u) and sim_time < max_sim_time:
+    # get control input
+    u = controller.compute_ctrl_input(model.x, beta_cmd)
+
+    # calculate contact forces
+    contact_forces = model.compute_contact_forces(omega_cmd=u)
+
     if enable_animation:
         plt.figure(0)
 
         # get visualization
-        vis = model.get_visualization()
+        vis = model.get_visualization(contact_forces=contact_forces)
 
         # plot
         plt.cla()
         plt.plot(*vis['lower_ball'])
         plt.plot(*vis['upper_ball'])
         plt.plot(*vis['lever_arm'])
+        if enable_contact_forces:
+            plt.arrow(*vis['F1'], head_width=0.1, color='red')
+            plt.arrow(*vis['F12'], head_width=0.1, color='red')
+            plt.arrow(*vis['F23'], head_width=0.1, color='red')
         plt.xlabel('x [m]')
         plt.ylabel('y [m]')
         plt.axis('equal')
@@ -77,9 +97,6 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
         plt.pause(max(dt - time_passed, 0.001))
 
         start_time = time.time()
-
-    # get control input
-    u = controller.compute_ctrl_input(model.x, beta_cmd)
 
     # simulate one time step
     model.simulate_step(dt, u)
