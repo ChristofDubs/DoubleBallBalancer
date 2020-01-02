@@ -4,6 +4,7 @@ This module contains the class DynamicModel for simulating the non-linear dynami
 
 author: Christof Dubs
 """
+import itertools
 import numpy as np
 from numpy import sin, cos
 from scipy.integrate import odeint
@@ -121,11 +122,19 @@ class DynamicModel(object):
         t = np.array([0, delta_t])
         self.x = odeint(self._x_dot, self.x, t, args=(omega_cmd,))[-1]
 
-    def is_irrecoverable(self, x=None):
+    def is_irrecoverable(
+            self,
+            x=None,
+            contact_forces=None,
+            omega_cmd=None,
+            ignore_force_check=False):
         """Checks if system is recoverable
 
         args:
             x (numpy.ndarray, optional): state. If not specified, the internal state is checked
+            contact_forces(list(numpy.ndarray), optional): contact forces [N]. If not specified, will be internally calculated
+            omega_cmd (optional): motor speed command [rad/s] used for contact force calculation if contact_forces are not specified
+            ignore_force_check: If set to True, will skip the contact forces check
 
         Returns:
             bool: True if state is irrecoverable, False otherwise.
@@ -146,24 +155,36 @@ class DynamicModel(object):
             if np.abs(psi) > psi_crit:
                 return True
 
-        # todo: decide how to check / what to do if upper ball lifts off
+        # lift off: contact force between lower and upper ball <= 0
+        if not ignore_force_check:
+            if contact_forces is None:
+                contact_forces = self.compute_contact_forces(x, omega_cmd)
+
+            if np.dot(contact_forces[1], np.array([-np.sin(psi), np.cos(psi)])) <= 0:
+                return True
+
         return False
 
-    def get_visualization(self, x=None):
+    def get_visualization(self, x=None, contact_forces=None, omega_cmd=None):
         """Get visualization of the system for plotting
 
         Usage example:
             v = model.get_visualization()
             plt.plot(*v['lower_ball'])
+            plt.arrow(*vis['F1'])
 
         args:
             x (numpy.ndarray, optional): state. If not specified, the internal state is used
+            contact_forces(list(numpy.ndarray), optional): contact forces [N]. If not specified, will be internally calculated
+            omega_cmd (optional): motor speed command [rad/s] used for contact force calculation if contact_forces are not specified
 
         Returns:
             dict: dictionary with keys "lower_ball", "upper_ball" and "lever_arm". The value for each key is a list with two elements: a list of x coordinates, and a list of y coordinates.
         """
         if x is None:
             x = self.x
+        if contact_forces is None:
+            contact_forces = self.compute_contact_forces(x, omega_cmd)
 
         vis = {}
         beta = x[BETA_IDX]
@@ -177,8 +198,86 @@ class DynamicModel(object):
             r_OSi[0], self.p.r1, alpha)
         vis['upper_ball'] = self._compute_ball_visualization(
             r_OSi[1], self.p.r2, beta)
-        vis['lever_arm'] = [[r_OSi[1][0], r_OSi[2][0]], [r_OSi[1][1], r_OSi[2][1]]]
+        vis['lever_arm'] = [list(x) for x in list(np.column_stack([r_OSi[1], r_OSi[2]]))]
+
+        force_scale = 0.05
+        contact_pt_1 = np.array([r_OSi[0][0], 0])
+        vis['F1'] = list(itertools.chain.from_iterable(
+            [contact_pt_1, force_scale * contact_forces[0]]))
+
+        contact_pt_2 = r_OSi[0] + self.p.r1 * np.array([-np.sin(psi), np.cos(psi)])
+        vis['F12'] = list(itertools.chain.from_iterable(
+            [contact_pt_2, force_scale * contact_forces[1]]))
+
+        vis['F23'] = list(itertools.chain.from_iterable(
+            [r_OSi[1], force_scale * contact_forces[2]]))
+
         return vis
+
+    def compute_contact_forces(self, x=None, omega_cmd=None):
+        """computes visualization points of a ball
+
+        This function computes the contact forces between the rigid bodies.
+
+        args:
+            x (numpy.ndarray, optional): state. If not specified, the internal state is used
+            omega_cmd(optional): motor speed command [rad/s]. Defaults to zero if not specified
+
+        Returns: list of the 3 contact forces [F1, F12, F23] with:
+        - F1: force from ground onto lower ball
+        - F12: force from lower ball onto upper ball
+        - F23: force from upper ball onto lever arm
+        """
+        if x is None:
+            x = self.x
+        if omega_cmd is None:
+            print('Warning: no omega_cmd specified for contact force calculation; default to 0')
+            omega_cmd = 0
+
+        phi = x[PHI_IDX]
+        psi = x[PSI_IDX]
+
+        phi_dot = x[PHI_DOT_IDX]
+        psi_dot = x[PSI_DOT_IDX]
+
+        x_ddot = self._compute_omega_dot(x, omega_cmd)
+
+        beta_dd = x_ddot[BETA_IDX]
+        phi_dd = x_ddot[PHI_IDX]
+        psi_dd = x_ddot[PSI_IDX]
+
+        x0 = beta_dd * self.p.r2
+        x1 = -self.p.r1 - self.p.r2
+        x2 = psi_dot**2
+        x3 = self.p.m2 * x2
+        x4 = sin(psi)
+        x5 = self.p.r1 + self.p.r2
+        x6 = x4 * x5
+        x7 = x5 * cos(psi)
+        x8 = psi_dd * (x1 - x7)
+        x9 = cos(phi)
+        x10 = phi_dd * self.p.l * self.p.m3
+        x11 = sin(phi)
+        x12 = phi_dot**2 * self.p.l * self.p.m3
+        x13 = self.p.m3 * x2
+        x14 = self.p.m3 * x0 + self.p.m3 * x8 + x10 * x9 - x11 * x12 + x13 * x6
+        x15 = self.p.m2 * x0 + self.p.m2 * x8 + x14 + x3 * x6
+        x16 = psi_dd * x4 * x5
+        x17 = self.p.g * self.p.m3 - self.p.m3 * x16 + x10 * x11 + x12 * x9 - x13 * x7
+        x18 = self.p.g * self.p.m2 - self.p.m2 * x16 + x17 - x3 * x7
+
+        F1 = np.zeros(2)
+        F12 = np.zeros(2)
+        F23 = np.zeros(2)
+
+        F1[0] = psi_dd * self.p.m1 * x1 + self.p.m1 * x0 + x15
+        F1[1] = self.p.g * self.p.m1 + x18
+        F12[0] = x15
+        F12[1] = x18
+        F23[0] = x14
+        F23[1] = x17
+
+        return [F1, F12, F23]
 
     def _x_dot(self, x, t, u):
         """computes the derivative of the state
@@ -193,7 +292,7 @@ class DynamicModel(object):
             u: input motor speed command for lever motor [rad/s]
         """
         # freeze system if state is irrecoverable
-        if self.is_irrecoverable():
+        if self.is_irrecoverable(ignore_force_check=True):
             return np.concatenate([x[3:], -100 * x[3:]])
 
         omega_dot = self._compute_omega_dot(x, u)
