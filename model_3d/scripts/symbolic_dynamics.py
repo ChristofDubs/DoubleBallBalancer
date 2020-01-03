@@ -253,6 +253,14 @@ if __name__ == '__main__':
         print_symbolic(common_sub_expr[1][0], 'A', sub_list)
         print_symbolic(common_sub_expr[1][1], 'b', sub_list)
 
+        # contact forces
+        common_sub_expr = cse([F1, F12, F23])
+
+        print_common_terms(common_sub_expr[0], sub_list)
+        print_symbolic(common_sub_expr[1][0], 'F1', sub_list)
+        print_symbolic(common_sub_expr[1][1], 'F12', sub_list)
+        print_symbolic(common_sub_expr[1][2], 'F23', sub_list)
+
         # kinematic relations
         common_sub_expr = cse(omega_1)
 
