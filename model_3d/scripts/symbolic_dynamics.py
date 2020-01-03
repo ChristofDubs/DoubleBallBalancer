@@ -5,8 +5,23 @@ Derivation of the rigid multi-body dynamics using the Projected Newton-Euler met
 import argparse
 import pickle
 
-from sympy import symbols, Matrix, solve, diff, eye, diag, zeros, cse
+from sympy import symbols, Matrix, solve, diff, eye, diag, zeros, cse, pi, exp, Max
 from sympy.matrices.dense import rot_axis1, rot_axis2, rot_axis3
+
+
+def print_common_terms(mat, sub_list):
+    for term in mat:
+        print('{} = {}'.format(term[0], term[1].subs(sub_list)))
+
+
+def print_symbolic(mat, name, sub_list):
+    for row in range(mat.rows):
+        if mat.cols == 1:
+            print('{}[{}] = {}'.format(name, row, mat[row, 0].subs(sub_list)))
+        else:
+            for col in range(mat.cols):
+                print('{}[{},{}] = {}'.format(name, row, col, mat[row, col].subs(sub_list)))
+
 
 # position
 x, y = symbols('x y')
@@ -37,8 +52,8 @@ omega_dot = Matrix([w_1_dot_z, psi_x_ddot, psi_y_ddot, w_2_dot_x,
                     w_2_dot_y, w_2_dot_z, phi_x_ddot, phi_y_ddot])
 
 # parameter
-l, m1, m2, m3, r1, r2, tau, theta1, theta2, theta3x, theta3y, theta3z = symbols(
-    'l m1 m2 m3 r1 r2 tau theta1 theta2 theta3x theta3y theta3z')
+a, l, m1, m2, m3, mu1, mu12, r1, r2, tau, theta1, theta2, theta3x, theta3y, theta3z = symbols(
+    'a l m1 m2 m3 mu1 mu12 r1 r2 tau theta1 theta2 theta3x theta3y theta3z')
 
 # constants
 g = symbols('g')
@@ -144,13 +159,31 @@ if __name__ == '__main__':
     J_i = [v.jacobian(omega) for v in v_i]
     JR_i = [om.jacobian(omega) for om in om_i]
 
-    # Forces
-    F_i = [Matrix([0, 0, -mi * g]) for mi in m]
-    M_i = [Matrix([0, 0, 0]), -R_B2B3 * b_T, b_T]
-
     # Impulse
     p_i = [m[i] * v_i[i] for i in range(3)]
     p_dot_i = [p.jacobian(omega) * omega_dot + p.jacobian(ang) * ang_dot for p in p_i]
+
+    # Forces
+    F_i = [Matrix([0, 0, -mi * g]) for mi in m]
+
+    F23 = p_dot_i[2] - F_i[2]
+    F12 = p_dot_i[1] - F_i[1] + F23
+    F1 = p_dot_i[0] - F_i[0] + F12
+
+    # torsional friction model: http://gazebosim.org/tutorials?tut=torsional_friction&cat=physics
+    # smooth version of sign, to avoid numerical problems due to sign's discontinuity
+    def sign(x): return 2 / (1 + exp(-x)) - 1
+
+    f1_scale = 3 * pi / 16 * (a * r1) * mu1 * sign(-w_1z)
+
+    w_21 = ((R_IB2 * b_omega_2) - omega_1).dot(e_S1S2)
+
+    f12_scale = 3 * pi / 16 * (a * Max(r1, r2)) * mu12 * sign(-w_21)
+
+    M1 = f1_scale * F1[2] * Matrix([0, 0, 1])
+    M12 = f12_scale * F12.dot(e_S1S2) * e_S1S2
+
+    M_i = [Matrix([0, 0, 0]) + M1 - M12, R_IB2.T * M12 - R_B2B3 * b_T, b_T]
 
     # Spin
     omega_diff_i = [
@@ -191,7 +224,7 @@ if __name__ == '__main__':
     if args.print_dynamics:
 
         A = dyn.jacobian(omega_dot)
-        b = dyn.subs([(x, 0) for x in omega_dot])
+        b = -dyn.subs([(x, 0) for x in omega_dot])
 
         common_sub_expr = cse([A, b])
 
@@ -199,11 +232,14 @@ if __name__ == '__main__':
             (x,
              'self.p.' +
              x) for x in [
+                'a',
                 'g',
                 'l',
                 'm1',
                 'm2',
                 'm3',
+                'mu1',
+                'mu12',
                 'r1',
                 'r2',
                 'tau',
@@ -213,35 +249,22 @@ if __name__ == '__main__':
                 'theta3y',
                 'theta3z']]
 
-        for term in common_sub_expr[0]:
-            print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
-
-        for row in range(A.rows):
-            for col in range(A.cols):
-                print('        A[{},{}] = {}'.format(
-                    row, col, common_sub_expr[1][0][row, col].subs(sub_list)))
-
-        for row in range(b.rows):
-            print('        b[{}] = {}'.format(row, -common_sub_expr[1][1][row].subs(sub_list)))
+        print_common_terms(common_sub_expr[0], sub_list)
+        print_symbolic(common_sub_expr[1][0], 'A', sub_list)
+        print_symbolic(common_sub_expr[1][1], 'b', sub_list)
 
         # kinematic relations
         common_sub_expr = cse(omega_1)
-        for term in common_sub_expr[0]:
-            print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
 
-        for row in range(omega_1.rows):
-            print('        omega_1[{}] = {}'.format(row, common_sub_expr[1][0][row].subs(sub_list)))
+        print_common_terms(common_sub_expr[0], sub_list)
+        print_symbolic(common_sub_expr[1][0], 'omega_1', sub_list)
 
         # position vectors
         common_sub_expr = cse([r_S1S2, r_S2S3])
-        for term in common_sub_expr[0]:
-            print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
 
-        for row in range(r_S1S2.rows):
-            print('        r_S1S2[{}] = {}'.format(row, common_sub_expr[1][0][row].subs(sub_list)))
-
-        for row in range(r_S2S3.rows):
-            print('        r_S2S3[{}] = {}'.format(row, common_sub_expr[1][1][row].subs(sub_list)))
+        print_common_terms(common_sub_expr[0], sub_list)
+        print_symbolic(common_sub_expr[1][0], 'r_S1S2', sub_list)
+        print_symbolic(common_sub_expr[1][1], 'r_S2S3', sub_list)
 
     if args.save_linear:
 
