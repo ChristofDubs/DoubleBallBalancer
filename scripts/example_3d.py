@@ -14,6 +14,11 @@ from model_3d.controller import Controller
 
 parser = argparse.ArgumentParser(description="Test double ball balancer")
 parser.add_argument("-a", "--no-animation", help="disable animation", action="store_true")
+parser.add_argument(
+    "-c",
+    "--contact-forces",
+    help="enable visualization of contact forces in the animation",
+    action="store_true")
 parser.add_argument("-g", "--gif", help="create gif of animation", action="store_true")
 parser.add_argument("-p", "--no-plot", help="disable plotting states", action="store_true")
 parser.add_argument("-v", "--verbose", help="print simulation time", action="store_true")
@@ -21,7 +26,7 @@ args = parser.parse_args()
 
 enable_plot = not args.no_plot
 enable_animation = not args.no_animation
-
+enable_contact_forces = args.contact_forces
 
 # create parameter struct
 param = ModelParam()
@@ -49,6 +54,8 @@ sim_time = 0
 sim_time_vec = [sim_time]
 state_vec = [copy.copy(model.state)]
 start_time = time.time()
+omega_cmd = np.zeros(2)
+contact_forces = None
 
 if enable_animation or args.gif:
     fig = plt.figure(0)
@@ -60,10 +67,20 @@ if enable_animation or args.gif:
         images = []
 
 # simulate until system is irrecoverable or max_sim_time reached
-while not model.is_irrecoverable() and sim_time < max_sim_time:
+while not model.is_irrecoverable(
+        contact_forces=contact_forces,
+        omega_cmd=omega_cmd) and sim_time < max_sim_time:
+    # get control input
+    omega_cmd = controller.compute_ctrl_input(model.state, beta_cmd)
+
     if enable_animation or args.gif:
         # get visualization
-        vis = model.get_visualization()
+        if enable_contact_forces:
+            contact_forces = model.compute_contact_forces(omega_cmd=omega_cmd)
+
+        vis = model.get_visualization(
+            contact_forces=contact_forces,
+            visualize_contact_forces=enable_contact_forces)
 
         # plot
         plt.cla()
@@ -71,6 +88,11 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
         ax.plot_wireframe(*vis['lower_ball'], color='b', linewidth=0.5)
         ax.plot_wireframe(*vis['upper_ball'], color='r', linewidth=0.5)
         ax.plot_wireframe(*vis['lever_arm'], color='g')
+
+        if enable_contact_forces:
+            ax.quiver(*vis['F1'], color='m')
+            ax.quiver(*vis['F12'], color='m')
+            ax.quiver(*vis['F23'], color='m')
 
         ax.set_xlabel('x [m]')
         ax.set_ylabel('y [m]')
@@ -89,7 +111,7 @@ while not model.is_irrecoverable() and sim_time < max_sim_time:
             start_time = time.time()
 
     # simulate one time step
-    model.simulate_step(dt, controller.compute_ctrl_input(model.state, beta_cmd))
+    model.simulate_step(dt, omega_cmd)
     sim_time += dt
 
     if enable_plot:
