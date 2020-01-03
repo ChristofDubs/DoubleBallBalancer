@@ -4,6 +4,7 @@ This module contains the class DynamicModel for simulating the non-linear dynami
 
 author: Christof Dubs
 """
+import itertools
 import numpy as np
 from numpy import sin, cos, tan, exp, pi
 from scipy.integrate import odeint
@@ -372,11 +373,19 @@ class DynamicModel(object):
         # normalize quaternions
         self.state.normalize_quaternions()
 
-    def is_irrecoverable(self, state=None):
+    def is_irrecoverable(
+            self,
+            state=None,
+            contact_forces=None,
+            omega_cmd=None,
+            ignore_force_check=False):
         """Checks if system is recoverable
 
         args:
             state (ModelState, optional): state. If not specified, the internal state is checked
+            contact_forces(list(numpy.ndarray), optional): contact forces [N]. If not specified, will be internally calculated
+            omega_cmd (numpy.ndarray, optional): motor speed commands [rad/s] used for contact force calculation if contact_forces are not specified
+            ignore_force_check (optional): If set to True, will skip the contact forces check
 
         Returns:
             bool: True if state is irrecoverable, False otherwise.
@@ -396,18 +405,34 @@ class DynamicModel(object):
             if arccos_psi < arccos_psi_crit:
                 return True
 
-        # todo: decide how to check / what to do if upper ball lifts off
+         # lift off: contact force between lower and upper ball <= 0
+        if not ignore_force_check:
+            if contact_forces is None:
+                contact_forces = self.compute_contact_forces(state, omega_cmd)
+
+            if np.dot(contact_forces[1], self._compute_e_S1S2(state)) <= 0:
+                return True
+
         return False
 
-    def get_visualization(self, state=None):
+    def get_visualization(
+            self,
+            state=None,
+            contact_forces=None,
+            omega_cmd=None,
+            visualize_contact_forces=False):
         """Get visualization of the system for plotting
 
         Usage example:
-            v = model.get_visualization()
-            plt.plot(*v['lower_ball'])
+            vis = model.get_visualization()
+            ax.plot_wireframe(*vis['lower_ball'])
+            ax.quiver(*vis['F1'])
 
         args:
             state (ModelState, optional): state. If not specified, the internal state is checked
+            contact_forces(list(numpy.ndarray), optional): contact forces [N]. If not specified, will be internally calculated
+            omega_cmd (numpy.ndarray, optional): motor speed commands [rad/s] used for contact force calculation if contact_forces are not specified
+            visualize_contact_forces (optional): contact forces will only be visualized if set to True
 
         Returns:
             dict: dictionary with keys "lower_ball", "upper_ball" and "lever_arm". The value for each key is a list with three elements: a list of x coordinates, a list of y coordinates and a list of z coordinates.
@@ -423,7 +448,274 @@ class DynamicModel(object):
         vis['upper_ball'] = self._compute_ball_visualization(
             r_OSi[1], self.p.r2, Quaternion(state.q2))
         vis['lever_arm'] = [np.array([[r_OSi[1][i], r_OSi[2][i]]]) for i in range(3)]
+
+        if visualize_contact_forces:
+            if contact_forces is None:
+                contact_forces = self.compute_contact_forces(state, omega_cmd)
+
+            force_scale = 0.05
+            contact_pt_1 = np.array([r_OSi[0][0], r_OSi[0][1], 0])
+            vis['F1'] = list(itertools.chain.from_iterable(
+                [contact_pt_1, force_scale * contact_forces[0]]))
+
+            contact_pt_2 = r_OSi[0] + self.p.r1 * self._compute_e_S1S2(state)
+            vis['F12'] = list(itertools.chain.from_iterable(
+                [contact_pt_2, force_scale * contact_forces[1]]))
+
+            vis['F23'] = list(itertools.chain.from_iterable(
+                [r_OSi[1], force_scale * contact_forces[2]]))
+
         return vis
+
+    def compute_contact_forces(self, state=None, omega_cmd=None):
+        """computes contact forces between bodies
+
+        This function computes the contact forces between the rigid bodies.
+        args:
+            x (numpy.ndarray, optional): state. If not specified, the internal state is used
+            omega_cmd(numpy.ndarray, optional): motor speed command [rad/s]. Defaults to zero if not specified
+        Returns: list of the 3 contact forces [F1, F12, F23] with:
+        - F1: force from ground onto lower ball
+        - F12: force from lower ball onto upper ball
+        - F23: force from upper ball onto lever arm
+        """
+        if state is None:
+            state = self.state
+        if omega_cmd is None:
+            print('Warning: no omega_cmd specified for contact force calculation; default to [0 0]')
+            omega_cmd = np.zeros(2)
+
+        [beta_x, beta_y, beta_z] = state.beta
+        [phi_x, phi_y] = state.phi
+        [phi_x_dot, phi_y_dot] = state.phi_dot
+        [psi_x, psi_y] = state.psi
+        [psi_x_dot, psi_y_dot] = state.psi_dot
+        w_1z = state.omega_1_z
+        [w_2x, w_2y, w_2z] = state.omega_2
+
+        [w_1_dot_z, psi_x_ddot, psi_y_ddot, w_2_dot_x, w_2_dot_y, w_2_dot_z,
+            phi_x_ddot, phi_y_ddot] = self._compute_omega_dot(state, omega_cmd)
+
+        F1 = np.zeros(3)
+        F12 = np.zeros(3)
+        F23 = np.zeros(3)
+
+        x0 = self.p.r1 + self.p.r2
+        x1 = tan(psi_x)
+        x2 = cos(psi_y)
+        x3 = 1 / x2
+        x4 = self.p.r1 * w_1_dot_z * x1 * x3
+        x5 = psi_x_ddot * self.p.m1
+        x6 = tan(psi_y)
+        x7 = x1 * x6
+        x8 = -self.p.r1 * x7 - self.p.r2 * x7
+        x9 = sin(beta_z)
+        x10 = cos(beta_y)
+        x11 = self.p.r2 * x10
+        x12 = x11 * x9
+        x13 = sin(beta_y)
+        x14 = self.p.r2 * x1 * x3
+        x15 = x13 * x14
+        x16 = -x12 + x15
+        x17 = w_2_dot_x * x16
+        x18 = sin(beta_x)
+        x19 = cos(beta_z)
+        x20 = x18 * x19
+        x21 = self.p.r2 * x20
+        x22 = self.p.r2 * x13
+        x23 = cos(beta_x)
+        x24 = x23 * x9
+        x25 = x22 * x24
+        x26 = x10 * x23
+        x27 = x14 * x26
+        x28 = x21 - x25 - x27
+        x29 = w_2_dot_z * x28
+        x30 = x19 * x23
+        x31 = self.p.r2 * x30
+        x32 = x18 * x9
+        x33 = self.p.r2 * x32
+        x34 = self.p.r2 * x1 * x10 * x3
+        x35 = x18 * x34
+        x36 = -x13 * x33 - x31 - x35
+        x37 = w_2_dot_y * x36
+        x38 = w_2y * x18
+        x39 = 1 / x23
+        x40 = w_2z + x38 * x39
+        x41 = 1 / (x10 * x18**2 * x39 + x26)
+        x42 = self.p.m1 * x40 * x41
+        x43 = self.p.r2 * x24
+        x44 = x11 * x19
+        x45 = w_2z * x33
+        x46 = w_2y * x21
+        x47 = x22 * x30
+        x48 = -w_2x * x44 + w_2y * x43 - w_2z * x47 - x13 * x46 - x45
+        x49 = psi_x_dot * x1
+        x50 = x6**2 + 1
+        x51 = self.p.r1 * x50
+        x52 = sin(psi_y)
+        x53 = x2**(-2)
+        x54 = x1 * x52 * x53
+        x55 = self.p.r2 * w_2x * x13
+        x56 = self.p.r2 * w_2y * x10 * x18
+        x57 = self.p.r2 * w_2z * x10 * x23
+        x58 = -self.p.r1 * w_1z * x54 - self.p.r2 * x49 * x50 - x49 * x51 + x54 * x55 - x54 * x56 - x54 * x57
+        x59 = x1**2 + 1
+        x60 = psi_x_dot * x59 * x6
+        x61 = self.p.r1 * x3
+        x62 = self.p.r2 * x3 * x59
+        x63 = -self.p.r1 * x60 - self.p.r2 * x60 - w_1z * x59 * x61 + \
+            w_2x * x13 * x62 - w_2y * x10 * x18 * x62 - w_2z * x10 * x23 * x62
+        x64 = x40 * x41
+        x65 = w_2x + x13 * x64
+        x66 = -w_2y * x25 - w_2y * x27 + w_2z * x31 + w_2z * x35 + x13 * x45 + x46
+        x67 = x65 * x66
+        x68 = w_2y - x10 * x18 * x64
+        x69 = w_2y * x33
+        x70 = w_2z * x43
+        x71 = w_2z * x23
+        x72 = w_2x * x34 - x10 * x69 - x10 * x70 + x15 * x38 + x15 * x71 + x55 * x9
+        x73 = x39 * x68 * x72
+        x74 = cos(psi_x)
+        x75 = x0 * x74
+        x76 = x2 * x75
+        x77 = psi_y_ddot * (x0 + x76)
+        x78 = sin(psi_x)
+        x79 = x0 * x52 * x78
+        x80 = psi_x_ddot * (-x79 + x8)
+        x81 = self.p.m2 * x40 * x41
+        x82 = x0 * x2 * x78
+        x83 = x0 * x52 * x74
+        x84 = psi_y_dot * (-psi_x_dot * x82 - psi_y_dot * x83 + x58)
+        x85 = psi_x_dot * (-psi_x_dot * x83 - psi_y_dot * x82 + x63)
+        x86 = phi_y_ddot * self.p.m3
+        x87 = cos(phi_x)
+        x88 = self.p.l * x87
+        x89 = cos(phi_y)
+        x90 = x10 * x89
+        x91 = x19 * x90
+        x92 = sin(phi_y)
+        x93 = x13 * x30 + x32
+        x94 = x92 * x93
+        x95 = x91 - x94
+        x96 = x88 * x95
+        x97 = phi_x_ddot * self.p.m3
+        x98 = sin(phi_x)
+        x99 = x10 * x98
+        x100 = x92 * x99
+        x101 = x13 * x20
+        x102 = x101 - x24
+        x103 = x89 * x93
+        x104 = x100 * x19 + x102 * x87 + x103 * x98
+        x105 = self.p.l * x104
+        x106 = self.p.m3 * w_2_dot_y
+        x107 = self.p.m3 * w_2_dot_x
+        x108 = x92 * x98
+        x109 = self.p.l * x95
+        x110 = phi_x_dot * self.p.m3
+        x111 = w_2x * x92
+        x112 = w_2z * x89
+        x113 = -phi_y_dot * x98 - w_2y * x98 + x111 * x87 + x112 * x87
+        x114 = w_2x * x89
+        x115 = w_2z * x92
+        x116 = self.p.l * (phi_x_dot + x114 - x115)
+        x117 = x10 * x92
+        x118 = x117 * x19
+        x119 = x87 * x93
+        x120 = self.p.m3 * w_2_dot_z
+        x121 = x89 * x98
+        x122 = self.p.m3 * x65
+        x123 = -x101 + x24
+        x124 = phi_y_dot * x87 + w_2y * x87 + x111 * x98 + x112 * x98
+        x125 = self.p.l * x124 * x92
+        x126 = self.p.m3 * x40 * x41
+        x127 = self.p.l * x124
+        x128 = x9 * x90
+        x129 = x13 * x24
+        x130 = -x129 + x20
+        x131 = x100 * x9
+        x132 = x13 * x32
+        x133 = -x132 - x30
+        x134 = self.p.m3 * x39 * x68
+        x135 = x13 * x89
+        x136 = x26 * x92
+        x137 = x10 * x87
+        x138 = x13 * x92
+        x139 = x138 * x98
+        x140 = x26 * x89
+        x141 = x140 * x98
+        x142 = phi_y_dot * self.p.m3
+        x143 = x114 * x98 - x115 * x98
+        x144 = -x111 - x112
+        x145 = -self.p.m3 * x4 + self.p.m3 * x77 + self.p.m3 * x80 + self.p.m3 * x84 + self.p.m3 * x85 + x105 * x97 + x106 * (x36 - x96) + x107 * (x105 * x89 - x108 * x109 + x16) + x110 * (-x109 * x113 + x116 * (-x102 * x98 + x118 * x87 + x119 * x89)) + x120 * (-x105 * x92 - x109 * x121 + x28) + x122 * (x116 * (
+            x119 + x121 * x123) + x123 * x125 + x66) + x126 * (x116 * (x121 * x130 - x131 + x133 * x87) - x127 * (-x128 - x130 * x92) + x48) + x134 * (x116 * (x137 * x20 - x139 * x19 + x141 * x19) - x127 * (-x135 * x19 - x136 * x19) + x72) + x142 * (x105 * x144 - x109 * x143 + x116 * (x91 * x98 - x94 * x98) - x127 * (-x103 - x118)) - x86 * x96
+        x146 = self.p.m2 * x17 + self.p.m2 * x29 + self.p.m2 * x37 - self.p.m2 * x4 + self.p.m2 * x67 + \
+            self.p.m2 * x73 + self.p.m2 * x77 + self.p.m2 * x80 + self.p.m2 * x84 + self.p.m2 * x85 + x145 + x48 * x81
+        x147 = self.p.r1 * w_1_dot_z * x6
+        x148 = x22 * x6
+        x149 = x148 + x44
+        x150 = w_2_dot_x * x149
+        x151 = -self.p.r2 * x3 - x61
+        x152 = self.p.r2 * x26 * x6
+        x153 = -x152 + x33 + x47
+        x154 = w_2_dot_z * x153
+        x155 = self.p.r2 * x10 * x6
+        x156 = x155 * x18
+        x157 = x13 * x21 - x156 - x43
+        x158 = w_2_dot_y * x157
+        x159 = psi_x_dot * x52 * x53
+        x160 = psi_y_dot * (-self.p.r1 * x159 - self.p.r2 * x159 -
+                            w_1z * x51 + x50 * x55 - x50 * x56 - x50 * x57)
+        x161 = w_2z * x21
+        x162 = -w_2x * x12 - w_2y * x31 - w_2z * x25 - x13 * x69 + x161
+        x163 = -w_2y * x152 + w_2y * x47 + w_2z * x156 - x13 * x161 + x69 + x70
+        x164 = x163 * x65
+        x165 = w_2x * x155 + x10 * x46 + x148 * x38 + x148 * x71 - x19 * x55 + x19 * x57
+        x166 = x165 * x39 * x68
+        x167 = psi_x_dot**2 * x0 * x78
+        x168 = psi_x_ddot * (x151 - x75)
+        x169 = x129 - x20
+        x170 = x169 * x92
+        x171 = x128 - x170
+        x172 = x171 * x88
+        x173 = x132 + x30
+        x174 = x169 * x89
+        x175 = self.p.l * (x131 + x173 * x87 + x174 * x98)
+        x176 = self.p.l * x171
+        x177 = x117 * x9
+        x178 = x169 * x87
+        x179 = x10 * x89 * x98
+        x180 = -self.p.m3 * x147 + self.p.m3 * x160 + self.p.m3 * x167 + self.p.m3 * x168 + x106 * (x157 - x172) + x107 * (-x108 * x176 + x149 + x175 * x89) + x110 * (-x113 * x176 + x116 * (-x173 * x98 + x177 * x87 + x178 * x89)) + x120 * (-x121 * x176 + x153 - x175 * x92) + x122 * (x116 * (
+            x121 * x133 + x178) + x125 * x133 + x163) + x126 * (x104 * x116 - x127 * x95 + x162) + x134 * (x116 * (x137 * x32 - x139 * x9 + x179 * x24) - x127 * (-x117 * x24 - x135 * x9) + x165) + x142 * (x116 * (x128 * x98 - x170 * x98) - x127 * (-x174 - x177) - x143 * x176 + x144 * x175) - x172 * x86 + x175 * x97
+        x181 = -self.p.m2 * x147 + self.p.m2 * x150 + self.p.m2 * x154 + self.p.m2 * x158 + self.p.m2 * \
+            x160 + self.p.m2 * x164 + self.p.m2 * x166 + self.p.m2 * x167 + self.p.m2 * x168 + x162 * x81 + x180
+        x182 = psi_x_ddot * x0 * x2 * x78
+        x183 = psi_y_ddot * x0 * x52 * x74
+        x184 = psi_x_dot * (-psi_x_dot * x76 + psi_y_dot * x79)
+        x185 = psi_y_dot * (psi_x_dot * x79 - psi_y_dot * x76)
+        x186 = -x135 - x136
+        x187 = self.p.l * self.p.m3 * x186 * x87
+        x188 = x18 * x87
+        x189 = self.p.l * (x10 * x188 - x139 + x141)
+        x190 = self.p.l * x186
+        x191 = x26 * x87
+        x192 = x135 * x98
+        x193 = -phi_y_ddot * x187 + self.p.g * self.p.m3 - self.p.m3 * x182 - self.p.m3 * x183 + self.p.m3 * x184 + self.p.m3 * x185 - w_2_dot_y * x187 + x107 * (-x108 * x190 + x189 * x89) + x110 * (-x113 * x190 + x116 * (-x138 * x87 - x18 * x99 + x191 * x89)) + x120 * (
+            -x121 * x190 - x189 * x92) + x122 * (-x10 * x127 * x18 * x92 + x116 * (-x179 * x18 + x191)) + x134 * (x116 * (-x100 - x13 * x188 - x192 * x23) - x127 * (x138 * x23 - x90)) + x142 * (x116 * (-x136 * x98 - x192) - x127 * (x138 - x140) - x143 * x190 + x144 * x189) + x189 * x97
+        x194 = self.p.g * self.p.m2 - self.p.m2 * x182 - self.p.m2 * \
+            x183 + self.p.m2 * x184 + self.p.m2 * x185 + x193
+        F1[0] = psi_x_dot * self.p.m1 * x63 + psi_y_ddot * self.p.m1 * x0 + psi_y_dot * self.p.m1 * x58 + self.p.m1 * x17 + \
+            self.p.m1 * x29 + self.p.m1 * x37 - self.p.m1 * x4 + self.p.m1 * x67 + self.p.m1 * x73 + x146 + x42 * x48 + x5 * x8
+        F1[1] = -self.p.m1 * x147 + self.p.m1 * x150 + self.p.m1 * x154 + self.p.m1 * x158 + \
+            self.p.m1 * x160 + self.p.m1 * x164 + self.p.m1 * x166 + x151 * x5 + x162 * x42 + x181
+        F1[2] = self.p.g * self.p.m1 + x194
+        F12[0] = x146
+        F12[1] = x181
+        F12[2] = x194
+        F23[0] = x145
+        F23[1] = x180
+        F23[2] = x193
+
+        return [F1, F12, F23]
 
     def _x_dot(self, x, t, omega_cmd):
         """computes the derivative of the state
@@ -442,7 +734,7 @@ class DynamicModel(object):
         eval_state = ModelState(x, skip_checks=True)
 
         # freeze system if state is irrecoverable
-        if self.is_irrecoverable(eval_state):
+        if self.is_irrecoverable(state=eval_state, ignore_force_check=True):
             return np.zeros(np.shape(eval_state.x))
 
         xdot = ModelState()
@@ -524,7 +816,7 @@ class DynamicModel(object):
 
         The non-linear rotational dynamics are of the form
 
-        A * [omega_1_z_dot, psi_x_ddot, psi_y_ddot, omega_2_x_dot, omega_2_y_dot, omega_2_z_dot, phi_x_dot, phi_y_dot] = b
+        A * [omega_1_z_dot, psi_x_ddot, psi_y_ddot, omega_2_x_dot, omega_2_y_dot, omega_2_z_dot, phi_x_ddot, phi_y_ddot] = b
 
         where A = A(phi_x, phi_y, phi_x_dot, phi_y_dot, psi_x, psi_y) and b(state, inputs).
 
@@ -623,8 +915,8 @@ class DynamicModel(object):
         x70 = x14 * x7
         x71 = x56 * x7
         x72 = self.p.r2 * x19 * x7
-        x73 = -1 + 2 / (exp(x11 * (-w_1z - x24 + x28 + x31) - x13 * (w_2y * x58 + w_2z * x60 + x33 * x34 - x42 * (-psi_x_dot * x70 - psi_x_dot * x71 + psi_y_dot * self.p.r1 + psi_y_dot * self.p.r2 - w_1z *
-                                                                                                                  x20 + x24 * x72 - x28 * x72 - x31 * x72 + x69)) + x18 * (w_2y * x41 + w_2z * x37 + x32 * x33 - x42 * (psi_x_dot * x54 + psi_x_dot * x55 + w_1z * x14 - x24 * x56 + x28 * x56 + x31 * x56 + x53))) + 1)
+        x73 = -1 + 2 / (exp(x11 * (-w_1z - x24 + x28 + x31) - x13 * (w_2y * x58 + w_2z * x60 + x33 * x34 - x42 * (-psi_x_dot * x70 - psi_x_dot * x71 + psi_y_dot * self.p.r1 + psi_y_dot * self.p.r2 - w_1z * \
+                        x20 + x24 * x72 - x28 * x72 - x31 * x72 + x69)) + x18 * (w_2y * x41 + w_2z * x37 + x32 * x33 - x42 * (psi_x_dot * x54 + psi_x_dot * x55 + w_1z * x14 - x24 * x56 + x28 * x56 + x31 * x56 + x53))) + 1)
         x74 = 3 * pi * self.p.a * self.p.mu12 * x12 * x73 * \
             (-x13 * (-x15 - x16) + x18 * (-x21 - x22)) / 16
         x75 = x11 * x74
@@ -1126,6 +1418,17 @@ class DynamicModel(object):
         r_OS3 = r_OS2 + r_S2S3
 
         return [r_OS1, r_OS2, r_OS3]
+
+    def _compute_e_S1S2(self, state):
+        """computes the unit vector (x/y/z) pointing from lower ball center to upper ball center
+
+        args:
+            state (ModelState): current state
+        returns:
+            array containing unit direction (x/y/z) pointing from lower ball center to upper ball center
+        """
+        [psi_x, psi_y] = state.psi
+        return np.array([sin(psi_y) * cos(psi_x), -sin(psi_x), cos(psi_x) * cos(psi_y)])
 
     def _compute_ball_visualization(self, center, radius, q_IB):
         """computes visualization points of a ball
