@@ -5,7 +5,7 @@ Derivation of the rigid multi-body dynamics using the Projected Newton-Euler met
 import argparse
 import pickle
 
-from sympy import symbols, Matrix, solve, diff, eye, diag, zeros, cse, pi, exp, Max
+from sympy import symbols, Matrix, simplify, solve, diff, eye, diag, zeros, cse, pi, exp, Max
 from sympy.matrices.dense import rot_axis1, rot_axis2, rot_axis3
 
 
@@ -60,7 +60,6 @@ g = symbols('g')
 
 # inputs
 Tx, Ty = symbols('Tx Ty')
-b_T = Matrix([Tx, Ty, 0])
 omega_x_cmd, omega_y_cmd = symbols('omega_x_cmd omega_y_cmd')
 omega_cmd = Matrix([omega_x_cmd, omega_y_cmd])
 
@@ -183,7 +182,11 @@ if __name__ == '__main__':
     M1 = f1_scale * F1[2] * Matrix([0, 0, 1])
     M12 = f12_scale * F12.dot(e_S1S2) * e_S1S2
 
-    M_i = [Matrix([0, 0, 0]) + M1 - M12, R_IB2.T * M12 - R_B2B3 * b_T, b_T]
+    B3_Tx = Matrix([Tx, 0, 0])
+    B2_Ty = Matrix([0, Ty, 0])
+
+    M_i = [Matrix([0, 0, 0]) + M1 - M12, R_IB2.T * M12 - B2_Ty -
+           R_B2B3 * B3_Tx, R_B2B3.T * B2_Ty + B3_Tx]
 
     # Spin
     omega_diff_i = [
@@ -211,7 +214,7 @@ if __name__ == '__main__':
 
     # check that all Tx, Ty terms are eliminated
     print('all T terms eliminated: {}'.format(
-        Matrix(dyn[:]).jacobian(Matrix([Tx, Ty])) == zeros(8, 2)))
+        simplify(Matrix(dyn[:]).jacobian(Matrix([Tx, Ty]))) == zeros(8, 2)))
 
     # set Tx, Ty to zero directly instead of simplifying (terms can be ... + Tx + ... - Tx)
     dyn = dyn.subs([('Tx', 0), ('Ty', 0)])
