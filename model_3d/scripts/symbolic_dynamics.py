@@ -72,10 +72,9 @@ if __name__ == '__main__':
         description="generation of symbolic dynamics of 3D Double Ball Balancer")
     parser.add_argument(
         "-d",
-        "--save-dynamics",
-        help="Write non-linear dynamics to pickle file",
-        action="store_true",
-        default=True)
+        "--disable_saving-dynamics",
+        help="Disable writing non-linear dynamics to pickle file",
+        action="store_true")
     parser.add_argument(
         "-p",
         "--print-dynamics",
@@ -88,7 +87,7 @@ if __name__ == '__main__':
         action="store_true")
     args = parser.parse_args()
 
-    if not (args.save_dynamics or args.print_dynamics or args.save_linear):
+    if args.disable_saving_dynamics and not args.print_dynamics and not args.save_linear:
         print('Nothing to do: {} ! Exiting.'.format(args.__dict__))
         exit()
 
@@ -218,7 +217,7 @@ if __name__ == '__main__':
     # set Tx, Ty to zero directly instead of simplifying (terms can be ... + Tx + ... - Tx)
     dyn = dyn.subs([('Tx', 0), ('Ty', 0)])
 
-    if args.save_dynamics:
+    if not args.disable_saving_dynamics:
         dynamics_pickle_file = 'dynamics.p'
         print('write dynamics to {}'.format(dynamics_pickle_file))
         pickle.dump(dyn, open(dynamics_pickle_file, "wb"))
