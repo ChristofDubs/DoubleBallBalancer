@@ -134,7 +134,7 @@ class DynamicModel(object):
             x (numpy.ndarray, optional): state. If not specified, the internal state is checked
             contact_forces(list(numpy.ndarray), optional): contact forces [N]. If not specified, will be internally calculated
             omega_cmd (optional): motor speed command [rad/s] used for contact force calculation if contact_forces are not specified
-            ignore_force_check: If set to True, will skip the contact forces check
+            ignore_force_check (optional): If set to True, will skip the contact forces check
 
         Returns:
             bool: True if state is irrecoverable, False otherwise.
@@ -160,7 +160,7 @@ class DynamicModel(object):
             if contact_forces is None:
                 contact_forces = self.compute_contact_forces(x, omega_cmd)
 
-            if np.dot(contact_forces[1], np.array([-np.sin(psi), np.cos(psi)])) <= 0:
+            if np.dot(contact_forces[1], self._compute_e_S1S2(x)) <= 0:
                 return True
 
         return False
@@ -198,14 +198,14 @@ class DynamicModel(object):
             r_OSi[0], self.p.r1, alpha)
         vis['upper_ball'] = self._compute_ball_visualization(
             r_OSi[1], self.p.r2, beta)
-        vis['lever_arm'] = [list(x) for x in list(np.column_stack([r_OSi[1], r_OSi[2]]))]
+        vis['lever_arm'] = [np.array([[r_OSi[1][i], r_OSi[2][i]]]) for i in range(2)]
 
         force_scale = 0.05
         contact_pt_1 = np.array([r_OSi[0][0], 0])
         vis['F1'] = list(itertools.chain.from_iterable(
             [contact_pt_1, force_scale * contact_forces[0]]))
 
-        contact_pt_2 = r_OSi[0] + self.p.r1 * np.array([-np.sin(psi), np.cos(psi)])
+        contact_pt_2 = r_OSi[0] + self.p.r1 * self._compute_e_S1S2(x)
         vis['F12'] = list(itertools.chain.from_iterable(
             [contact_pt_2, force_scale * contact_forces[1]]))
 
@@ -215,7 +215,7 @@ class DynamicModel(object):
         return vis
 
     def compute_contact_forces(self, x=None, omega_cmd=None):
-        """computes visualization points of a ball
+        """computes contact forces between bodies
 
         This function computes the contact forces between the rigid bodies.
 
@@ -388,16 +388,27 @@ class DynamicModel(object):
         alpha = psi + (self.p.r2 / self.p.r1) * (psi - beta)
 
         # lower ball on ground rolling constraint
-        x = -self.p.r1 * alpha
+        p_x = -self.p.r1 * alpha
 
-        r_OS1 = np.array([x, self.p.r1])
+        r_OS1 = np.array([p_x, self.p.r1])
 
-        r_S1S2 = (self.p.r1 + self.p.r2) * np.array([-np.sin(psi), np.cos(psi)])
+        r_S1S2 = (self.p.r1 + self.p.r2) * self._compute_e_S1S2(x)
         r_OS2 = r_OS1 + r_S1S2
 
         r_S2S3 = self.p.l * np.array([np.sin(phi), - np.cos(phi)])
         r_OS3 = r_OS2 + r_S2S3
         return [r_OS1, r_OS2, r_OS3]
+
+    def _compute_e_S1S2(self, x):
+        """computes the unit vector pointing from lower ball center to upper ball center
+
+        args:
+            x (ModelState): current state
+        returns:
+            array containing unit direction pointing from lower ball center to upper ball center
+        """
+        psi = x[PSI_IDX]
+        return np.array([-np.sin(psi), np.cos(psi)])
 
     def _compute_ball_visualization(self, center, radius, angle):
         """computes visualization points of a ball
