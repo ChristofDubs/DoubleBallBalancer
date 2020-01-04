@@ -133,7 +133,6 @@ if __name__ == '__main__':
     v_OS2 = v_OS2.subs(sub_list)
 
     # upper ball
-    R_IB2 = rot_axis3(-beta_z) * rot_axis2(-beta_y) * rot_axis1(-beta_x)
     b_om_2 = Matrix([beta_x_dot, 0, 0]) + rot_axis1(beta_x) * Matrix([0, beta_y_dot, 0]
                                                                      ) + rot_axis1(beta_x) * rot_axis2(beta_y) * Matrix([0, 0, beta_z_dot])
     jac = b_om_2.jacobian(Matrix([beta_x_dot, beta_y_dot, beta_z_dot]))
