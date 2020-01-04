@@ -2,10 +2,8 @@
 
 Derivation of the rigid multi-body dynamics using the Projected Newton-Euler method.
 """
-from sympy import *
-
-print_python_expressions = True
-print_latex_expressions = False
+import argparse
+from sympy import Matrix, cse, diff, factor, expand, simplify, solve, symbols, sin, cos
 
 
 def print_symbolic(mat, name, sub_list, func=lambda x: x, ignore_symmetry=True):
@@ -16,6 +14,26 @@ def print_symbolic(mat, name, sub_list, func=lambda x: x, ignore_symmetry=True):
             else:
                 print('{}[{},{}] = {}'.format(name, row, col, func(mat[row, col]).subs(sub_list)))
 
+
+parser = argparse.ArgumentParser(
+    description="generation of symbolic dynamics of 3D Double Ball Balancer")
+parser.add_argument(
+    "-d",
+    "--disable-printing-dynamics",
+    help="disable printing of common sub-expressions for dynamic model",
+    action="store_true",
+    default=False)
+parser.add_argument(
+    "-l",
+    "--print-latex-expressions",
+    help="print latex expressions",
+    action="store_true",
+    default=False)
+args = parser.parse_args()
+
+if args.disable_printing_dynamics and not args.print_latex_expressions:
+    print('Nothing to do: {} ! Exiting.'.format(args.__dict__))
+    exit()
 
 # angles
 alpha, beta, phi, psi = symbols('alpha beta phi psi')
@@ -103,7 +121,7 @@ dyn = Matrix([0, 0, 0])
 for i in range(3):
     dyn += J_i[i].T * (p_dot_i[i] - F_i[i]) + JR_i[i].T * (NS_dot_i[i] - M_i[i])
 
-if print_latex_expressions:
+if args.print_latex_expressions:
     A = dyn.jacobian(omega_dot)
     b = -dyn.subs([(x, 0) for x in omega_dot])
 
@@ -153,7 +171,7 @@ gamma_dot = phi_dot - beta_dot
 
 dyn_new[1] = gamma_ddot - 1 / tau * (omega_cmd - gamma_dot)
 
-if print_python_expressions:
+if not args.disable_printing_dynamics:
     A = dyn_new.jacobian(omega_dot)
     b = -dyn_new.subs([(x, 0) for x in omega_dot])
 
@@ -201,10 +219,10 @@ for vec in [ang, omega, omega_dot]:
 
 dyn_lin += dyn_new.diff(omega_cmd, 1).subs(eq) * omega_cmd
 
-if print_python_expressions:
+if not args.disable_printing_dynamics:
     print(simplify(dyn_lin))
 
-if print_latex_expressions:
+if args.print_latex_expressions:
     M = dyn_lin.jacobian(omega_dot)
     D = dyn_lin.jacobian(omega)
     K = dyn_lin.jacobian(ang)
@@ -215,7 +233,7 @@ if print_latex_expressions:
     print_symbolic(K, 'K', latex_sub_list, lambda x: factor(simplify(x)))
     print_symbolic(F, 'F', latex_sub_list, lambda x: factor(simplify(x)))
 
-if print_python_expressions:
+if not args.disable_printing_dynamics:
     # calculate contact forces
     F23 = p_dot_i[2] - F_i[2]
     F12 = p_dot_i[1] - F_i[1] + F23
