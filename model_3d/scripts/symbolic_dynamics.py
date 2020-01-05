@@ -6,7 +6,7 @@ import argparse
 import pickle
 
 from sympy import symbols, Matrix, simplify, solve, diff, eye, diag, zeros, cse, pi, exp, Max
-from sympy.matrices.dense import rot_axis1, rot_axis2, rot_axis3
+from sympy.matrices.dense import rot_axis1, rot_axis2
 
 
 def print_common_terms(mat, sub_list):
@@ -27,14 +27,15 @@ def print_symbolic(mat, name, sub_list):
 x, y = symbols('x y')
 
 # angles
-alpha_z, beta_x, beta_y, beta_z, phi_x, phi_y, psi_x, psi_y = symbols(
-    'alpha_z beta_x beta_y beta_z phi_x phi_y psi_x psi_y')
+alpha_z, phi_x, phi_y, psi_x, psi_y = symbols(
+    'alpha_z phi_x phi_y psi_x psi_y')
 
-ang = Matrix([alpha_z, psi_x, psi_y, beta_x, beta_y, beta_z, phi_x, phi_y])
+ang = Matrix([alpha_z, psi_x, psi_y, phi_x, phi_y])
+
+R_IB2 = Matrix([[symbols('r_{}{}'.format(i, j)) for j in ['x', 'y', 'z']] for i in ['x', 'y', 'z']])
 
 # angular velocities
 phi_x_dot, phi_y_dot = symbols('phi_x_dot phi_y_dot')
-beta_x_dot, beta_y_dot, beta_z_dot = symbols('beta_x_dot beta_y_dot beta_z_dot')
 psi_x_dot, psi_y_dot = symbols('psi_x_dot psi_y_dot')
 w_1x, w_1y, w_1z = symbols('w_1x w_1y w_1z')
 w_2x, w_2y, w_2z = symbols('w_2x w_2y w_2z')
@@ -80,11 +81,6 @@ if __name__ == '__main__':
         "--print-dynamics",
         help="print common sub-expressions for dynamic model",
         action="store_true")
-    parser.add_argument(
-        "-l",
-        "--save-linear",
-        help="Write linear dynamics to pickle file",
-        action="store_true")
     args = parser.parse_args()
 
     if args.disable_saving_dynamics and not args.print_dynamics and not args.save_linear:
@@ -113,8 +109,6 @@ if __name__ == '__main__':
 
     r_S2P2 = -r2 * e_S1S2
 
-    R_IB2 = rot_axis3(-beta_z) * rot_axis2(-beta_y) * rot_axis1(-beta_x)
-
     v_P2 = v_OS2 + (R_IB2 * b_omega_2).cross(r_S2P2)
 
     constraints = v_P1 - v_P2
@@ -131,12 +125,6 @@ if __name__ == '__main__':
     v_OS1 = v_OS1.subs(sub_list)
     v_OS2 = v_OS2.subs(sub_list)
 
-    # upper ball
-    b_om_2 = Matrix([beta_x_dot, 0, 0]) + rot_axis1(beta_x) * Matrix([0, beta_y_dot, 0]
-                                                                     ) + rot_axis1(beta_x) * rot_axis2(beta_y) * Matrix([0, 0, beta_z_dot])
-    jac = b_om_2.jacobian(Matrix([beta_x_dot, beta_y_dot, beta_z_dot]))
-    [beta_x_dot, beta_y_dot, beta_z_dot] = jac.LUsolve(b_omega_2)
-
     # lever arm
     R_B2B3 = rot_axis2(-phi_y) * rot_axis1(-phi_x)
     R_IB3 = R_IB2 * R_B2B3
@@ -150,15 +138,24 @@ if __name__ == '__main__':
     v_i = [v_OS1, v_OS2, v_OS3]
     om_i = [omega_1, b_omega_2, b_omega_3]
 
-    ang_dot = Matrix([w_1z, psi_x_dot, psi_y_dot, beta_x_dot,
-                      beta_y_dot, beta_z_dot, phi_x_dot, phi_y_dot])
+    ang_dot = Matrix([w_1z, psi_x_dot, psi_y_dot, phi_x_dot, phi_y_dot])
+
+    R_IB2_flat = R_IB2.reshape(9, 1)
+    R_IB2_dot = (
+        R_IB2 * Matrix([[0, -w_2z, w_2y], [w_2z, 0, -w_2x], [-w_2y, w_2x, 0]])).reshape(9, 1)
 
     J_i = [v.jacobian(omega) for v in v_i]
     JR_i = [om.jacobian(omega) for om in om_i]
 
     # Impulse
     p_i = [m[i] * v_i[i] for i in range(3)]
-    p_dot_i = [p.jacobian(omega) * omega_dot + p.jacobian(ang) * ang_dot for p in p_i]
+    p_dot_i = [
+        p.jacobian(omega) *
+        omega_dot +
+        p.jacobian(ang) *
+        ang_dot +
+        p.jacobian(R_IB2_flat) *
+        R_IB2_dot for p in p_i]
 
     # Forces
     F_i = [Matrix([0, 0, -mi * g]) for mi in m]
@@ -191,7 +188,9 @@ if __name__ == '__main__':
         om_i[i].jacobian(omega) *
         omega_dot +
         om_i[i].jacobian(ang) *
-        ang_dot for i in range(3)]
+        ang_dot +
+        om_i[i].jacobian(R_IB2_flat) *
+        R_IB2_dot for i in range(3)]
     NS_dot_i = [
         theta[i] *
         omega_diff_i[i] +
@@ -274,19 +273,3 @@ if __name__ == '__main__':
         print_common_terms(common_sub_expr[0], sub_list)
         print_symbolic(common_sub_expr[1][0], 'r_S1S2', sub_list)
         print_symbolic(common_sub_expr[1][1], 'r_S2S3', sub_list)
-
-    if args.save_linear:
-
-        # linearize system around equilibrium [0, ... , 0, x, y]
-        eq = [(x, 0) for x in omega_dot]
-        eq.extend([(x, 0) for x in omega])
-        eq.extend([(x, 0) for x in ang])
-        eq.extend([(x, 0) for x in omega_cmd])
-
-        dyn_lin = dyn.subs(eq)
-        for vec in [ang, omega, omega_dot, omega_cmd]:
-            dyn_lin += dyn.jacobian(vec).subs(eq) * vec
-
-        pickle_file = 'linear_dynamics.p'
-        print('write dynamics to {}'.format(pickle_file))
-        pickle.dump(dyn_lin, open(pickle_file, "wb"))
