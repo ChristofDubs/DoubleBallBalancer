@@ -29,11 +29,18 @@ class LQRController(object):
         x *= 1 / np.linalg.norm(x)
         y = np.cross(z, x)
 
-        R_IB2h = np.column_stack([x, y, z])[:2, :2]
+        R_IB2h = np.column_stack([x, y, z])
 
         # express psi vector in B2h frame
-        B2h_psi = np.dot(R_IB2h.T, state.psi)
-        B2h_psi_dot = np.dot(R_IB2h.T, state.psi_dot)
+        B2h_psi = np.dot(R_IB2h[:2, :2].T, state.psi)
+        B2h_psi_dot = np.dot(R_IB2h[:2, :2].T, state.psi_dot)
+
+        # express upper ball velocity in B2h frame
+        B2h_omega_IB2 = np.dot(R_IB2h.T, np.dot(R_IB2, state.omega_2))
+
+        # extract upper ball velocity wrt B2h frame
+        B2h_omega_2x = B2h_omega_IB2[0]
+        B2h_omega_2y = B2h_omega_IB2[1]
 
         # [psi_x, psi_y, beta_x, beta_y, phi_x, phi_y, psi_x_dot, psi_y_dot, w_2x, w_2y, phi_x_dot, phi_y_dot]
         reduced_state = np.array([B2h_psi[0],
@@ -44,8 +51,8 @@ class LQRController(object):
                                   state.phi_y,
                                   B2h_psi_dot[0],
                                   B2h_psi_dot[1],
-                                  w2[0],
-                                  w2[1] - w2_y_cmd,
+                                  B2h_omega_2x,
+                                  B2h_omega_2y - w2_y_cmd,
                                   state.phi_x_dot,
                                   state.phi_y_dot + w2_y_cmd])
 
