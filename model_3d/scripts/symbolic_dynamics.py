@@ -34,6 +34,8 @@ ang = Matrix([alpha_z, psi_x, psi_y, phi_x, phi_y])
 
 R_IB2 = Matrix([[symbols('r_{}{}'.format(i, j)) for j in ['x', 'y', 'z']] for i in ['x', 'y', 'z']])
 
+R_B2B3 = rot_axis2(-phi_y) * rot_axis1(-phi_x)
+
 # angular velocities
 phi_x_dot, phi_y_dot = symbols('phi_x_dot phi_y_dot')
 psi_x_dot, psi_y_dot = symbols('psi_x_dot psi_y_dot')
@@ -41,7 +43,7 @@ w_1x, w_1y, w_1z = symbols('w_1x w_1y w_1z')
 w_2x, w_2y, w_2z = symbols('w_2x w_2y w_2z')
 
 omega_1 = Matrix([w_1x, w_1y, w_1z])
-b_omega_2 = Matrix([w_2x, w_2y, w_2z])
+B2_omega_2 = Matrix([w_2x, w_2y, w_2z])
 
 omega = Matrix([w_1z, psi_x_dot, psi_y_dot, w_2x, w_2y, w_2z, phi_x_dot, phi_y_dot])
 
@@ -109,7 +111,7 @@ if __name__ == '__main__':
 
     r_S2P2 = -r2 * e_S1S2
 
-    v_P2 = v_OS2 + (R_IB2 * b_omega_2).cross(r_S2P2)
+    v_P2 = v_OS2 + (R_IB2 * B2_omega_2).cross(r_S2P2)
 
     constraints = v_P1 - v_P2
 
@@ -126,17 +128,16 @@ if __name__ == '__main__':
     v_OS2 = v_OS2.subs(sub_list)
 
     # lever arm
-    R_B2B3 = rot_axis2(-phi_y) * rot_axis1(-phi_x)
     R_IB3 = R_IB2 * R_B2B3
     r_S2S3 = R_IB3 * Matrix([0, 0, -l])
-    b_omega_3 = Matrix([phi_x_dot, 0, 0]) + rot_axis1(phi_x) * \
-        Matrix([0, phi_y_dot, 0]) + R_B2B3.T * b_omega_2
+    B3_omega_3 = Matrix([phi_x_dot, 0, 0]) + R_B2B3.T * \
+        Matrix([0, phi_y_dot, 0]) + R_B2B3.T * B2_omega_2
 
-    v_OS3 = v_OS2 + R_IB3 * (b_omega_3.cross(Matrix([0, 0, -l])))
+    v_OS3 = v_OS2 + R_IB3 * (B3_omega_3.cross(Matrix([0, 0, -l])))
 
     # calculate Jacobians
     v_i = [v_OS1, v_OS2, v_OS3]
-    om_i = [omega_1, b_omega_2, b_omega_3]
+    om_i = [omega_1, B2_omega_2, B3_omega_3]
 
     ang_dot = Matrix([w_1z, psi_x_dot, psi_y_dot, phi_x_dot, phi_y_dot])
 
@@ -170,7 +171,7 @@ if __name__ == '__main__':
 
     f1_scale = 3 * pi / 16 * (a * r1) * mu1 * sign(-w_1z)
 
-    w_21 = ((R_IB2 * b_omega_2) - omega_1).dot(e_S1S2)
+    w_21 = ((R_IB2 * B2_omega_2) - omega_1).dot(e_S1S2)
 
     f12_scale = 3 * pi / 16 * (a * Max(r1, r2)) * mu12 * sign(-w_21)
 
