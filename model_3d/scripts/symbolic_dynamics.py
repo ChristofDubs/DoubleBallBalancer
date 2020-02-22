@@ -46,6 +46,7 @@ omega_1 = Matrix([w_1x, w_1y, w_1z])
 B2_omega_2 = Matrix([w_2x, w_2y, w_2z])
 
 omega = Matrix([w_1z, psi_x_dot, psi_y_dot, w_2x, w_2y, w_2z, phi_x_dot, phi_y_dot])
+ang_dot = Matrix([w_1z, psi_x_dot, psi_y_dot, phi_x_dot, phi_y_dot])
 
 # angular accelerations
 w_1_dot_z, phi_x_ddot, phi_y_ddot, psi_x_ddot, psi_y_ddot, w_2_dot_x, w_2_dot_y, w_2_dot_z = symbols(
@@ -138,8 +139,6 @@ if __name__ == '__main__':
     # calculate Jacobians
     v_i = [v_OS1, v_OS2, v_OS3]
     om_i = [omega_1, B2_omega_2, B3_omega_3]
-
-    ang_dot = Matrix([w_1z, psi_x_dot, psi_y_dot, phi_x_dot, phi_y_dot])
 
     R_IB2_flat = R_IB2.reshape(9, 1)
     R_IB2_dot = (
