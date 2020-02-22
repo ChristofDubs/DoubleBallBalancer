@@ -2,7 +2,7 @@
 """
 import numpy as np
 from numpy import sin, cos
-from pyrotation import Quaternion
+from pyrotation import Quaternion, rot_z
 
 import context
 
@@ -24,12 +24,7 @@ class Controller(object):
         R_IB2 = Quaternion(state.q2).rotation_matrix()
 
         # construct horizontal ball frame
-        z = np.array([0, 0, 1])
-        x = np.cross(R_IB2[:, 1], z)
-        x *= 1 / np.linalg.norm(x)
-        y = np.cross(z, x)
-
-        R_IB2h = np.column_stack([x, y, z])
+        R_IB2h = rot_z(state.q3.get_roll_pitch_yaw()[2])
 
         # express psi vector in B2h frame
         I_e_S1S2 = np.array([cos(psi_x) * sin(psi_y), -sin(psi_x), cos(psi_x) * cos(psi_y)])

@@ -3,13 +3,13 @@
 import numpy as np
 import context
 
-from pyrotation import Quaternion
+from pyrotation import Quaternion, rot_z
 
 
 class LQRController(object):
     def __init__(self, param):
-        self.K = np.array([[-4.73012270e+01, -4.96206733e-14, 1.03556079e+01, 7.86862983e-15, 1.03556079e+01, 7.86862983e-15, -3.53469304e+01, -4.04074365e-14, 3.84194544e+00, 3.26777968e-15, 6.05877473e-01, -1.15481340e-15],
-                           [-8.25081941e-14, -4.73012270e+01, 1.55899759e-14, 1.03556079e+01, 1.64910767e-14, 1.03556079e+01, -5.08647924e-14, -3.53469304e+01, 4.02842972e-15, 3.84194544e+00, -1.22464925e-15, 6.05877473e-01]])
+        self.K = np.array([[-4.73012270e+01, -6.66979775e-15, 1.03556079e+01, 7.60989720e-15, 1.03556079e+01, 7.60988241e-15, -3.53469304e+01, 2.10246008e-14, 3.84194544e+00, -7.70799102e-15, 6.05877473e-01, -1.59797142e-15],
+                           [8.07280161e-14, -4.73012270e+01, -1.15536119e-14, 1.03556079e+01, -1.13735129e-14, 1.03556079e+01, 5.72607634e-14, -3.53469304e+01, -2.69694302e-15, 3.84194544e+00, 2.53048715e-15, 6.05877473e-01]])
 
     def compute_ctrl_input(self, state, w2_y_cmd):
 
@@ -20,16 +20,7 @@ class LQRController(object):
         w2 = state.omega_2
 
         R_IB2 = Quaternion(state.q2).rotation_matrix()
-
-        # construct horizontal ball frame (cannot use yaw angle of roll-pitch-yaw,
-        # because the primary rotation axis is the y-axis, driving straight into
-        # the 90deg pitch singularity)
-        z = np.array([0, 0, 1])
-        x = np.cross(R_IB2[:, 1], z)
-        x *= 1 / np.linalg.norm(x)
-        y = np.cross(z, x)
-
-        R_IB2h = np.column_stack([x, y, z])
+        R_IB2h = rot_z(delta_phi[2])
 
         # express psi vector in B2h frame
         B2h_psi = np.dot(R_IB2h[:2, :2].T, state.psi)
