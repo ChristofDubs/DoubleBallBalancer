@@ -106,8 +106,8 @@ if __name__ == '__main__':
 
     r_OS2 = r_OS1 + r_S1S2
 
-    v_OS2 = diff(r_OS2, x, 1) * x_dot + diff(r_OS2, y, 1) * y_dot + \
-        diff(r_OS2, psi_x, 1) * psi_x_dot + diff(r_OS2, psi_y, 1) * psi_y_dot
+    v_OS2 = r_OS2.jacobian(Matrix([psi_x, psi_y, x, y])) * \
+        Matrix([psi_x_dot, psi_y_dot, x_dot, y_dot])
 
     r_S2P2 = -r2 * e_S1S2
 
