@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<robot name="robot">
+  <link name="ball">
+    <contact>
+      <rolling_friction value="0.0"/>
+      <spinning_friction value="0.03"/>
+      <lateral_friction value="1"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="media/textured_sphere_smooth.obj" scale="2 2 2"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 0.8"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <sphere radius="2.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="rotation_axis">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="-1.57079632679 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="3.8"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="primary_rotation_axis" type="revolute">
+    <axis xyz="0 1 0"/>
+    <limit effort="1" velocity="3"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="ball"/>
+    <child link="rotation_axis"/>
+  </joint>
+  <link name="lever_arm">
+    <inertial>
+      <origin xyz="0 0 -1.0" rpy="0 0 0"/>
+      <mass value="1"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 -0.5" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.2" length="1"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="lateral_rotation_axis" type="revolute">
+    <axis xyz="1 0 0"/>
+    <limit effort="1" velocity="3"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="rotation_axis"/>
+    <child link="lever_arm"/>
+  </joint>
+</robot>
