@@ -49,6 +49,12 @@ class PyBulletSim:
         self.motor_x_idx = name_to_joint_idx['lateral_rotation_axis']
         self.motor_y_idx = name_to_joint_idx['primary_rotation_axis']
 
+        # add texture for better visualization
+        texUid = p.loadTexture("../model_3d/urdf/media/circles.png")
+
+        p.changeVisualShape(self.lower_ball_id, -1, textureUniqueId=texUid)
+        p.changeVisualShape(self.robot_id, -1, textureUniqueId=texUid)
+
         # load controller
         param = ModelParam()
         param.l = 1.0
