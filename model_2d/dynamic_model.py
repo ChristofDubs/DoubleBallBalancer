@@ -198,7 +198,7 @@ class DynamicModel(object):
             r_OSi[0], self.p.r1, alpha)
         vis['upper_ball'] = self._compute_ball_visualization(
             r_OSi[1], self.p.r2, beta)
-        vis['lever_arm'] = [np.array([[r_OSi[1][i], r_OSi[2][i]]]) for i in range(2)]
+        vis['lever_arm'] = [np.array([r_OSi[1][i], r_OSi[2][i]]) for i in range(2)]
 
         force_scale = 0.05
         contact_pt_1 = np.array([r_OSi[0][0], 0])

@@ -1314,7 +1314,7 @@ class DynamicModel(object):
         circle_res = 20
 
         lon = np.linspace(0, 2 * np.pi, circle_res)
-        lat = np.linspace(0, np.pi, circle_res / 2)
+        lat = np.linspace(0, np.pi, circle_res // 2)
         x = radius * np.outer(np.cos(lon), np.sin(lat))
         z = radius * np.outer(np.sin(lon), np.sin(lat))
         y = radius * np.outer(np.ones(circle_res), np.cos(lat))
