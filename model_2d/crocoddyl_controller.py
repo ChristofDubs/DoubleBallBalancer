@@ -13,6 +13,7 @@ class ActionModel(crocoddyl.ActionModelAbstract):
         crocoddyl.ActionModelAbstract.__init__(self, crocoddyl.StateVector(7), 1, 7)  # nu = 1; nr = 7
         self.unone = np.zeros(self.nu)
         self.des = np.zeros(self.nr)
+        self.u_des = np.zeros(self.nu)
 
         self.param = param
         self.costWeightsState = [10, 0, 0, 4, 8, 4]
@@ -32,14 +33,15 @@ class ActionModel(crocoddyl.ActionModelAbstract):
             data.r = np.ones(self.nr) * np.nan
         else:
             data.xnext[-1] = x[-1] + u
-            data.xnext[:-1] = x[:-1] + self.model._x_dot(x[:-1] + self.des, 0, data.xnext[-1]) * self.dt
+            data.xnext[:-1] = x[:-1] + self.model._x_dot(x[:-1] + self.des, 0, data.xnext[-1] + self.u_des) * self.dt
             data.r[:-1] = self.costWeightsState*(data.xnext[:-1])
             data.r[-1] = self.costWeightsInput[0]*u
             data.cost = .5* sum(data.r**2)
         return data.xnext, data.cost
 
-    def setSetpoint(self, x, mode):
+    def setSetpoint(self, x, u_des, mode):
         self.des = x
+        self.u_des = u_des
         if mode == BETA_DOT_IDX:
             self.costWeightsState[0] = 0
 
@@ -63,15 +65,16 @@ class Controller:
     def compute_ctrl_input(self, x0, r, mode=BETA_IDX):
         des = np.zeros(np.shape(x0))
         des[mode] = r
-        self.pred_model.model.setSetpoint(des, mode)
-        self.terminal_model.model.setSetpoint(des, mode)
+        u_des = r if mode == BETA_DOT_IDX else 0
+        self.pred_model.model.setSetpoint(des, u_des, mode)
+        self.terminal_model.model.setSetpoint(des, u_des, mode)
 
         # data = self.model.createData()
 
         model = self.pred_model
 
         T = int(20/0.05)  # number of knots
-        problem = crocoddyl.ShootingProblem(np.concatenate([x0-des, np.array([0])]), [model] * T, self.terminal_model)
+        problem = crocoddyl.ShootingProblem(np.concatenate([x0-des, np.array([0])-u_des]), [model] * T, self.terminal_model)
 
         # Creating the DDP solver for this OC problem, defining a logger
         # ddp = crocoddyl.SolverBoxDDP(problem)
@@ -81,4 +84,4 @@ class Controller:
         # Solving it with the DDP algorithm
         ddp.solve()
 
-        return np.cumsum(ddp.us), np.array(ddp.xs)[:,:-1] + des
+        return np.cumsum(ddp.us)+u_des, np.array(ddp.xs)[:,:-1] + des
