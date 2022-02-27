@@ -4,7 +4,7 @@ import numpy as np
 from numpy import sin, cos
 from pyrotation import Quaternion
 
-from .dynamic_model import DynamicModel, ModelState
+from .dynamic_model import DynamicModel, ModelState, OMEGA_2_Y_IDX, PHI_Y_DOT_IDX
 from model_2d.definitions import BETA_IDX, PHI_IDX, PSI_IDX, BETA_DOT_IDX, PHI_DOT_IDX, PSI_DOT_IDX
 
 import crocoddyl
@@ -122,7 +122,7 @@ class ActionModel(crocoddyl.ActionModelAbstract):
             x[PHI_IDX] = B2h_phi_y
             x[PSI_IDX] = B2h_psi_y
 
-            x[BETA_DOT_IDX] = B2h_omega_2y
+            x[BETA_DOT_IDX] = B2h_omega_2y - self.des[OMEGA_2_Y_IDX]
             x[PHI_DOT_IDX] = B2h_phi_y_dot
             x[PSI_DOT_IDX] = B2h_psi_y_dot
 
@@ -166,23 +166,35 @@ class Controller:
         # self.terminal_model.u_ub =   self.model.u_ub
 
     def compute_ctrl_input(self, x0, r):
+        r = 1
+        
         des_state = ModelState()
 
         des = des_state.x
+
+        des[OMEGA_2_Y_IDX] = r
+        des[PHI_Y_DOT_IDX] = -r
+
+        x0[OMEGA_2_Y_IDX] = r
+        x0[PHI_Y_DOT_IDX] = -r
+
         # des[mode] = r
         self.pred_model.model.setSetpoint(des)
         self.terminal_model.model.setSetpoint(des)
 
         model = self.pred_model
 
-        T = int(20/0.05)  # number of knots
-        problem = crocoddyl.ShootingProblem(np.concatenate([x0-des, np.array([0,0])]), [model] * T, self.terminal_model)
+        T = int(10/0.05)  # number of knots
+        problem = crocoddyl.ShootingProblem(np.concatenate([x0-des, np.array([0,-r])]), [model] * T, self.terminal_model)
+
+
+        roeoisr = problem.rollout([np.matrix([0., 0.]).T for _ in range(T)])
 
         # Creating the DDP solver for this OC problem, defining a logger
         ddp = crocoddyl.SolverDDP(problem)
         ddp.setCallbacks([crocoddyl.CallbackLogger(), crocoddyl.CallbackVerbose()])
 
         # Solving it with the DDP algorithm
-        ddp.solve([],[],50)
+        ddp.solve(roeoisr,[np.matrix([0., 0.]).T for _ in range(T)],50)
 
         return np.cumsum(ddp.us, axis=0), [ModelState(x + des, True) for x in np.array(ddp.xs)[:,:-2]]
