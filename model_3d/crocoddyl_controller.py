@@ -4,17 +4,22 @@ import numpy as np
 from numpy import sin, cos
 from pyrotation import Quaternion
 
-from .dynamic_model import DynamicModel, ModelState
+from .dynamic_model import DynamicModel, ModelState, Q_1_W_IDX, Q_1_X_IDX, Q_1_Z_IDX, Q_2_W_IDX, Q_2_X_IDX, Q_2_Z_IDX, STATE_SIZE
 from model_2d.definitions import BETA_IDX, PHI_IDX, PSI_IDX, BETA_DOT_IDX, PHI_DOT_IDX, PSI_DOT_IDX
 
 import crocoddyl
 
+def stripOffQuatW(x):
+    return np.delete(x, [Q_1_W_IDX, Q_2_W_IDX])
+
+def insertQuatW(x):
+    return np.insert(x, [Q_1_W_IDX, Q_2_W_IDX-1], [np.sqrt(1 - np.dot(a,a)) for a in [x[Q_1_X_IDX:Q_1_Z_IDX+1], x[Q_2_X_IDX-1:Q_2_Z_IDX]]])
 
 class ActionModel(crocoddyl.ActionModelAbstract):
     def __init__(self, param):
-        crocoddyl.ActionModelAbstract.__init__(self, crocoddyl.StateVector(22+2), 2, 14)  # nu = 2; nr = 14
+        crocoddyl.ActionModelAbstract.__init__(self, crocoddyl.StateVector(STATE_SIZE-2+2), 2, 14)  # nu = 2; nr = 14
         self.unone = np.zeros(self.nu)
-        self.des = ModelState().x
+        self.des = 0
 
         self.param = param
         self.costWeightsState = [0, 0, 0, 4, 8, 4]
@@ -25,15 +30,15 @@ class ActionModel(crocoddyl.ActionModelAbstract):
     def calc(self, data, x, u=None):
         if u is None: u = self.unone
 
-        if self.model.is_irrecoverable(state=ModelState(x[:-2] + self.des, skip_checks=True), omega_cmd=u):
+        if self.model.is_irrecoverable(state=ModelState(insertQuatW(x[:-2]), skip_checks=True), omega_cmd=u):
             data.xnext[:] = x * np.nan
             data.cost = np.nan
             data.r = np.ones(self.nr) * np.nan
         else:
             data.xnext[-2:] = x[-2:] + u
-            state = ModelState(x[:-2] + self.des + self.model._x_dot(x[:-2] + self.des, 0, data.xnext[-2:]) * self.dt, skip_checks=True)
+            state = ModelState(insertQuatW(x[:-2]) + self.model._x_dot(insertQuatW(x[:-2]), 0, data.xnext[-2:]) * self.dt, skip_checks=True)
             state.normalize_quaternions()
-            data.xnext[:-2] = state.x - self.des
+            data.xnext[:-2] = stripOffQuatW(state.x)
 
             [phi_x, phi_y] = state.phi
             [phi_x_dot, phi_y_dot] = state.phi_dot
@@ -166,9 +171,7 @@ class Controller:
         # self.terminal_model.u_ub =   self.model.u_ub
 
     def compute_ctrl_input(self, x0, r):
-        des_state = ModelState()
-
-        des = des_state.x
+        des = 0
         # des[mode] = r
         self.pred_model.model.setSetpoint(des)
         self.terminal_model.model.setSetpoint(des)
@@ -176,7 +179,7 @@ class Controller:
         model = self.pred_model
 
         T = int(20/0.05)  # number of knots
-        problem = crocoddyl.ShootingProblem(np.concatenate([x0-des, np.array([0,0])]), [model] * T, self.terminal_model)
+        problem = crocoddyl.ShootingProblem(np.concatenate([stripOffQuatW(x0), np.array([0,0])]), [model] * T, self.terminal_model)
 
         # Creating the DDP solver for this OC problem, defining a logger
         ddp = crocoddyl.SolverDDP(problem)
@@ -185,4 +188,4 @@ class Controller:
         # Solving it with the DDP algorithm
         ddp.solve([],[],50)
 
-        return np.cumsum(ddp.us, axis=0), [ModelState(x + des, True) for x in np.array(ddp.xs)[:,:-2]]
+        return np.cumsum(ddp.us, axis=0), [ModelState(insertQuatW(x), True) for x in np.array(ddp.xs)[:,:-2]]
