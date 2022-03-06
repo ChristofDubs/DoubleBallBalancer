@@ -7,6 +7,8 @@ from pyrotation import Quaternion
 from .dynamic_model import DynamicModel, ModelState, OMEGA_2_Y_IDX, PHI_Y_DOT_IDX
 from model_2d.definitions import BETA_IDX, PHI_IDX, PSI_IDX, BETA_DOT_IDX, PHI_DOT_IDX, PSI_DOT_IDX
 
+from .controller import Controller as LinearController
+
 import crocoddyl
 
 
@@ -164,6 +166,7 @@ class Controller:
         self.terminal_model = crocoddyl.ActionModelNumDiff(self.terminal_model, True)
         # self.terminal_model.u_lb = self.model.u_lb
         # self.terminal_model.u_ub =   self.model.u_ub
+        self.controller = LinearController(param)
 
     def compute_ctrl_input(self, x0, r):
         r = 1
@@ -184,17 +187,28 @@ class Controller:
 
         model = self.pred_model
 
-        T = int(10/0.05)  # number of knots
+        T = int(20/0.05)  # number of knots
         problem = crocoddyl.ShootingProblem(np.concatenate([x0-des, np.array([0,-r])]), [model] * T, self.terminal_model)
 
+        xs = []
+        us = []
+        xs.append(np.concatenate([x0-des, np.array([0,-r])]))  
 
-        roeoisr = problem.rollout([np.matrix([0., 0.]).T for _ in range(T)])
+        for _ in range(T):
+            state = ModelState(xs[-1][:-2]+des)
+            u = self.controller.compute_ctrl_input(state, r)
+
+            next_state = ModelState(state.x + self.pred_model.model.model._x_dot(state.x, 0, u) * self.pred_model.model.dt, skip_checks=True)
+            next_state.normalize_quaternions()
+
+            us.append(u - xs[-1][-2:])
+            xs.append(np.concatenate([next_state.x - des, u]))
 
         # Creating the DDP solver for this OC problem, defining a logger
         ddp = crocoddyl.SolverDDP(problem)
         ddp.setCallbacks([crocoddyl.CallbackLogger(), crocoddyl.CallbackVerbose()])
 
         # Solving it with the DDP algorithm
-        ddp.solve(roeoisr,[np.matrix([0., 0.]).T for _ in range(T)],50)
+        ddp.solve(xs,us,50)
 
         return np.cumsum(ddp.us, axis=0), [ModelState(x + des, True) for x in np.array(ddp.xs)[:,:-2]]

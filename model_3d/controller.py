@@ -106,7 +106,7 @@ class Controller(object):
         x[PHI_DOT_IDX] = B2h_phi_y_dot
         x[PSI_DOT_IDX] = B2h_psi_y_dot
 
-        uy = self.ctrl_2d.compute_ctrl_input(x, beta_cmd)
+        uy = self.ctrl_2d.compute_ctrl_input(x, beta_cmd, BETA_DOT_IDX)
 
         # stabilize lateral axis
         x[BETA_IDX] = B2h_phi_x - phi_x
