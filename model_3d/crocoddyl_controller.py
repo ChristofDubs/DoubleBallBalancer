@@ -19,7 +19,7 @@ class ActionModel(crocoddyl.ActionModelAbstract):
         self.des = ModelState().x
 
         self.param = param
-        self.costWeightsState = [0, 0, 0, 4, 8, 4]
+        self.costWeightsState = [0, 10, 0, 4, 8, 4]
         self.costWeightsInput = [10, 10]
         self.model = DynamicModel(param)
         self.dt = 0.05
@@ -181,13 +181,15 @@ class Controller:
         x0[OMEGA_2_Y_IDX] = r
         x0[PHI_Y_DOT_IDX] = -r
 
+        x0[10] = 0.01
+
         # des[mode] = r
         self.pred_model.model.setSetpoint(des)
         self.terminal_model.model.setSetpoint(des)
 
         model = self.pred_model
 
-        T = int(20/0.05)  # number of knots
+        T = int(40/0.05)  # number of knots
         problem = crocoddyl.ShootingProblem(np.concatenate([x0-des, np.array([0,-r])]), [model] * T, self.terminal_model)
 
         xs = []
