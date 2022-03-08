@@ -14,25 +14,30 @@ import crocoddyl
 
 class ActionModel(crocoddyl.ActionModelAbstract):
     def __init__(self, param):
-        crocoddyl.ActionModelAbstract.__init__(self, crocoddyl.StateVector(22+2), 2, 14)  # nu = 2; nr = 14
+        crocoddyl.ActionModelAbstract.__init__(self, crocoddyl.StateVector(22+2), 1, 13)  # nu = 2; nr = 14
         self.unone = np.zeros(self.nu)
         self.des = ModelState().x
+        self.r = 0
+        self.mode = 0
 
         self.param = param
         self.costWeightsState = [0, 10, 0, 4, 8, 4]
-        self.costWeightsInput = [10, 10]
+        self.costWeightsInput = [10]
         self.model = DynamicModel(param)
         self.dt = 0.05
+        self.linear_controller = LinearController(param)
 
     def calc(self, data, x, u=None):
         if u is None: u = self.unone
 
-        if self.model.is_irrecoverable(state=ModelState(x[:-2] + self.des, skip_checks=True), omega_cmd=u):
+        if self.model.is_irrecoverable(state=ModelState(x[:-2] + self.des, skip_checks=True), omega_cmd=[u,0]):
             data.xnext[:] = x * np.nan
             data.cost = np.nan
             data.r = np.ones(self.nr) * np.nan
         else:
-            data.xnext[-2:] = x[-2:] + u
+            data.xnext[-2] = x[-2] + u
+            uy = self.linear_controller.compute_ctrl_input(ModelState(x[:-2] + self.des), self.r, self.mode)[1]
+            data.xnext[-1] = uy
             state = ModelState(x[:-2] + self.des + self.model._x_dot(x[:-2] + self.des, 0, data.xnext[-2:]) * self.dt, skip_checks=True)
             state.normalize_quaternions()
             data.xnext[:-2] = state.x - self.des
@@ -139,14 +144,16 @@ class ActionModel(crocoddyl.ActionModelAbstract):
             x[PHI_DOT_IDX] = B2h_phi_x_dot
             x[PSI_DOT_IDX] = B2h_psi_x_dot
 
-            data.r[6:-2] = self.costWeightsState*x
+            data.r[6:-self.nu] = self.costWeightsState*x
 
-            data.r[-2:] = self.costWeightsInput*u
+            data.r[-self.nu:] = self.costWeightsInput*u
             data.cost = .5* sum(data.r**2)
         return data.xnext, data.cost
 
-    def setSetpoint(self, x):
-        self.des = x
+    def setSetpoint(self, des, r, mode):
+        self.des = des
+        self.r = r
+        self.mode = mode
         # if mode == BETA_DOT_IDX:
             # self.costWeightsState[0] = 0
 
@@ -187,8 +194,8 @@ class Controller:
         x0[10] = 0.01
 
         # des[mode] = r
-        self.pred_model.model.setSetpoint(des)
-        self.terminal_model.model.setSetpoint(des)
+        self.pred_model.model.setSetpoint(des, r, mode)
+        self.terminal_model.model.setSetpoint(des, r, mode)
 
         model = self.pred_model
 
@@ -206,7 +213,7 @@ class Controller:
             next_state = ModelState(state.x + self.pred_model.model.model._x_dot(state.x, 0, u) * self.pred_model.model.dt, skip_checks=True)
             next_state.normalize_quaternions()
 
-            us.append(u - xs[-1][-2:])
+            us.append(np.array([(u - xs[-1][-2:])[0]]))
             xs.append(np.concatenate([next_state.x - des, u]))
 
         # Creating the DDP solver for this OC problem, defining a logger
@@ -214,6 +221,6 @@ class Controller:
         ddp.setCallbacks([crocoddyl.CallbackLogger(), crocoddyl.CallbackVerbose()])
 
         # Solving it with the DDP algorithm
-        ddp.solve(xs,us,4)
+        ddp.solve(xs,us,3)
 
         return np.cumsum(ddp.us, axis=0), [ModelState(x + des, True) for x in np.array(ddp.xs)[:,:-2]]
