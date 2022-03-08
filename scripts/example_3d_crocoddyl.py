@@ -48,7 +48,7 @@ controller = Controller(param)
 dt = 0.05
 
 # commands
-beta_cmd = 0.0 * np.pi
+beta_cmd = 1.0
 
 # prepare simulation
 max_sim_time = 20
@@ -79,7 +79,7 @@ contact_forces = None
 #         0.        ,  0.28810422,  0.        ,  0.        , -0.2806801 ,
 #        -0.36420597,  0.        ])
 
-us, state_vec = controller.compute_ctrl_input(model.state.x, beta_cmd)
+us, state_vec = controller.compute_ctrl_input(model.state.x, beta_cmd, controller.controller.VELCITY_MODE)
 sim_time_vec = np.array(range(len(state_vec))) * dt
 
 

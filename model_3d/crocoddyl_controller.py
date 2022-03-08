@@ -168,15 +168,18 @@ class Controller:
         # self.terminal_model.u_ub =   self.model.u_ub
         self.controller = LinearController(param)
 
-    def compute_ctrl_input(self, x0, r):
-        r = 1
-        
+    def compute_ctrl_input(self, x0, r, mode):
         des_state = ModelState()
 
         des = des_state.x
 
-        des[OMEGA_2_Y_IDX] = r
-        des[PHI_Y_DOT_IDX] = -r
+        if mode == self.controller.VELCITY_MODE:
+            des[OMEGA_2_Y_IDX] = r
+            des[PHI_Y_DOT_IDX] = -r
+
+
+        elif mode == self.controller.ANGLE_MODE:
+            pass
 
         x0[OMEGA_2_Y_IDX] = r
         x0[PHI_Y_DOT_IDX] = -r
@@ -198,7 +201,7 @@ class Controller:
 
         for _ in range(T):
             state = ModelState(xs[-1][:-2]+des)
-            u = self.controller.compute_ctrl_input(state, r)
+            u = self.controller.compute_ctrl_input(state, r, mode)
 
             next_state = ModelState(state.x + self.pred_model.model.model._x_dot(state.x, 0, u) * self.pred_model.model.dt, skip_checks=True)
             next_state.normalize_quaternions()
@@ -211,6 +214,6 @@ class Controller:
         ddp.setCallbacks([crocoddyl.CallbackLogger(), crocoddyl.CallbackVerbose()])
 
         # Solving it with the DDP algorithm
-        ddp.solve(xs,us,50)
+        ddp.solve(xs,us,4)
 
         return np.cumsum(ddp.us, axis=0), [ModelState(x + des, True) for x in np.array(ddp.xs)[:,:-2]]

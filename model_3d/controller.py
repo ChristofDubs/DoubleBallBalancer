@@ -11,10 +11,14 @@ from model_2d.definitions import BETA_IDX, PHI_IDX, PSI_IDX, BETA_DOT_IDX, PHI_D
 
 
 class Controller(object):
+
+    ANGLE_MODE = BETA_IDX
+    VELCITY_MODE = BETA_DOT_IDX
+
     def __init__(self, param):
         self.ctrl_2d = Controller2D(param)
 
-    def compute_ctrl_input(self, state, beta_cmd):
+    def compute_ctrl_input(self, state, beta_cmd, mode = ANGLE_MODE):
         [phi_x, phi_y] = state.phi
         [phi_x_dot, phi_y_dot] = state.phi_dot
         [psi_x, psi_y] = state.psi
@@ -106,7 +110,7 @@ class Controller(object):
         x[PHI_DOT_IDX] = B2h_phi_y_dot
         x[PSI_DOT_IDX] = B2h_psi_y_dot
 
-        uy = self.ctrl_2d.compute_ctrl_input(x, beta_cmd, BETA_DOT_IDX)
+        uy = self.ctrl_2d.compute_ctrl_input(x, beta_cmd, mode)
 
         # stabilize lateral axis
         x[BETA_IDX] = B2h_phi_x - phi_x
