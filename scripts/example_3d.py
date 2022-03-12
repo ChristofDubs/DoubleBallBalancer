@@ -37,11 +37,7 @@ param.r2 = 2.0
 # initial state
 x0 = ModelState()
 # x0.q2 = np.array([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)])
-
-x0.x[16] = 1
-x0.x[19] = -1
-
-x0.phi_x = 0.01
+x0.phi_x = 1
 
 # instantiate model
 model = DynamicModel(param, x0)
@@ -51,18 +47,16 @@ controller = Controller(param)
 dt = 0.05
 
 # commands
-beta_cmd = 1
+beta_cmd = 8 * np.pi
 
 # prepare simulation
-max_sim_time = 40
+max_sim_time = 20
 sim_time = 0
 sim_time_vec = [sim_time]
 state_vec = [copy.copy(model.state)]
 start_time = time.time()
 omega_cmd = np.zeros(2)
 contact_forces = None
-
-cmds = []
 
 if enable_animation or args.gif:
     fig = plt.figure(0)
@@ -78,10 +72,9 @@ while not model.is_irrecoverable(
         contact_forces=contact_forces,
         omega_cmd=omega_cmd) and sim_time < max_sim_time:
     # get control input
-    omega_cmd = controller.compute_ctrl_input(model.state, beta_cmd)
+    omega_cmd = controller.compute_ctrl_input(model.state, beta_cmd, controller.ANGLE_MODE)
 
-    cmds.append(omega_cmd)
-    if False and enable_animation or args.gif:
+    if enable_animation or args.gif:
         # get visualization
         if enable_contact_forces:
             contact_forces = model.compute_contact_forces(omega_cmd=omega_cmd)

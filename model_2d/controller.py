@@ -79,17 +79,20 @@ class Controller(object):
         self.psi_max = 0.20
         self.beta_ddot_max = -self.psi_max / self.beta_ddot_to_psi_gain
         self.phi_max = compute_phi_max(param)
+        self.beta_dot_max = None
 
         # save param
         self.param = param
 
     def compute_ctrl_input(self, x, u, mode=BETA_IDX):
-
         beta_dot_cmd = None
         if mode is BETA_IDX:
             beta_dot_cmd = self.compute_beta_dot_cmd(x, u)
         elif mode is BETA_DOT_IDX:
             beta_dot_cmd = u
+
+        if self.beta_dot_max:
+            beta_dot_cmd = max(-self.beta_dot_max, min(self.beta_dot_max, beta_dot_cmd))
 
         psi_cmd = None
         if beta_dot_cmd is not None:
