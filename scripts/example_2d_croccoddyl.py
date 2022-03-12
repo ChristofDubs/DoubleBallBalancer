@@ -67,7 +67,8 @@ start_time = time.time()
 u = 0
 contact_forces = None
 
-us, state_vec = controller.compute_ctrl_input(model.x, beta_cmd, BETA_DOT_IDX)
+ctrl_mode = BETA_DOT_IDX
+us, state_vec = controller.compute_ctrl_input(model.x, beta_cmd, ctrl_mode)
 sim_time_vec = np.array(range(state_vec.shape[0])) * dt
 
 contoller2 = Ctrl(param)
@@ -130,7 +131,8 @@ while  i<len(sim_time_vec)-1:
 
 if enable_plot:
     plt.figure()
-    plt.plot(sim_time_vec, state_vec[:, BETA_IDX], label='beta')
+    if ctrl_mode == BETA_IDX:
+        plt.plot(sim_time_vec, state_vec[:, BETA_IDX], label='beta')
     plt.plot(sim_time_vec, state_vec[:, PHI_IDX], label='phi')
     plt.plot(sim_time_vec, state_vec[:, PSI_IDX], label='psi')
     plt.xlabel('time [s]')
