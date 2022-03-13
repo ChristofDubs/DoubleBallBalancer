@@ -72,14 +72,14 @@ us, state_vec = controller.compute_ctrl_input(model.x, beta_cmd, ctrl_mode)
 sim_time_vec = np.array(range(state_vec.shape[0])) * dt
 
 contoller2 = Ctrl(param)
-u2 =  [contoller2.compute_ctrl_input(x, 0) for x in state_vec]
+u2 = [contoller2.compute_ctrl_input(x, 0) for x in state_vec]
 
 
 input_vec = us
 i = 0
 
 # simulate until system is irrecoverable or max_sim_time reached
-while  i<len(sim_time_vec)-1:
+while i < len(sim_time_vec) - 1:
     # get control input
     # u = us[i]
     # i+=1
@@ -87,15 +87,23 @@ while  i<len(sim_time_vec)-1:
     # u = controller.compute_ctrl_input(model.x, beta_cmd)[0]
 
     # calculate contact forces
-    contact_forces = model.compute_contact_forces(x = state_vec[i], omega_cmd=us[i])
-    print(np.abs(np.cross(contact_forces[1], model._compute_e_S1S2(state_vec[i]))) / np.dot(contact_forces[1], model._compute_e_S1S2(state_vec[i])))
-
+    contact_forces = model.compute_contact_forces(x=state_vec[i], omega_cmd=us[i])
+    print(
+        np.abs(
+            np.cross(
+                contact_forces[1],
+                model._compute_e_S1S2(
+                    state_vec[i]))) /
+        np.dot(
+            contact_forces[1],
+            model._compute_e_S1S2(
+                state_vec[i])))
 
     if False and enable_animation:
         plt.figure(0)
 
         # get visualization
-        vis = model.get_visualization(x = state_vec[i], omega_cmd=us[i], contact_forces=contact_forces)
+        vis = model.get_visualization(x=state_vec[i], omega_cmd=us[i], contact_forces=contact_forces)
 
         # plot
         plt.cla()
@@ -112,11 +120,11 @@ while  i<len(sim_time_vec)-1:
         plt.show(block=False)
         time_passed = time.time() - start_time
         # plt.pause(max(dt - time_passed, 0.001))
-        plt.pause( 0.01)
+        plt.pause(0.01)
 
         start_time = time.time()
 
-    i+= 1
+    i += 1
     # simulate one time step
     # model.simulate_step(dt, u)
     # sim_time += dt

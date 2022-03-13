@@ -22,7 +22,8 @@ class ActionModel(crocoddyl.ActionModelAbstract):
         self.dt = 0.05
 
     def calc(self, data, x, u=None):
-        if u is None: u = self.unone
+        if u is None:
+            u = self.unone
 
         if self.model.is_irrecoverable(x=x[:-1], omega_cmd=u):
             data.xnext[:] = x * np.nan
@@ -31,9 +32,9 @@ class ActionModel(crocoddyl.ActionModelAbstract):
         else:
             data.xnext[-1] = x[-1] + u
             data.xnext[:-1] = x[:-1] + self.model._x_dot(x[:-1], 0, data.xnext[-1]) * self.dt
-            data.r[:-1] = self.costWeightsState*(data.xnext[:-1] - self.des)
-            data.r[-1] = self.costWeightsInput[0]*u
-            data.cost = .5* sum(data.r**2)
+            data.r[:-1] = self.costWeightsState * (data.xnext[:-1] - self.des)
+            data.r[-1] = self.costWeightsInput[0] * u
+            data.cost = .5 * sum(data.r**2)
         return data.xnext, data.cost
 
     def setSetpoint(self, x, mode):
@@ -58,7 +59,7 @@ class Controller:
 
         model = self.pred_model
 
-        T = int(20/0.05)  # number of knots
+        T = int(20 / 0.05)  # number of knots
         problem = crocoddyl.ShootingProblem(np.concatenate([x0, np.array([0])]), [model] * T, self.terminal_model)
 
         # Creating the DDP solver for this OC problem, defining a logger
@@ -68,4 +69,4 @@ class Controller:
         # Solving it with the DDP algorithm
         ddp.solve([], [], 5)
 
-        return np.cumsum(ddp.us), np.array(ddp.xs)[:,:-1]
+        return np.cumsum(ddp.us), np.array(ddp.xs)[:, :-1]
