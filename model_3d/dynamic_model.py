@@ -110,7 +110,7 @@ class ModelState(object):
 
         args:
             x0 (np.ndarray, optional): initial state. Set to default values if not specified
-            skip_checks (bool, optional): if set to true and x0 is provided, x0 is set without checking it.
+            skip_checks (bool, optional): if set to True and x0 is provided, x0 is set without checking it.
         """
         if skip_checks and x0 is not None:
             self.x = x0
