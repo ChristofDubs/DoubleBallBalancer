@@ -29,8 +29,8 @@ class LQRController(object):
 
 def compute_phi_max(param):
     """compute lever arm angle for maximum beta_ddot acceleration"""
-    return np.arccos(-param.l * param.m3 * param.r2 / (param.theta1 * param.r2**2 /
-                                                       param.r1**2 + param.theta2 + (param.m1 + param.m2 + param.m3) * param.r2**2))
+    return np.arccos(-param.l * param.m3 * param.r2 / (param.theta1 * param.r2**2 / param.r1 **
+                                                       2 + param.theta2 + (param.m1 + param.m2 + param.m3) * param.r2**2))
 
 
 def compute_phi_from_beta_ddot(beta_ddot, param):

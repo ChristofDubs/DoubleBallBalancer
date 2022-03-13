@@ -9,6 +9,7 @@ import context
 from model_2d.controller import Controller as Controller2D
 from model_2d.definitions import BETA_IDX, PHI_IDX, PSI_IDX, BETA_DOT_IDX, PHI_DOT_IDX, PSI_DOT_IDX
 
+
 def projectModelState(state):
     [phi_x, phi_y] = state.phi
     [phi_x_dot, phi_y_dot] = state.phi_dot
@@ -60,29 +61,29 @@ def projectModelState(state):
 
     # express lever arm angular velocity in B2h frame
     B3_omega_IB3 = np.array([phi_x_dot +
-                                w_2x *
-                                cos(phi_y) -
-                                w_2z *
-                                sin(phi_y), phi_y_dot *
-                                cos(phi_x) +
-                                w_2x *
-                                sin(phi_x) *
-                                sin(phi_y) +
-                                w_2y *
-                                cos(phi_x) +
-                                w_2z *
-                                sin(phi_x) *
-                                cos(phi_y), -
-                                phi_y_dot *
-                                sin(phi_x) +
-                                w_2x *
-                                sin(phi_y) *
-                                cos(phi_x) -
-                                w_2y *
-                                sin(phi_x) +
-                                w_2z *
-                                cos(phi_x) *
-                                cos(phi_y)])
+                             w_2x *
+                             cos(phi_y) -
+                             w_2z *
+                             sin(phi_y), phi_y_dot *
+                             cos(phi_x) +
+                             w_2x *
+                             sin(phi_x) *
+                             sin(phi_y) +
+                             w_2y *
+                             cos(phi_x) +
+                             w_2z *
+                             sin(phi_x) *
+                             cos(phi_y), -
+                             phi_y_dot *
+                             sin(phi_x) +
+                             w_2x *
+                             sin(phi_y) *
+                             cos(phi_x) -
+                             w_2y *
+                             sin(phi_x) +
+                             w_2z *
+                             cos(phi_x) *
+                             cos(phi_y)])
 
     B2h_omega_IB3 = np.dot(R_IB2h.T, np.dot(R_IB3, B3_omega_IB3))
 
@@ -111,8 +112,9 @@ def projectModelState(state):
     x[BETA_DOT_IDX] = B2h_omega_2x
     x[PHI_DOT_IDX] = B2h_phi_x_dot
     x[PSI_DOT_IDX] = B2h_psi_x_dot
-  
-    return x,y
+
+    return x, y
+
 
 class Controller(object):
 
@@ -123,18 +125,24 @@ class Controller(object):
         self.ctrl_2d = Controller2D(param)
         self.ctrl_2d.beta_dot_max = 2.5
 
-        self.K = np.array([[ -0.80754292,12.15076322, -17.24354006,10.23122588,-2.94008421, 0.34736014],  \
-                            [-3.94498008,1.86483491, -2.55867509,1.50560133,-0.42315158,0.04674095], \
-                            [ 28.56857473,-46.54088186,44.42735085,-11.57973861,-1.50021012, 0.75523765],  \
-                            [ -4.25523481, 0.27597899, 9.92376958,-11.74578938, 4.85308982,-0.68952721], \
-                            [ 0.14795505,0.36941466,1.01868728,-1.43413212,0.59845657,-0.08073203], \
-                            [ 24.7124679,4.79484575,-58.55748287,64.51408958,-26.28326935, 3.76317956]])
+        self.K = np.array([[-0.80754292, 12.15076322, -17.24354006, 10.23122588, -2.94008421, 0.34736014],
+                           [-3.94498008, 1.86483491, -2.55867509, 1.50560133, -0.42315158, 0.04674095],
+                           [28.56857473, -46.54088186, 44.42735085, -11.57973861, -1.50021012, 0.75523765],
+                           [-4.25523481, 0.27597899, 9.92376958, -11.74578938, 4.85308982, -0.68952721],
+                           [0.14795505, 0.36941466, 1.01868728, -1.43413212, 0.59845657, -0.08073203],
+                           [24.7124679, 4.79484575, -58.55748287, 64.51408958, -26.28326935, 3.76317956]])
 
-
-    def compute_ctrl_input(self, state, beta_cmd, mode = ANGLE_MODE):
+    def compute_ctrl_input(self, state, beta_cmd, mode=ANGLE_MODE):
         x, y = projectModelState(state)
 
-        ux = np.dot(np.dot(self.K, np.array([1, y[BETA_DOT_IDX]**2, np.abs(y[BETA_DOT_IDX]**3), y[BETA_DOT_IDX]**4, np.abs(y[BETA_DOT_IDX]**5), y[BETA_DOT_IDX]**6])), x)
+        ux = np.dot(np.dot(self.K,
+                           np.array([1,
+                                     y[BETA_DOT_IDX]**2,
+                                     np.abs(y[BETA_DOT_IDX]**3),
+                                     y[BETA_DOT_IDX]**4,
+                                     np.abs(y[BETA_DOT_IDX]**5),
+                                     y[BETA_DOT_IDX]**6])),
+                    x)
         uy = self.ctrl_2d.compute_ctrl_input(y, beta_cmd, mode)
 
         return np.array([ux, uy])

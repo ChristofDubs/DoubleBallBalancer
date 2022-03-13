@@ -18,7 +18,7 @@ import crocoddyl
 
 class ActionModel(crocoddyl.ActionModelAbstract):
     """Notes about action model
-    
+
     - To achieve smooth inputs, add the input as a state, and change that state by the external input u.
       That way, changes in input can be penalized (rather than the actual input)
 
@@ -26,9 +26,10 @@ class ActionModel(crocoddyl.ActionModelAbstract):
       and optimizes the input of the lateral control only
 
     - Since the states used in cost residuals must be 0 at the desired state, the state used internally is offset by
-      the desired state (not needed for when laterally stabilizing at motor x angle 0) 
+      the desired state (not needed for when laterally stabilizing at motor x angle 0)
 
     """
+
     def __init__(self, param):
         crocoddyl.ActionModelAbstract.__init__(self, crocoddyl.StateVector(STATE_SIZE + 2), 1, 7)  # nu = 1; nr = 7
         self.unone = np.zeros(self.nu)
