@@ -179,8 +179,8 @@ if not args.disable_printing_dynamics:
 
     sub_list = [
         (x,
-         'self.p.' +
-         x) for x in [
+         symbols('self.p.' +
+                 x)) for x in [
             'g',
             'l',
             'm1',
@@ -243,8 +243,8 @@ if not args.disable_printing_dynamics:
 
     sub_list = [
         (x,
-         'self.p.' +
-         x) for x in [
+         symbols('self.p.' +
+                 x)) for x in [
             'g',
             'l',
             'm1',

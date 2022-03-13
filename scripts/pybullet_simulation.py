@@ -46,8 +46,8 @@ class PyBulletSim:
         for i in range(p.getNumJoints(self.robot_id)):
             name_to_joint_idx.update({p.getJointInfo(self.robot_id, i)[1]: i})
 
-        self.motor_x_idx = name_to_joint_idx['lateral_rotation_axis']
-        self.motor_y_idx = name_to_joint_idx['primary_rotation_axis']
+        self.motor_x_idx = name_to_joint_idx[b'lateral_rotation_axis']
+        self.motor_y_idx = name_to_joint_idx[b'primary_rotation_axis']
 
         # add texture for better visualization
         texUid = p.loadTexture("../model_3d/urdf/media/circles.png")

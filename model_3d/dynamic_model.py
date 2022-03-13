@@ -110,7 +110,7 @@ class ModelState(object):
 
         args:
             x0 (np.ndarray, optional): initial state. Set to default values if not specified
-            skip_checks (bool, optional): if set to true and x0 is provided, x0 is set without checking it.
+            skip_checks (bool, optional): if set to True and x0 is provided, x0 is set without checking it.
         """
         if skip_checks and x0 is not None:
             self.x = x0
@@ -156,7 +156,7 @@ class ModelState(object):
 
         # quaternion check
         if q1_norm == 0 or q2_norm == 0:
-            return false
+            return False
 
         self.x = x0_flat
         self.normalize_quaternions()
@@ -1314,7 +1314,7 @@ class DynamicModel(object):
         circle_res = 20
 
         lon = np.linspace(0, 2 * np.pi, circle_res)
-        lat = np.linspace(0, np.pi, circle_res / 2)
+        lat = np.linspace(0, np.pi, circle_res // 2)
         x = radius * np.outer(np.cos(lon), np.sin(lat))
         z = radius * np.outer(np.sin(lon), np.sin(lat))
         y = radius * np.outer(np.ones(circle_res), np.cos(lat))
