@@ -2,8 +2,8 @@
 """
 import numpy as np
 
-from .definitions import *
-from .dynamic_model import DynamicModel
+from model_2d.definitions import *
+from model_2d.dynamic_model import DynamicModel
 
 import crocoddyl
 
