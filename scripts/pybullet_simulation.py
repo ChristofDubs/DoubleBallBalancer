@@ -5,37 +5,60 @@ import time
 import pybullet_data
 import numpy as np
 from numpy import sin, cos
+from dataclasses import dataclass
 
 import context
 
 from pyrotation import Quaternion
 
 from model_3d.dynamic_model import ModelParam, ModelState
-from model_3d.controller import Controller
+from model_3d.controller import Controller, projectModelState, ANGLE_MODE, VELOCITY_MODE
+
+ANGLE_MODE = ANGLE_MODE
+VELOCITY_MODE = VELOCITY_MODE
+
+
+@dataclass
+class Params:
+    """Class for keeping track of an item in inventory."""
+    realtime_factor: float = 1
+    camera_forward_dir_offset: float = 0
+    camera_pitch: float = -30
+    time_step: float = 1 / 120
 
 
 class PyBulletSim:
-    def __init__(self):
+    def __init__(self, param: Params):
+        self.param = param
+        self.start_time = time.time()
+
         physicsClient = p.connect(p.GUI)
+        p.setTimeStep(self.param.time_step)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
+
         p.setGravity(0, 0, -9.81)
         planeId = p.loadURDF("plane.urdf")
+        p.changeDynamics(planeId, -1, rollingFriction=0, spinningFriction=0)
 
         # load models from URDF
         lowerBallSpawnPos = [0, 0, 3]
         robotSpawnPos = [0, 0, 8]
         defaultOrientation = p.getQuaternionFromEuler([0, 0, 0])
 
+        p.setAdditionalSearchPath("..")
         self.lower_ball_id = p.loadURDF(
-            "../model_3d/urdf/lower_ball.urdf",
+            "model_3d/urdf/lower_ball.urdf",
             lowerBallSpawnPos,
             defaultOrientation,
             flags=p.URDF_USE_INERTIA_FROM_FILE)
         self.robot_id = p.loadURDF(
-            "../model_3d/urdf/robot.urdf",
+            "model_3d/urdf/robot.urdf",
             robotSpawnPos,
             defaultOrientation,
             flags=p.URDF_USE_INERTIA_FROM_FILE)
+
+        p.changeDynamics(self.lower_ball_id, -1, linearDamping=0, angularDamping=0)
+        p.changeDynamics(self.robot_id, -1, linearDamping=0, angularDamping=0)
 
         # extract joint indices
         if p.getNumJoints(self.robot_id) != 2:
@@ -50,7 +73,7 @@ class PyBulletSim:
         self.motor_y_idx = name_to_joint_idx[b'primary_rotation_axis']
 
         # add texture for better visualization
-        texUid = p.loadTexture("../model_3d/urdf/media/circles.png")
+        texUid = p.loadTexture("model_3d/urdf/media/circles.png")
 
         p.changeVisualShape(self.lower_ball_id, -1, textureUniqueId=texUid)
         p.changeVisualShape(self.robot_id, -1, textureUniqueId=texUid)
@@ -63,23 +86,33 @@ class PyBulletSim:
 
         self.controller = Controller(param)
 
-    def simulate(self):
-        beta_cmd = 8 * np.pi
+    def simulate_step(self, forward_cmd, forward_cmd_mode, steering_cmd):
+        state = self.get_state()
+        omega_cmd = list(self.controller.compute_ctrl_input(state, forward_cmd, forward_cmd_mode, steering_cmd))
+        p.setJointMotorControlArray(
+            bodyUniqueId=self.robot_id,
+            jointIndices=[
+                self.motor_x_idx,
+                self.motor_y_idx],
+            controlMode=p.VELOCITY_CONTROL,
+            targetVelocities=omega_cmd,
+            velocityGains=[0.1, 0.1])
 
-        for i in range(10000):
-            omega_cmd = list(self.controller.compute_ctrl_input(self.get_state(), beta_cmd))
-            p.setJointMotorControlArray(
-                bodyUniqueId=self.robot_id,
-                jointIndices=[
-                    self.motor_x_idx,
-                    self.motor_y_idx],
-                controlMode=p.VELOCITY_CONTROL,
-                targetVelocities=omega_cmd,
-                velocityGains=[0.1, 0.1])
+        p.stepSimulation()
 
-            p.stepSimulation()
-            time.sleep(1. / 240.)
+        if self.param.camera_forward_dir_offset is not None and self.param.camera_pitch is not None:
+            upper_ball_fwd_dir = 90 + projectModelState(state)[2][0] * 180 / np.pi
+            p.resetDebugVisualizerCamera(
+                cameraDistance=10.0,
+                cameraYaw=upper_ball_fwd_dir + self.param.camera_forward_dir_offset,
+                cameraPitch=self.param.camera_pitch,
+                cameraTargetPosition=[state.pos[0], state.pos[1], 5])
 
+        time_passed = time.time() - self.start_time
+        time.sleep(max(self.param.time_step / self.param.realtime_factor - time_passed, 0))
+        self.start_time += time_passed
+
+    def terminate(self):
         p.disconnect()
 
     def adjust_quaternion_convention(self, q_xyzw):
@@ -135,5 +168,15 @@ class PyBulletSim:
 
 
 if __name__ == '__main__':
-    sim = PyBulletSim()
-    sim.simulate()
+
+    param = Params()
+    param.camera_forward_dir_offset = -60
+    param.camera_pitch = -30
+    sim = PyBulletSim(param)
+
+    sim_time = 40
+
+    for i in range(int(sim_time / param.time_step)):
+        sim.simulate_step(8 * np.pi, ANGLE_MODE, 0)
+
+    sim.terminate()

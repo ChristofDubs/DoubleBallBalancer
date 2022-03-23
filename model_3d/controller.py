@@ -9,6 +9,9 @@ import context
 from model_2d.controller import Controller as Controller2D
 from model_2d.definitions import BETA_IDX, PHI_IDX, PSI_IDX, BETA_DOT_IDX, PHI_DOT_IDX, PSI_DOT_IDX
 
+ANGLE_MODE = BETA_IDX
+VELOCITY_MODE = BETA_DOT_IDX
+
 
 def projectModelState(state):
     [phi_x, phi_y] = state.phi
@@ -91,9 +94,12 @@ def projectModelState(state):
     B2h_phi_x_dot = B2h_omega_IB3[0]
     B2h_phi_y_dot = B2h_omega_IB3[1]
 
-    y = np.zeros(6)
+    # heading / angular z velocity
+    z = np.array([np.arctan2(x[1], x[0]), B2h_omega_IB2[2]])
 
     # principal motor axis direction (y-axis)
+    y = np.zeros(6)
+
     y[BETA_IDX] = B2h_phi_y - phi_y
     y[PHI_IDX] = B2h_phi_y
     y[PSI_IDX] = B2h_psi_y
@@ -102,9 +108,9 @@ def projectModelState(state):
     y[PHI_DOT_IDX] = B2h_phi_y_dot
     y[PSI_DOT_IDX] = B2h_psi_y_dot
 
-    x = np.zeros(6)
-
     # lateral motor axis direction (x-axis)
+
+    x = np.zeros(6)
     x[BETA_IDX] = B2h_phi_x - phi_x
     x[PHI_IDX] = B2h_phi_x
     x[PSI_IDX] = B2h_psi_x
@@ -113,17 +119,15 @@ def projectModelState(state):
     x[PHI_DOT_IDX] = B2h_phi_x_dot
     x[PSI_DOT_IDX] = B2h_psi_x_dot
 
-    return x, y
+    return x, y, z
 
 
 class Controller(object):
-
-    ANGLE_MODE = BETA_IDX
-    VELCITY_MODE = BETA_DOT_IDX
-
     def __init__(self, param):
         self.ctrl_2d = Controller2D(param)
         self.ctrl_2d.beta_dot_max = 2.5
+
+        self.omega_2_z_to_omega_2_y_max = 0.3
 
         self.K = np.array([[-0.80754292, 12.15076322, -17.24354006, 10.23122588, -2.94008421, 0.34736014],
                            [-3.94498008, 1.86483491, -2.55867509, 1.50560133, -0.42315158, 0.04674095],
@@ -132,17 +136,19 @@ class Controller(object):
                            [0.14795505, 0.36941466, 1.01868728, -1.43413212, 0.59845657, -0.08073203],
                            [24.7124679, 4.79484575, -58.55748287, 64.51408958, -26.28326935, 3.76317956]])
 
-    def compute_ctrl_input(self, state, beta_cmd, mode=ANGLE_MODE):
-        x, y = projectModelState(state)
+    def compute_ctrl_input(self, state, beta_cmd, mode=ANGLE_MODE, turn_ratio=0):
+        x, y, _ = projectModelState(state)
 
-        ux = np.dot(np.dot(self.K,
-                           np.array([1,
-                                     y[BETA_DOT_IDX]**2,
-                                     np.abs(y[BETA_DOT_IDX]**3),
-                                     y[BETA_DOT_IDX]**4,
-                                     np.abs(y[BETA_DOT_IDX]**5),
-                                     y[BETA_DOT_IDX]**6])),
-                    x)
         uy = self.ctrl_2d.compute_ctrl_input(y, beta_cmd, mode)
+
+        Kx = np.dot(self.K,
+                    np.array([1,
+                              y[BETA_DOT_IDX]**2,
+                              np.abs(y[BETA_DOT_IDX]**3),
+                              y[BETA_DOT_IDX]**4,
+                              np.abs(y[BETA_DOT_IDX]**5),
+                              y[BETA_DOT_IDX]**6]))
+
+        ux = np.dot(Kx, x)
 
         return np.array([ux, uy])
