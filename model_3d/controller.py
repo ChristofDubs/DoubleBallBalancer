@@ -151,4 +151,15 @@ class Controller(object):
 
         ux = np.dot(Kx, x)
 
+        Kv = np.dot(np.array([-30.18705112, 60.43751718, -40.93162598, 8.95934635]),
+                    np.array([1, np.abs(y[BETA_DOT_IDX]), y[BETA_DOT_IDX]**2, np.abs(y[BETA_DOT_IDX]**3)]))
+
+        beta_dot_cmd = beta_cmd if mode == VELOCITY_MODE else self.ctrl_2d.compute_beta_dot_cmd(y, beta_cmd)
+        scale = 0 if beta_dot_cmd * y[BETA_DOT_IDX] <= 0 else max(0, min(1, 2 - np.abs(beta_dot_cmd / y[BETA_DOT_IDX])))
+
+        omega_z_cmd = turn_ratio * (y[BETA_DOT_IDX] if beta_dot_cmd *
+                                    y[BETA_DOT_IDX] <= 0 else min(y[BETA_DOT_IDX], beta_dot_cmd, key=abs))
+
+        ux += Kv * scale * omega_z_cmd
+
         return np.array([ux, uy])
