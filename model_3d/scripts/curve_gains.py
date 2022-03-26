@@ -157,4 +157,24 @@ ax.set_xlabel('angular y vel [rad/s]')
 ax.set_ylabel('angular z vel [rad/s]')
 ax.set_zlabel('x command offset [rad/s]')
 
+# fit omega_z = f(omega_y) at omega_x_command_offset = 0.45
+sub_data = data[8::9, 1:3]
+
+omega_y_cmd = data[:, 0]
+omega_y = data[:, 1]
+omega_z = data[:, 2]
+omega_x_cmd = data[:, 3]
+
+# fit function: omega_x_cmd = f(omega_y, omega_z)
+A = np.abs(sub_data[:, 0])
+b = np.abs(sub_data[:, 1] / sub_data[:, 0])
+
+x = 1 / np.dot(A.T, A) * np.dot(A.T, b)
+print(x)
+
+plt.figure()
+plt.plot(np.abs(sub_data[:, 0]), np.abs(sub_data[:, 1] / sub_data[:, 0]), 'b*')
+plt.plot(np.abs(sub_data[:, 0]), A * x, 'r-')
+
+
 plt.show(block=True)

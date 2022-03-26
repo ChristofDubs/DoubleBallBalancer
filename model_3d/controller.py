@@ -136,30 +136,40 @@ class Controller(object):
                            [0.14795505, 0.36941466, 1.01868728, -1.43413212, 0.59845657, -0.08073203],
                            [24.7124679, 4.79484575, -58.55748287, 64.51408958, -26.28326935, 3.76317956]])
 
-    def compute_ctrl_input(self, state, beta_cmd, mode=ANGLE_MODE, turn_ratio=0):
-        x, y, _ = projectModelState(state)
-
-        uy = self.ctrl_2d.compute_ctrl_input(y, beta_cmd, mode)
-
-        Kx = np.dot(self.K,
-                    np.array([1,
-                              y[BETA_DOT_IDX]**2,
-                              np.abs(y[BETA_DOT_IDX]**3),
-                              y[BETA_DOT_IDX]**4,
-                              np.abs(y[BETA_DOT_IDX]**5),
-                              y[BETA_DOT_IDX]**6]))
-
-        ux = np.dot(Kx, x)
-
-        Kv = np.dot(np.array([-30.18705112, 60.43751718, -40.93162598, 8.95934635]),
-                    np.array([1, np.abs(y[BETA_DOT_IDX]), y[BETA_DOT_IDX]**2, np.abs(y[BETA_DOT_IDX]**3)]))
+    def compute_ctrl_input(self, state, beta_cmd, mode=ANGLE_MODE, turn_cmd=0):
+        x, y, z = projectModelState(state)
 
         beta_dot_cmd = beta_cmd if mode == VELOCITY_MODE else self.ctrl_2d.compute_beta_dot_cmd(y, beta_cmd)
-        scale = 0 if beta_dot_cmd * y[BETA_DOT_IDX] <= 0 else max(0, min(1, 2 - np.abs(beta_dot_cmd / y[BETA_DOT_IDX])))
 
-        omega_z_cmd = turn_ratio * (y[BETA_DOT_IDX] if beta_dot_cmd *
-                                    y[BETA_DOT_IDX] <= 0 else min(y[BETA_DOT_IDX], beta_dot_cmd, key=abs))
+        omega_y = y[BETA_DOT_IDX]
 
-        ux += Kv * scale * omega_z_cmd
+        ux_offset = 0
+
+        if beta_dot_cmd * omega_y > 0:
+            omega_y_upper = max(omega_y, beta_dot_cmd, key=abs)
+            omega_y_lower = min(omega_y, beta_dot_cmd, key=abs)
+
+            # limit turn command
+            turn_cmd_max = 0.12954081803507808 * np.abs(omega_y_lower)
+            turn_cmd = np.clip(turn_cmd, -turn_cmd_max, turn_cmd_max)
+
+            # adjust command for forward controller
+            omega_z_cmd = turn_cmd * omega_y_lower
+
+            A = np.column_stack([a * b for a in [np.abs(omega_z_cmd), omega_z_cmd**2]
+                                 for b in [1 / omega_y_upper**4, 1 / np.abs(omega_y_upper)]])
+            beta_dot_cmd += np.dot(A, np.array([-1.31109860e-02, 5.86652818e-02, -
+                                                1.41881873e+01, 5.19145415e-01])) * omega_y_upper
+
+            A = np.column_stack([a * b for a in [omega_z_cmd, np.abs(omega_z_cmd) * omega_z_cmd]
+                                 for b in [1 / omega_y_upper, 1 / (omega_y_upper * np.abs(omega_y_upper))]])
+
+            ux_offset = np.dot(A, np.array([0.6689874, -3.99996678, -19.66945499, 30.09371075]))
+
+        uy = self.ctrl_2d.compute_ctrl_input(y, beta_dot_cmd, VELOCITY_MODE)
+
+        Kx = np.dot(self.K, np.array([1, omega_y**2, np.abs(omega_y**3), omega_y**4, np.abs(omega_y**5), omega_y**6]))
+
+        ux = np.dot(Kx, x) + ux_offset
 
         return np.array([ux, uy])
