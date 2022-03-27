@@ -88,7 +88,13 @@ class PyBulletSim:
 
     def simulate_step(self, forward_cmd, forward_cmd_mode, steering_cmd):
         state = self.get_state()
-        omega_cmd = list(self.controller.compute_ctrl_input(state, forward_cmd, forward_cmd_mode, steering_cmd))
+        omega_cmd = list(
+            self.controller.compute_ctrl_input(
+                state,
+                forward_cmd,
+                forward_cmd_mode,
+                steering_cmd,
+                self.param.time_step))
         p.setJointMotorControlArray(
             bodyUniqueId=self.robot_id,
             jointIndices=[

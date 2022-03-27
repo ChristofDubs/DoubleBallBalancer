@@ -136,8 +136,17 @@ class Controller(object):
                            [0.14795505, 0.36941466, 1.01868728, -1.43413212, 0.59845657, -0.08073203],
                            [24.7124679, 4.79484575, -58.55748287, 64.51408958, -26.28326935, 3.76317956]])
 
-    def compute_ctrl_input(self, state, beta_cmd, mode=ANGLE_MODE, turn_cmd=0):
+        self.x = 0
+        self.y = 0
+
+    def compute_ctrl_input(self, state, beta_cmd, mode=ANGLE_MODE, turn_cmd=0, dt=0.05):
         x, y, z = projectModelState(state)
+
+        x[PHI_DOT_IDX: PSI_DOT_IDX + 1] = (x - self.x)[PHI_IDX: PSI_IDX + 1] / dt
+        y[PHI_DOT_IDX: PSI_DOT_IDX + 1] = (y - self.y)[PHI_IDX: PSI_IDX + 1] / dt
+
+        self.x = x
+        self.y = y
 
         beta_dot_cmd = beta_cmd if mode == VELOCITY_MODE else self.ctrl_2d.compute_beta_dot_cmd(y, beta_cmd)
 
@@ -154,17 +163,15 @@ class Controller(object):
             turn_cmd = np.clip(turn_cmd, -turn_cmd_max, turn_cmd_max)
 
             # adjust command for forward controller
-            omega_z_cmd = turn_cmd * omega_y_lower
+            A = [np.column_stack([a * b for a in [turn_cmd * o_y, np.abs(turn_cmd * o_y) * turn_cmd * o_y]
+                                  for b in [1 / o_y, 1 / (o_y * np.abs(o_y))]]) for o_y in [omega_y_upper, omega_y_lower]]
 
-            A = np.column_stack([a * b for a in [np.abs(omega_z_cmd), omega_z_cmd**2]
-                                 for b in [1 / omega_y_upper**4, 1 / np.abs(omega_y_upper)]])
-            beta_dot_cmd += np.dot(A, np.array([-1.31109860e-02, 5.86652818e-02, -
-                                                1.41881873e+01, 5.19145415e-01])) * omega_y_upper
+            ux_offset = min([np.dot(a, np.array([0.6689874, -3.99996678, -19.66945499, 30.09371075]))
+                             for a in A], key=abs)
 
-            A = np.column_stack([a * b for a in [omega_z_cmd, np.abs(omega_z_cmd) * omega_z_cmd]
-                                 for b in [1 / omega_y_upper, 1 / (omega_y_upper * np.abs(omega_y_upper))]])
-
-            ux_offset = np.dot(A, np.array([0.6689874, -3.99996678, -19.66945499, 30.09371075]))
+        else:
+            # avoid accelerating fast into the opposite direction
+            beta_dot_cmd = np.clip(beta_dot_cmd, -0.2, 0.2)
 
         uy = self.ctrl_2d.compute_ctrl_input(y, beta_dot_cmd, VELOCITY_MODE)
 
