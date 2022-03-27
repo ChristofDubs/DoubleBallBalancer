@@ -32,10 +32,10 @@ def blit_text(surface, text, pos, font, color=pygame.Color('white')):
 class KeyboardCommander:
     def __init__(self):
         self.cmd = np.zeros(2)
-        self.cmd_limits = np.array([1.2, 0.3])
+        self.cmd_limits = np.array([1.5, 1])
         self.increment_time = 0.05
 
-        self.cmd_increment_scale = np.array([0.1, 0.02])
+        self.cmd_increment_scale = np.array([0.1, 0.05])
         buttons = [pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT]
 
         self.pressed = {key: None for key in buttons}

@@ -6,6 +6,9 @@ import numpy as np
 import context
 
 import copy
+
+import pickle
+from model_2d.definitions import BETA_IDX
 from model_3d.dynamic_model import DynamicModel, ModelParam, ModelState
 from model_3d.controller import Controller, projectModelState, VELOCITY_MODE
 
@@ -17,7 +20,11 @@ param.r1 = 3.0
 param.r2 = 2.0
 
 for beta_cmd in [0.1, 0.2, 0.4, 0.7, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]:
-    for scale in range(1, 10):
+    stop_iteration = False
+    for scale in range(1, 11):
+        if stop_iteration:
+            continue
+
         # initial state
         x0 = ModelState()
 
@@ -35,22 +42,26 @@ for beta_cmd in [0.1, 0.2, 0.4, 0.7, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]:
         control_mode = VELOCITY_MODE
 
         # prepare simulation
-        max_sim_time = 30 * max(1, 1.5 * np.abs(beta_cmd))
+        max_sim_time = 50 * max(1, 2.0 * np.abs(beta_cmd))
         sim_time = 0
         sim_time_vec = [sim_time]
         state_vec = [copy.copy(model.state)]
         omega_cmd = np.zeros(2)
         contact_forces = None
 
-        disturbance = 0.05 * scale
+        omega_x_cmd_offset = 0.05 * scale
+
+        print(f"generating trajectory for {beta_cmd} {omega_x_cmd_offset}")
 
         # simulate until system is irrecoverable or max_sim_time reached
-        while not model.is_irrecoverable(
-                contact_forces=contact_forces,
-                omega_cmd=omega_cmd) and sim_time < max_sim_time:
+        while sim_time < max_sim_time:
+            if model.is_irrecoverable(contact_forces=contact_forces, omega_cmd=omega_cmd):
+                stop_iteration = True
+                break
+
             # get control input
             omega_cmd = controller.compute_ctrl_input(model.state, beta_cmd, control_mode, 0.0)
-            omega_cmd[0] += disturbance
+            omega_cmd[0] += omega_x_cmd_offset * min(1, sim_time / (0.3 * max_sim_time))
 
             # simulate one time step
             model.simulate_step(dt, omega_cmd)
@@ -60,13 +71,11 @@ for beta_cmd in [0.1, 0.2, 0.4, 0.7, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]:
             state_vec.append(copy.copy(model.state))
             sim_time_vec.append(sim_time)
 
-        num_data = len(state_vec)
-        projected = [projectModelState(state) for state in state_vec[3 * num_data // 4:-1]]
+        stop_iteration = stop_iteration or np.abs(projectModelState(state_vec[-1])[0][BETA_IDX]) > 1
 
-        y = np.mean([p[1] for p in projected], axis=0)
-        z = np.mean([p[2] for p in projected], axis=0)
-
-        print(f'[{beta_cmd}, {y[3]}, {z[-1]}, {disturbance}]')
+        if not stop_iteration:
+            with open('ttturn_data_{}_{}.pickle'.format(beta_cmd, omega_x_cmd_offset), 'wb') as handle:
+                pickle.dump([beta_cmd, omega_x_cmd_offset, state_vec], handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         # plt.figure()
         # plt.plot(sim_time_vec, [state.psi_x for state in state_vec], label='psi_x')

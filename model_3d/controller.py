@@ -38,20 +38,36 @@ def projectModelState(state):
     B2h_psi_x = np.arcsin(-B2h_e_S1S2[1])
     B2h_psi_y = np.arcsin(B2h_e_S1S2[0])
 
+    # express upper ball velocity in B2h frame
+    I_omega_B2 = np.dot(R_IB2, state.omega_2)
+    B2h_omega_IB2 = np.dot(R_IB2h.T, I_omega_B2)
+
+    # extract upper ball velocity wrt B2h frame
+    B2h_omega_2x = B2h_omega_IB2[0]
+    B2h_omega_2y = B2h_omega_IB2[1]
+
     # express angular velocities induced by psi rates in B2h frame
     I_omega_psi = np.array([psi_x_dot * cos(psi_y), psi_y_dot, -psi_x_dot * sin(psi_y)])
+
+    I_ez_B2 = np.cross(R_IB2[:, 1], x)
+    yaw_B2h_rate = np.dot(I_omega_B2, I_ez_B2) / np.dot(y, R_IB2[:, 1])
+    # yaw_B2h_rate = np.dot(R_IB2, np.array([state.omega_2[0], 0, state.omega_2[2]]))[2] / np.dot(y, R_IB2[:, 1])
+
+    if yaw_B2h_rate != 0:
+        I_omega_IB2h = np.array([0, 0, yaw_B2h_rate])
+        # compensate "velocity" of I_e_S1S2 resulting from rotating B2h frame
+        I_ve_S1S2 = np.cross(I_omega_IB2h, I_e_S1S2)
+
+        # convert velocity back to x/y angular velocity
+        I_omega_v_S1S2 = np.cross(I_ve_S1S2, np.array([0, 0, 1]))
+
+        I_omega_psi -= I_omega_v_S1S2
+
     B2h_omega_psi = np.dot(R_IB2h.T, I_omega_psi)
 
     # extract psi rates wrt B2h frame
     B2h_psi_x_dot = B2h_omega_psi[0]
     B2h_psi_y_dot = B2h_omega_psi[1]
-
-    # express upper ball velocity in B2h frame
-    B2h_omega_IB2 = np.dot(R_IB2h.T, np.dot(R_IB2, state.omega_2))
-
-    # extract upper ball velocity wrt B2h frame
-    B2h_omega_2x = B2h_omega_IB2[0]
-    B2h_omega_2y = B2h_omega_IB2[1]
 
     # express lever arm directional vector in B2h frame
     R_IB3 = state.q3.rotation_matrix()
@@ -95,7 +111,7 @@ def projectModelState(state):
     B2h_phi_y_dot = B2h_omega_IB3[1]
 
     # heading / angular z velocity
-    z = np.array([np.arctan2(x[1], x[0]), B2h_omega_IB2[2]])
+    z = np.array([np.arctan2(x[1], x[0]), yaw_B2h_rate])
 
     # principal motor axis direction (y-axis)
     y = np.zeros(6)
@@ -136,17 +152,8 @@ class Controller(object):
                            [0.14795505, 0.36941466, 1.01868728, -1.43413212, 0.59845657, -0.08073203],
                            [24.7124679, 4.79484575, -58.55748287, 64.51408958, -26.28326935, 3.76317956]])
 
-        self.x = 0
-        self.y = 0
-
-    def compute_ctrl_input(self, state, beta_cmd, mode=ANGLE_MODE, turn_cmd=0, dt=0.05):
-        x, y, z = projectModelState(state)
-
-        x[PHI_DOT_IDX: PSI_DOT_IDX + 1] = (x - self.x)[PHI_IDX: PSI_IDX + 1] / dt
-        y[PHI_DOT_IDX: PSI_DOT_IDX + 1] = (y - self.y)[PHI_IDX: PSI_IDX + 1] / dt
-
-        self.x = x
-        self.y = y
+    def compute_ctrl_input(self, state, beta_cmd, mode=ANGLE_MODE, normalized_phi_x_cmd=0):
+        x, y, _ = projectModelState(state)
 
         beta_dot_cmd = beta_cmd if mode == VELOCITY_MODE else self.ctrl_2d.compute_beta_dot_cmd(y, beta_cmd)
 
@@ -154,20 +161,25 @@ class Controller(object):
 
         ux_offset = 0
 
+        # no turning commands while reversing rolling direction
         if beta_dot_cmd * omega_y > 0:
             omega_y_upper = max(omega_y, beta_dot_cmd, key=abs)
             omega_y_lower = min(omega_y, beta_dot_cmd, key=abs)
 
-            # limit turn command
-            turn_cmd_max = 0.12954081803507808 * np.abs(omega_y_lower)
-            turn_cmd = np.clip(turn_cmd, -turn_cmd_max, turn_cmd_max)
+            # limit phi_x_cmd command
+            normalized_phi_x_cmd = 0.9 * np.clip(normalized_phi_x_cmd, -1, 1)
 
-            # adjust command for forward controller
-            A = [np.column_stack([a * b for a in [turn_cmd * o_y, np.abs(turn_cmd * o_y) * turn_cmd * o_y]
-                                  for b in [1 / o_y, 1 / (o_y * np.abs(o_y))]]) for o_y in [omega_y_upper, omega_y_lower]]
+            o_y = np.array([omega_y_upper, omega_y_lower])
 
-            ux_offset = min([np.dot(a, np.array([0.6689874, -3.99996678, -19.66945499, 30.09371075]))
-                             for a in A], key=abs)
+            A = np.abs(np.column_stack([np.ones(o_y.shape), o_y, o_y**2, o_y**3, o_y**4]))
+
+            phi_x_cmd = -normalized_phi_x_cmd * \
+                min(np.dot(A, np.array([0.97101945, -0.77551541, -0.99597959, 1.55876344, -0.47934461])), key=abs)
+
+            # adjustment for lateral controller
+            A = phi_x_cmd * np.column_stack(np.abs([np.ones(o_y.shape), o_y, o_y**2]))
+
+            ux_offset = min(np.dot(A, np.array([0.89283332, -0.86604715, 0.77455687])), key=abs)
 
         else:
             # avoid accelerating fast into the opposite direction
