@@ -13,7 +13,7 @@ from model_2d.definitions import BETA_IDX, PHI_IDX, PSI_IDX, BETA_DOT_IDX, PHI_D
 
 data = []
 
-for file in glob.glob('disabled_turn_data_*'):
+for file in glob.glob('disabled_turn_data/turn_data_*'):
     with open(file, 'rb') as handle:
         beta_cmd, omega_x_cmd_offset, state_vec = pickle.load(handle)
 
@@ -27,8 +27,8 @@ for file in glob.glob('disabled_turn_data_*'):
 
     data.append([y[BETA_DOT_IDX], z[1], x[BETA_IDX], x[PHI_IDX], x[PSI_IDX], omega_x_cmd_offset])
 
-    # with open('all_turn_data.pickle', 'wb') as handle:
-    #     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+# with open('all_turn_data.pickle', 'wb') as handle:
+#     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 with open('all_turn_data.pickle', 'rb') as handle:
@@ -47,13 +47,15 @@ phi_x = data[:, 3]
 psi_x = data[:, 4]
 omega_x_cmd = data[:, 5]
 
-total_x = beta_x - phi_x
+phi_x_motor = beta_x - phi_x
 
+
+# find function omega_x_cmd = f(omega_y, phi_x_motor)
 fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 
-ax.scatter(omega_y, total_x, omega_x_cmd, marker='o')
+ax.scatter(omega_y, phi_x_motor, omega_x_cmd, marker='o', label="measured data")
 
-A = np.column_stack([a * b for a in [total_x]
+A = np.column_stack([a * b for a in [phi_x_motor]
                      for b in [np.ones(omega_y.shape), np.abs(omega_y), omega_y ** 2]])
 b = omega_x_cmd
 
@@ -61,19 +63,26 @@ x = np.linalg.solve(np.dot(A.T, A), np.dot(A.T, b))
 
 print(x)
 
-ax.scatter(omega_y, total_x, np.dot(A, x), marker='^')
+ax.scatter(omega_y, phi_x_motor, np.dot(A, x), marker='^', label="function approximation")
 
-max_total_x = {}
+ax.set_xlabel('angular y vel [rad/s]')
+ax.set_ylabel('phi x motor [rad]')
+ax.set_xlabel('omega_x command [rad/s]')
+
+ax.legend()
+
+# find function phi_x_motor_max = f(omega_y)
+max_phi_x_motor = {}
 for i in range(len(omega_y)):
     bucket = np.round(10 * omega_y[i]) / 10
-    if bucket not in max_total_x or np.abs(total_x[i]) > max_total_x[bucket]:
-        max_total_x[bucket] = np.abs(total_x[i])
+    if bucket not in max_phi_x_motor or np.abs(phi_x_motor[i]) > max_phi_x_motor[bucket]:
+        max_phi_x_motor[bucket] = np.abs(phi_x_motor[i])
 
 
-omega_y_buckets = np.array(list(max_total_x.keys()))
+omega_y_buckets = np.array(list(max_phi_x_motor.keys()))
 A = np.abs(np.column_stack([np.ones(omega_y_buckets.shape), omega_y_buckets,
                             omega_y_buckets**2, omega_y_buckets**3, omega_y_buckets**4]))
-b = np.array(list(max_total_x.values()))
+b = np.array(list(max_phi_x_motor.values()))
 x = None
 
 
@@ -88,11 +97,35 @@ res = minimize(fun, 0.7 * np.linalg.solve(np.dot(A.T, A), np.dot(A.T, b)))
 print(res.x)
 
 plt.figure()
-plt.plot(omega_y_buckets, b, 'b*')
+plt.plot(omega_y_buckets, b, 'b*', label="measured data")
 
 omega_y_buckets = np.linspace(-2, 2, 101)
 A = np.abs(np.column_stack([np.ones(omega_y_buckets.shape), omega_y_buckets,
                             omega_y_buckets**2, omega_y_buckets**3, omega_y_buckets**4]))
-plt.plot(omega_y_buckets, np.dot(A, res.x), 'r')
+plt.plot(omega_y_buckets, np.dot(A, res.x), 'r', label='lower bound fit')
+
+plt.xlabel('angular y vel [rad/s]')
+plt.ylabel('phi x motor [rad]')
+plt.legend()
+
+# find function phi_x_motor = f(omega_y, omega_z)
+fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+
+ax.scatter(omega_z / omega_y, omega_y, phi_x_motor, marker='o', label="measured data")
+A = np.column_stack([a * b for a in [omega_z / omega_y, (omega_z / omega_y) * np.abs(omega_z / omega_y)]
+                     for b in [np.ones(omega_y.shape), omega_y ** 2]])
+b = phi_x_motor
+
+x = np.linalg.solve(np.dot(A.T, A), np.dot(A.T, b))
+
+print(x)
+
+ax.scatter(omega_z / omega_y, omega_y, np.dot(A, x), marker='^', label="function approximation")
+
+ax.set_xlabel('angular vel ratio z/y [-]')
+ax.set_ylabel('angular y vel [rad/s]')
+ax.set_zlabel('phi x motor [rad]')
+
+ax.legend()
 
 plt.show(block=True)

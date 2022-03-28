@@ -42,8 +42,8 @@ class KeyboardCommander:
 
         self.increment = {pygame.K_UP: np.array([1, 0]),
                           pygame.K_DOWN: np.array([-1, 0]),
-                          pygame.K_LEFT: np.array([0, 1]),
-                          pygame.K_RIGHT: np.array([0, -1])}
+                          pygame.K_LEFT: np.array([0, -1]),
+                          pygame.K_RIGHT: np.array([0, 1])}
 
         pygame.init()
         self.display_surface = pygame.display.set_mode((700, 200))
