@@ -46,12 +46,16 @@ class KeyboardCommander:
                           pygame.K_RIGHT: np.array([0, 1])}
 
         pygame.init()
-        self.display_surface = pygame.display.set_mode((700, 200))
+        self.display_surface = pygame.display.set_mode((900, 200))
         pygame.display.set_caption('Keyboard Control Panel')
 
         self.font = pygame.font.Font('freesansbold.ttf', 20)
 
-        self.text = "After clicking on this window:\n- press q / Esc to quit\n- press the arrow keys to change the speed commands \n- press s to stop the robot"
+        self.text = "After clicking on this window: \n" \
+                    "- press Q / Esc to quit \n" \
+                    "- press / hold the arrow keys for small incremental changes of the speed commands \n" \
+                    "- press the W/S/A/D keys for large incremental changes of the speed commands \n" \
+                    "- press space bar to stop the robot"
 
         self.updateDisplay()
 
@@ -71,8 +75,17 @@ class KeyboardCommander:
                     pygame.K_ESCAPE, pygame.K_q]):
                 pygame.quit()
                 return False
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_s:
-                self.cmd = np.zeros(2)
+            elif event.type == pygame.KEYDOWN and event.key in [pygame.K_SPACE, pygame.K_w, pygame.K_s, pygame.K_a, pygame.K_d]:
+                if event.key == pygame.K_SPACE:
+                    self.cmd = np.zeros(2)
+                elif event.key == pygame.K_w:
+                    self.cmd[0] += self.cmd_limits[0]
+                elif event.key == pygame.K_s:
+                    self.cmd[0] += -self.cmd_limits[0]
+                elif event.key == pygame.K_a:
+                    self.cmd[1] += -self.cmd_limits[1]
+                elif event.key == pygame.K_d:
+                    self.cmd[1] += self.cmd_limits[1]
             elif event.type in [pygame.KEYDOWN, pygame.KEYUP] and event.key in self.pressed.keys():
                 self.pressed[event.key] = [time_now, 10 * self.increment_time] if event.type == pygame.KEYDOWN else None
 
