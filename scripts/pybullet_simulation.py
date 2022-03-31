@@ -32,7 +32,7 @@ class PyBulletSim:
         self.param = param
         self.start_time = time.time()
 
-        physicsClient = p.connect(p.GUI)
+        p.connect(p.GUI)
         p.setTimeStep(self.param.time_step)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
@@ -41,20 +41,12 @@ class PyBulletSim:
         p.changeDynamics(planeId, -1, rollingFriction=0, spinningFriction=0)
 
         # load models from URDF
-        lowerBallSpawnPos = [0, 0, 3]
-        robotSpawnPos = [0, 0, 8]
-        defaultOrientation = p.getQuaternionFromEuler([0, 0, 0])
-
         p.setAdditionalSearchPath("..")
         self.lower_ball_id = p.loadURDF(
             "model_3d/urdf/lower_ball.urdf",
-            lowerBallSpawnPos,
-            defaultOrientation,
             flags=p.URDF_USE_INERTIA_FROM_FILE)
         self.robot_id = p.loadURDF(
             "model_3d/urdf/robot.urdf",
-            robotSpawnPos,
-            defaultOrientation,
             flags=p.URDF_USE_INERTIA_FROM_FILE)
 
         p.changeDynamics(self.lower_ball_id, -1, linearDamping=0, angularDamping=0)
@@ -86,6 +78,17 @@ class PyBulletSim:
 
         self.controller = Controller(param)
 
+        self.respawn()
+
+    def respawn(self):
+        lowerBallSpawnPos = [0, 0, self.controller.ctrl_2d.param.r1]
+        robotSpawnPos = [0, 0, 2 * self.controller.ctrl_2d.param.r1 + self.controller.ctrl_2d.param.r2]
+        defaultOrientation = p.getQuaternionFromEuler([0, 0, 0])
+        p.resetBasePositionAndOrientation(self.lower_ball_id, lowerBallSpawnPos, defaultOrientation)
+        p.resetBasePositionAndOrientation(self.robot_id, robotSpawnPos, defaultOrientation)
+        p.resetJointState(self.robot_id, self.motor_x_idx, 0)
+        p.resetJointState(self.robot_id, self.motor_y_idx, 0)
+
     def simulate_step(self, forward_cmd, forward_cmd_mode, steering_cmd):
         state = self.get_state()
         omega_cmd = list(
@@ -110,8 +113,10 @@ class PyBulletSim:
                 cameraTargetPosition=[state.pos[0], state.pos[1], 5])
 
         time_passed = time.time() - self.start_time
-        time.sleep(max(self.param.time_step / self.param.realtime_factor - time_passed, 0))
+        sleep_time = self.param.time_step / self.param.realtime_factor - time_passed
+        time.sleep(max(sleep_time, 0))
         self.start_time += time_passed
+        return self.param.realtime_factor if sleep_time > 0 else self.param.time_step / time_passed
 
     def terminate(self):
         p.disconnect()
