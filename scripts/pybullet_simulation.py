@@ -5,7 +5,6 @@ import time
 import pybullet_data
 import numpy as np
 from numpy import sin, cos
-from dataclasses import dataclass
 
 import context
 
@@ -24,6 +23,8 @@ class PyBulletSim:
 
         p.connect(p.GUI)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
+
+        p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)
 
         p.setGravity(0, 0, -9.81)
         planeId = p.loadURDF("plane.urdf")
@@ -67,6 +68,8 @@ class PyBulletSim:
 
         self.timestep_param_id = p.addUserDebugParameter("simulation_timestep", 1 / 240, 1 / 60, 1 / 60)
         self.rtf_param_id = p.addUserDebugParameter("realtime_factor", 0.1, 5, 2)
+
+        self.logging_id = None
 
         # load controller
         param = ModelParam()
@@ -120,6 +123,18 @@ class PyBulletSim:
         time.sleep(max(sleep_time, 0))
         self.start_time += time_passed
         return realtime_factor if sleep_time > 0 else time_step / time_passed
+
+    def recordVideo(self, file_name):
+        p.setRealTimeSimulation(0)
+        self.logging_id = p.startStateLogging(p.STATE_LOGGING_VIDEO_MP4, file_name)
+
+    def isRecording(self):
+        return self.logging_id is not None
+
+    def stopRecordingVideo(self):
+        if self.isRecording():
+            p.stopStateLogging(self.logging_id)
+            self.logging_id = None
 
     def terminate(self):
         p.disconnect()
