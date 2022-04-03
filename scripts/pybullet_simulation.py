@@ -11,31 +11,36 @@ import context
 from pyrotation import Quaternion
 
 from model_3d.dynamic_model import ModelParam, ModelState
-from model_3d.controller import Controller
+from model_3d.controller import Controller, projectModelState, ANGLE_MODE, VELOCITY_MODE
+
+ANGLE_MODE = ANGLE_MODE
+VELOCITY_MODE = VELOCITY_MODE
 
 
 class PyBulletSim:
     def __init__(self):
-        physicsClient = p.connect(p.GUI)
+        self.start_time = time.time()
+
+        p.connect(p.GUI)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
+
+        p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 0)
+
         p.setGravity(0, 0, -9.81)
         planeId = p.loadURDF("plane.urdf")
+        p.changeDynamics(planeId, -1, rollingFriction=0, spinningFriction=0)
 
         # load models from URDF
-        lowerBallSpawnPos = [0, 0, 3]
-        robotSpawnPos = [0, 0, 8]
-        defaultOrientation = p.getQuaternionFromEuler([0, 0, 0])
-
+        p.setAdditionalSearchPath("..")
         self.lower_ball_id = p.loadURDF(
-            "../model_3d/urdf/lower_ball.urdf",
-            lowerBallSpawnPos,
-            defaultOrientation,
+            "model_3d/urdf/lower_ball.urdf",
             flags=p.URDF_USE_INERTIA_FROM_FILE)
         self.robot_id = p.loadURDF(
-            "../model_3d/urdf/robot.urdf",
-            robotSpawnPos,
-            defaultOrientation,
+            "model_3d/urdf/robot.urdf",
             flags=p.URDF_USE_INERTIA_FROM_FILE)
+
+        p.changeDynamics(self.lower_ball_id, -1, linearDamping=0, angularDamping=0)
+        p.changeDynamics(self.robot_id, -1, linearDamping=0, angularDamping=0)
 
         # extract joint indices
         if p.getNumJoints(self.robot_id) != 2:
@@ -50,10 +55,21 @@ class PyBulletSim:
         self.motor_y_idx = name_to_joint_idx[b'primary_rotation_axis']
 
         # add texture for better visualization
-        texUid = p.loadTexture("../model_3d/urdf/media/circles.png")
+        texUid = p.loadTexture("model_3d/urdf/media/circles.png")
 
         p.changeVisualShape(self.lower_ball_id, -1, textureUniqueId=texUid)
         p.changeVisualShape(self.robot_id, -1, textureUniqueId=texUid)
+
+        self.cam_yaw_param_id = p.addUserDebugParameter("camera_yaw", -180, 180, 0)
+        self.cam_pitch_param_id = p.addUserDebugParameter("camera_pitch", -89.9, 89.9, -30)
+        self.cam_dist_param_id = p.addUserDebugParameter("camera_distance", 1, 50, 10)
+
+        self.cam_align_robot_param_id = p.addUserDebugParameter("align camera with robot (bool)", 0, 1, 1)
+
+        self.timestep_param_id = p.addUserDebugParameter("simulation_timestep", 1 / 240, 1 / 60, 1 / 60)
+        self.rtf_param_id = p.addUserDebugParameter("realtime_factor", 0.1, 5, 2)
+
+        self.logging_id = None
 
         # load controller
         param = ModelParam()
@@ -63,23 +79,64 @@ class PyBulletSim:
 
         self.controller = Controller(param)
 
-    def simulate(self):
-        beta_cmd = 8 * np.pi
+        self.respawn()
 
-        for i in range(10000):
-            omega_cmd = list(self.controller.compute_ctrl_input(self.get_state(), beta_cmd))
-            p.setJointMotorControlArray(
-                bodyUniqueId=self.robot_id,
-                jointIndices=[
-                    self.motor_x_idx,
-                    self.motor_y_idx],
-                controlMode=p.VELOCITY_CONTROL,
-                targetVelocities=omega_cmd,
-                velocityGains=[0.1, 0.1])
+    def respawn(self):
+        lowerBallSpawnPos = [0, 0, self.controller.ctrl_2d.param.r1]
+        robotSpawnPos = [0, 0, 2 * self.controller.ctrl_2d.param.r1 + self.controller.ctrl_2d.param.r2]
+        defaultOrientation = p.getQuaternionFromEuler([0, 0, 0])
+        p.resetBasePositionAndOrientation(self.lower_ball_id, lowerBallSpawnPos, defaultOrientation)
+        p.resetBasePositionAndOrientation(self.robot_id, robotSpawnPos, defaultOrientation)
+        p.resetJointState(self.robot_id, self.motor_x_idx, 0)
+        p.resetJointState(self.robot_id, self.motor_y_idx, 0)
 
-            p.stepSimulation()
-            time.sleep(1. / 240.)
+    def simulate_step(self, forward_cmd, forward_cmd_mode, steering_cmd):
+        state = self.get_state()
+        omega_cmd = list(
+            self.controller.compute_ctrl_input(state, forward_cmd, forward_cmd_mode, steering_cmd))
+        p.setJointMotorControlArray(
+            bodyUniqueId=self.robot_id,
+            jointIndices=[
+                self.motor_x_idx,
+                self.motor_y_idx],
+            controlMode=p.VELOCITY_CONTROL,
+            targetVelocities=omega_cmd,
+            velocityGains=[0.1, 0.1])
 
+        time_step = p.readUserDebugParameter(self.timestep_param_id)
+        p.setTimeStep(time_step)
+
+        p.stepSimulation()
+
+        camera_yaw_offset = 90
+        if p.readUserDebugParameter(self.cam_align_robot_param_id):
+            camera_yaw_offset += projectModelState(state)[2][0] * 180 / np.pi
+        p.resetDebugVisualizerCamera(
+            cameraDistance=p.readUserDebugParameter(self.cam_dist_param_id),
+            cameraYaw=p.readUserDebugParameter(self.cam_yaw_param_id) + camera_yaw_offset,
+            cameraPitch=p.readUserDebugParameter(self.cam_pitch_param_id),
+            cameraTargetPosition=[state.pos[0], state.pos[1], 5])
+
+        realtime_factor = p.readUserDebugParameter(self.rtf_param_id)
+        time_passed = time.time() - self.start_time
+        sleep_time = time_step / realtime_factor - time_passed
+        time.sleep(max(sleep_time, 0))
+        self.start_time += time_passed
+        return realtime_factor if sleep_time > 0 else time_step / time_passed
+
+    def recordVideo(self, file_name):
+        p.setRealTimeSimulation(0)
+        self.logging_id = p.startStateLogging(p.STATE_LOGGING_VIDEO_MP4, file_name)
+
+    def isRecording(self):
+        return self.logging_id is not None
+
+    def stopRecordingVideo(self):
+        if self.isRecording():
+            p.stopStateLogging(self.logging_id)
+            self.logging_id = None
+
+    def terminate(self):
         p.disconnect()
 
     def adjust_quaternion_convention(self, q_xyzw):
@@ -136,4 +193,10 @@ class PyBulletSim:
 
 if __name__ == '__main__':
     sim = PyBulletSim()
-    sim.simulate()
+
+    sim_time = 40
+
+    for i in range(int(sim_time / p.readUserDebugParameter(sim.timestep_param_id))):
+        sim.simulate_step(8 * np.pi, ANGLE_MODE, 0)
+
+    sim.terminate()

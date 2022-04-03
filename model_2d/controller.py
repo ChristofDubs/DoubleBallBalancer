@@ -91,7 +91,7 @@ class Controller(object):
         elif mode is BETA_DOT_IDX:
             beta_dot_cmd = u
 
-        if self.beta_dot_max:
+        if beta_dot_cmd is not None and self.beta_dot_max:
             beta_dot_cmd = max(-self.beta_dot_max, min(self.beta_dot_max, beta_dot_cmd))
 
         psi_cmd = None

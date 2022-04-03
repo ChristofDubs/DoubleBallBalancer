@@ -18,7 +18,7 @@ for x in range(n):
         if (x + y) % 2 == 0:
             ax.plot(x + r * np.cos(theta), y + r * np.sin(theta), 'k', linewidth=6)
 
-w = 6
+w = 7
 sx = n / 2
 sy = n / 2
 

@@ -10,7 +10,7 @@ import argparse
 import context
 
 from model_3d.dynamic_model import ModelParam, DynamicModel, ModelState
-from model_3d.controller import Controller
+from model_3d.controller import Controller, ANGLE_MODE  # , VELOCITY_MODE
 
 parser = argparse.ArgumentParser(description="Test double ball balancer")
 parser.add_argument("-a", "--no-animation", help="disable animation", action="store_true")
@@ -49,7 +49,7 @@ dt = 0.05
 
 # commands
 beta_cmd = -8 * np.pi
-control_mode = controller.ANGLE_MODE
+control_mode = ANGLE_MODE
 
 # prepare simulation
 max_sim_time = 20

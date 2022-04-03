@@ -11,7 +11,7 @@ from pyrotation import Quaternion
 from model_3d.dynamic_model import DynamicModel, ModelState, STATE_SIZE
 
 from model_3d.controller import Controller as LinearController
-from model_3d.controller import projectModelState
+from model_3d.controller import projectModelState, VELOCITY_MODE
 
 import crocoddyl
 
@@ -86,7 +86,7 @@ class Controller:
     def compute_ctrl_input(self, x0, r, mode):
         des = ModelState()
 
-        if mode == self.controller.VELCITY_MODE:
+        if mode == VELOCITY_MODE:
             des.omega_2 = np.array([0, r, 0])
             des.phi_y_dot = -r
 

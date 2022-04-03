@@ -7,7 +7,7 @@ import context
 
 import pickle
 from model_3d.dynamic_model import ModelParam, ModelState
-from crocoddyl_controller import Controller
+from crocoddyl_controller import Controller, VELOCITY_MODE
 
 
 # create parameter struct
@@ -32,7 +32,7 @@ for beta_cmd in [0.7, 0.8, 1.5, 1.7, 1.8, 2.0, 2.2]:
     # simulation time step
     dt = 0.05
 
-    us, state_vec = controller.compute_ctrl_input(x0, beta_cmd, controller.controller.VELCITY_MODE)
+    us, state_vec = controller.compute_ctrl_input(x0, beta_cmd, VELOCITY_MODE)
     sim_time_vec = np.array(range(len(state_vec))) * dt
 
     with open('data_{}.pickle'.format(beta_cmd), 'wb') as handle:
@@ -63,4 +63,5 @@ plt.xlabel('time [s]')
 plt.ylabel('omega [rad]')
 plt.legend()
 plt.title('omega')
+
 plt.show(block=True)
