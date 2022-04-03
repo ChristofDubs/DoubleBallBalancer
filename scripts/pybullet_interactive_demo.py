@@ -3,10 +3,11 @@
 import copy
 import pygame
 import time
+from enum import Enum
 
 import numpy as np
 
-from pybullet_simulation import PyBulletSim, Params, VELOCITY_MODE
+from pybullet_simulation import PyBulletSim, VELOCITY_MODE
 
 # https://stackoverflow.com/questions/42014195/rendering-text-with-multiple-lines-in-pygame
 
@@ -30,87 +31,101 @@ def blit_text(surface, text, pos, font, color=pygame.Color('white')):
 
 
 class KeyboardCommander:
+    class Action(Enum):
+        NONE = 1,
+        QUIT = 2,
+        RESPAWN = 3
+
     def __init__(self):
+        self.cmd_scale = 100
+
         self.cmd = np.zeros(2)
-        self.cmd_limits = np.array([1.5, 1])
+        self.cmd_limits = np.array([1.5, 1]) * self.cmd_scale
         self.increment_time = 0.05
 
-        self.cmd_increment_scale = np.array([0.1, 0.05])
-        buttons = [pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT]
+        self.increment_count = -8 * np.ones(2)
+        self.cmd_increments = {pygame.K_UP: np.array([1, 0]),
+                               pygame.K_DOWN: np.array([-1, 0]),
+                               pygame.K_LEFT: np.array([0, -1]),
+                               pygame.K_RIGHT: np.array([0, 1])}
 
-        self.pressed = {key: None for key in buttons}
+        self.increment_increments = {pygame.K_w: np.array([1, 0]),
+                                     pygame.K_s: np.array([-1, 0]),
+                                     pygame.K_a: np.array([0, -1]),
+                                     pygame.K_d: np.array([0, 1])}
 
-        self.increment = {pygame.K_UP: np.array([1, 0]),
-                          pygame.K_DOWN: np.array([-1, 0]),
-                          pygame.K_LEFT: np.array([0, -1]),
-                          pygame.K_RIGHT: np.array([0, 1])}
+        self.pressed = {key: None for key in list(self.cmd_increments.keys()) + list(self.increment_increments.keys())}
 
         pygame.init()
-        self.display_surface = pygame.display.set_mode((900, 200))
+        self.display_surface = pygame.display.set_mode((700, 350))
         pygame.display.set_caption('Keyboard Control Panel')
 
-        self.font = pygame.font.Font('freesansbold.ttf', 20)
+        self.font = pygame.font.SysFont('liberationsans', 20)
 
         self.text = "After clicking on this window: \n" \
                     "- press Q / Esc to quit \n" \
-                    "- press / hold the arrow keys for small incremental changes of the speed commands \n" \
-                    "- press the W/S/A/D keys for large incremental changes of the speed commands \n" \
-                    "- press space bar to stop the robot"
+                    "- press space bar to stop the robot \n" \
+                    "- press R to respawn the robot \n" \
+                    "- press / hold the arrow keys to change the speed commands \n" \
+                    "- press the W/S/A/D keys to change the speed increments \n"
 
-        self.updateDisplay()
-
-    def updateDisplay(self):
+    def updateDisplay(self, realtime_factor):
         self.display_surface.fill(color=pygame.Color('black'))
-        text = self.text + "\n\nspeed commands: forward: {:.2f}  turn: {:.2f}".format(self.cmd[0], self.cmd[1])
+        text = self.text + "\n\n increments: forward: {0:.2f}  turn: {1:.2f}".format(*list(self.getCommandIncrements(
+        ) / self.cmd_scale)) + "\n\n speed commands: forward: {0:.2f}  turn: {1:.2f}".format(*list(self.getCommand())) + "\n\n realtime factor: {:.2f}".format(realtime_factor)
         blit_text(self.display_surface, text, (20, 20), self.font)
         pygame.display.update()
 
-    def processKeyEvents(self):
-        prev_cmd = copy.copy(self.cmd)
-
+    def processKeyEvents(self) -> Action:
         time_now = time.time()
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (
                 event.type == pygame.KEYDOWN and event.key in [
                     pygame.K_ESCAPE, pygame.K_q]):
-                pygame.quit()
-                return False
-            elif event.type == pygame.KEYDOWN and event.key in [pygame.K_SPACE, pygame.K_w, pygame.K_s, pygame.K_a, pygame.K_d]:
-                if event.key == pygame.K_SPACE:
-                    self.cmd = np.zeros(2)
-                elif event.key == pygame.K_w:
-                    self.cmd[0] += self.cmd_limits[0]
-                elif event.key == pygame.K_s:
-                    self.cmd[0] += -self.cmd_limits[0]
-                elif event.key == pygame.K_a:
-                    self.cmd[1] += -self.cmd_limits[1]
-                elif event.key == pygame.K_d:
-                    self.cmd[1] += self.cmd_limits[1]
+                return self.Action.QUIT
+            elif event.type == pygame.KEYDOWN and event.key in [pygame.K_SPACE, pygame.K_r]:
+                self.cmd = np.zeros(2)
+                if event.key == pygame.K_r:
+                    return self.Action.RESPAWN
             elif event.type in [pygame.KEYDOWN, pygame.KEYUP] and event.key in self.pressed.keys():
                 self.pressed[event.key] = [time_now, 10 * self.increment_time] if event.type == pygame.KEYDOWN else None
 
         for key, val in self.pressed.items():
             if val is not None and time_now >= val[0]:
                 self.pressed[key] = [val[0] + val[1], self.increment_time]
-                self.cmd += self.cmd_increment_scale * self.increment[key]
+                if key in self.cmd_increments:
+                    self.cmd += self.cmd_increments[key] * self.getCommandIncrements()
+                if key in self.increment_increments:
+                    self.increment_count += self.increment_increments[key]
 
         self.cmd = np.clip(self.cmd, -self.cmd_limits, self.cmd_limits)
+        self.increment_count = np.clip(self.increment_count, -30 * np.ones(2), np.zeros(2))
 
-        if any(prev_cmd != self.cmd):
-            self.updateDisplay()
+        return self.Action.NONE
 
-        return True
+    def getCommand(self):
+        return self.cmd / self.cmd_scale
+
+    def getCommandIncrements(self):
+        return self.cmd_limits * 2**(1 + self.increment_count / 4)
 
 
 if __name__ == '__main__':
-    param = Params()
-    param.realtime_factor = 2
-    param.camera_pitch = -30
-    sim = PyBulletSim(param)
+    sim = PyBulletSim()
 
     k = KeyboardCommander()
 
-    while k.processKeyEvents():
-        sim.simulate_step(k.cmd[0], VELOCITY_MODE, k.cmd[1])
+    filtered_rtf = 1
+    default_filter_constant = 0.05
+
+    action = k.Action.NONE
+    while action != k.Action.QUIT:
+        actual_rtf = sim.simulate_step(k.getCommand()[0], VELOCITY_MODE, k.getCommand()[1])
+        filter_constant = min(1, default_filter_constant / actual_rtf**2)
+        filtered_rtf = (1 - filter_constant) * filtered_rtf + filter_constant * actual_rtf
+        action = k.processKeyEvents()
+        k.updateDisplay(filtered_rtf)
+        if action == k.Action.RESPAWN:
+            sim.respawn()
 
     sim.terminate()
