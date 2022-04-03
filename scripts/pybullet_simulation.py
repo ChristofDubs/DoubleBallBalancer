@@ -63,6 +63,8 @@ class PyBulletSim:
         self.cam_pitch_param_id = p.addUserDebugParameter("camera_pitch", -89.9, 89.9, -30)
         self.cam_dist_param_id = p.addUserDebugParameter("camera_distance", 1, 50, 10)
 
+        self.cam_align_robot_param_id = p.addUserDebugParameter("align camera with robot (bool)", 0, 1, 1)
+
         self.timestep_param_id = p.addUserDebugParameter("simulation_timestep", 1 / 240, 1 / 60, 1 / 60)
         self.rtf_param_id = p.addUserDebugParameter("realtime_factor", 0.1, 5, 2)
 
@@ -103,10 +105,12 @@ class PyBulletSim:
 
         p.stepSimulation()
 
-        upper_ball_fwd_dir = 90 + projectModelState(state)[2][0] * 180 / np.pi
+        camera_yaw_offset = 90
+        if p.readUserDebugParameter(self.cam_align_robot_param_id):
+            camera_yaw_offset += projectModelState(state)[2][0] * 180 / np.pi
         p.resetDebugVisualizerCamera(
             cameraDistance=p.readUserDebugParameter(self.cam_dist_param_id),
-            cameraYaw=upper_ball_fwd_dir + p.readUserDebugParameter(self.cam_yaw_param_id),
+            cameraYaw=p.readUserDebugParameter(self.cam_yaw_param_id) + camera_yaw_offset,
             cameraPitch=p.readUserDebugParameter(self.cam_pitch_param_id),
             cameraTargetPosition=[state.pos[0], state.pos[1], 5])
 
