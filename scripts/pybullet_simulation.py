@@ -18,22 +18,11 @@ ANGLE_MODE = ANGLE_MODE
 VELOCITY_MODE = VELOCITY_MODE
 
 
-@dataclass
-class Params:
-    """Class for keeping track of an item in inventory."""
-    realtime_factor: float = 1
-    camera_forward_dir_offset: float = 0
-    camera_pitch: float = -30
-    time_step: float = 1 / 120
-
-
 class PyBulletSim:
-    def __init__(self, param: Params):
-        self.param = param
+    def __init__(self):
         self.start_time = time.time()
 
         p.connect(p.GUI)
-        p.setTimeStep(self.param.time_step)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
         p.setGravity(0, 0, -9.81)
@@ -70,6 +59,13 @@ class PyBulletSim:
         p.changeVisualShape(self.lower_ball_id, -1, textureUniqueId=texUid)
         p.changeVisualShape(self.robot_id, -1, textureUniqueId=texUid)
 
+        self.cam_yaw_param_id = p.addUserDebugParameter("camera_yaw", -180, 180, 0)
+        self.cam_pitch_param_id = p.addUserDebugParameter("camera_pitch", -89.9, 89.9, -30)
+        self.cam_dist_param_id = p.addUserDebugParameter("camera_distance", 1, 50, 10)
+
+        self.timestep_param_id = p.addUserDebugParameter("simulation_timestep", 1 / 240, 1 / 60, 1 / 60)
+        self.rtf_param_id = p.addUserDebugParameter("realtime_factor", 0.1, 5, 2)
+
         # load controller
         param = ModelParam()
         param.l = 1.0
@@ -102,21 +98,24 @@ class PyBulletSim:
             targetVelocities=omega_cmd,
             velocityGains=[0.1, 0.1])
 
+        time_step = p.readUserDebugParameter(self.timestep_param_id)
+        p.setTimeStep(time_step)
+
         p.stepSimulation()
 
-        if self.param.camera_forward_dir_offset is not None and self.param.camera_pitch is not None:
-            upper_ball_fwd_dir = 90 + projectModelState(state)[2][0] * 180 / np.pi
-            p.resetDebugVisualizerCamera(
-                cameraDistance=10.0,
-                cameraYaw=upper_ball_fwd_dir + self.param.camera_forward_dir_offset,
-                cameraPitch=self.param.camera_pitch,
-                cameraTargetPosition=[state.pos[0], state.pos[1], 5])
+        upper_ball_fwd_dir = 90 + projectModelState(state)[2][0] * 180 / np.pi
+        p.resetDebugVisualizerCamera(
+            cameraDistance=p.readUserDebugParameter(self.cam_dist_param_id),
+            cameraYaw=upper_ball_fwd_dir + p.readUserDebugParameter(self.cam_yaw_param_id),
+            cameraPitch=p.readUserDebugParameter(self.cam_pitch_param_id),
+            cameraTargetPosition=[state.pos[0], state.pos[1], 5])
 
+        realtime_factor = p.readUserDebugParameter(self.rtf_param_id)
         time_passed = time.time() - self.start_time
-        sleep_time = self.param.time_step / self.param.realtime_factor - time_passed
+        sleep_time = time_step / realtime_factor - time_passed
         time.sleep(max(sleep_time, 0))
         self.start_time += time_passed
-        return self.param.realtime_factor if sleep_time > 0 else self.param.time_step / time_passed
+        return realtime_factor if sleep_time > 0 else time_step / time_passed
 
     def terminate(self):
         p.disconnect()
@@ -174,15 +173,11 @@ class PyBulletSim:
 
 
 if __name__ == '__main__':
-
-    param = Params()
-    param.camera_forward_dir_offset = -60
-    param.camera_pitch = -30
-    sim = PyBulletSim(param)
+    sim = PyBulletSim()
 
     sim_time = 40
 
-    for i in range(int(sim_time / param.time_step)):
+    for i in range(int(sim_time / p.readUserDebugParameter(sim.timestep_param_id))):
         sim.simulate_step(8 * np.pi, ANGLE_MODE, 0)
 
     sim.terminate()
