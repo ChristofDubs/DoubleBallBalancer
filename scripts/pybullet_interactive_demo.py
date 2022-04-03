@@ -46,13 +46,13 @@ class KeyboardCommander:
         self.increment_count = -8 * np.ones(2)
         self.cmd_increments = {pygame.K_UP: np.array([1, 0]),
                                pygame.K_DOWN: np.array([-1, 0]),
-                               pygame.K_LEFT: np.array([0, -1]),
-                               pygame.K_RIGHT: np.array([0, 1])}
+                               pygame.K_LEFT: np.array([0, 1]),
+                               pygame.K_RIGHT: np.array([0, -1])}
 
         self.increment_increments = {pygame.K_w: np.array([1, 0]),
                                      pygame.K_s: np.array([-1, 0]),
-                                     pygame.K_a: np.array([0, -1]),
-                                     pygame.K_d: np.array([0, 1])}
+                                     pygame.K_a: np.array([0, 1]),
+                                     pygame.K_d: np.array([0, -1])}
 
         self.pressed = {key: None for key in list(self.cmd_increments.keys()) + list(self.increment_increments.keys())}
 
@@ -71,8 +71,8 @@ class KeyboardCommander:
 
     def updateDisplay(self, realtime_factor):
         self.display_surface.fill(color=pygame.Color('black'))
-        text = self.text + "\n\n increments: forward: {0:.2f}  turn: {1:.2f}".format(*list(self.getCommandIncrements(
-        ) / self.cmd_scale)) + "\n\n speed commands: forward: {0:.2f}  turn: {1:.2f}".format(*list(self.getCommand())) + "\n\n realtime factor: {:.2f}".format(realtime_factor)
+        text = "speed commands: forward: {0:.2f}  turn: {1:.2f}".format(*list(self.getCommand())) + "\n\nincrements: forward: {0:.2f}  turn: {1:.2f}".format(
+            *list(self.getCommandIncrements() / self.cmd_scale)) + "\n realtime factor: {:.2f} \n\n".format(realtime_factor) + self.text
         blit_text(self.display_surface, text, (20, 20), self.font)
         pygame.display.update()
 
@@ -120,7 +120,7 @@ if __name__ == '__main__':
 
     action = k.Action.NONE
     while action != k.Action.QUIT:
-        actual_rtf = sim.simulate_step(k.getCommand()[0], VELOCITY_MODE, k.getCommand()[1])
+        actual_rtf = sim.simulate_step(k.getCommand()[0], VELOCITY_MODE, -k.getCommand()[1])
         filter_constant = min(1, default_filter_constant / actual_rtf**2)
         filtered_rtf = (1 - filter_constant) * filtered_rtf + filter_constant * actual_rtf
         action = k.processKeyEvents()
