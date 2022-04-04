@@ -4,6 +4,8 @@ The double ball balancer is a robotic system consisting of a ball with a movable
 
 ### Try out the interactive demo
 
+The interactive demo allows controlling the robot through the keyboard in the [pybullet](https://pybullet.org) simulation environment.
+
 To run the scripts in the `scripts` folder, install python3, and then install the requirements:
 
 `python3 -m pip install -r requirements.txt`
@@ -12,7 +14,7 @@ Then, run the interactive demo:
 
 `python3 scripts/pybullet_interactive_demo.py`
 
-[![Watch the video](https://user-images.githubusercontent.com/4960007/161436128-bbe408ba-cfad-409d-8ecd-9b52a6a01ae4.gif)](https://youtu.be/dtGM_VB2aCw)
+[![Watch the video](https://user-images.githubusercontent.com/4960007/161436128-bbe408ba-cfad-409d-8ecd-9b52a6a01ae4.gif)](https://youtu.be/SmjYLHc5eRc)
 
 ### Angle control demo
 
