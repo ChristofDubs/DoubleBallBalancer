@@ -10,6 +10,8 @@ To run the scripts in the `scripts` folder, install python3, and then install th
 
 `python3 -m pip install -r requirements.txt`
 
+(if there are errors related to missing distributions, try upgrading pip first: `python3 -m pip install --user --upgrade pip`)
+
 Then, run the interactive demo:
 
 `python3 scripts/pybullet_interactive_demo.py`
