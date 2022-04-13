@@ -3,6 +3,8 @@
 Derivation of the rigid multi-body dynamics using the Projected Newton-Euler method.
 """
 import argparse
+import pickle
+
 from sympy import Matrix, cse, diff, factor, expand, simplify, solve, symbols, zeros, sin, cos
 
 
@@ -33,13 +35,15 @@ omega = Matrix([alpha_dot[N - 1]] + psi_dot + [phi_dot])
 omega_dot = Matrix([alpha_ddot[N - 1]] + psi_ddot + [phi_ddot])
 
 # parameter
-l, m_l, theta_l = symbols('l, m_l, theta_l')
+r_l, m_l, theta_l = symbols('r_l, m_l, theta_l')
 m = [symbols('m_{}'.format(i)) for i in range(N)] + [m_l]
-r = [symbols('r_{}'.format(i)) for i in range(N)]
+r = [symbols('r_{}'.format(i)) for i in range(N)] + [r_l]
 theta = [symbols('theta_{}'.format(i)) for i in range(N)] + [theta_l]
 
 # constants
 g, tau = symbols('g tau')
+
+all_constants = m + r + theta + [g, tau]
 
 # inputs
 omega_cmd, T = symbols('omega_cmd T')
@@ -48,15 +52,23 @@ omega_cmd, T = symbols('omega_cmd T')
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="generation of symbolic dynamics of 2D N Ball Balancer")
+
     parser.add_argument(
         "-d",
-        "--disable-printing-dynamics",
-        help="disable printing of common sub-expressions for dynamic model",
+        "--disable-saving-dynamics",
+        help="Disable writing non-linear dynamics to pickle file",
         action="store_true",
         default=False)
+    parser.add_argument(
+        "-p",
+        "--print-dynamics",
+        help="print common sub-expressions for dynamic model",
+        action="store_true",
+        default=True)
+
     args = parser.parse_args()
 
-    if args.disable_printing_dynamics and not args.print_latex_expressions:
+    if args.disable_saving_dynamics and not args.print_dynamics:
         print('Nothing to do: {} ! Exiting.'.format(args.__dict__))
         exit()
 
@@ -138,27 +150,13 @@ if __name__ == '__main__':
 
     dyn_new[-1] = gamma_ddot - 1 / tau * (omega_cmd - gamma_dot)
 
-    if not args.disable_printing_dynamics:
+    if args.print_dynamics:
         A = dyn_new.jacobian(omega_dot)
         b = -dyn_new.subs([(x, 0) for x in omega_dot])
 
         common_sub_expr = cse([A, b])
 
-        sub_list = [
-            (x,
-             symbols('self.p.' +
-                     x)) for x in [
-                'g',
-                'l',
-                'm1',
-                'm2',
-                'm3',
-                'r1',
-                'r2',
-                'tau',
-                'theta1',
-                'theta2',
-                'theta3']]
+        sub_list = [(x, symbols('self.p.' + str(x))) for x in all_constants]
 
         for term in common_sub_expr[0]:
             print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
@@ -166,19 +164,8 @@ if __name__ == '__main__':
         print_symbolic(common_sub_expr[1][0], 'A', sub_list)
         print_symbolic(common_sub_expr[1][1], 'b', sub_list)
 
-    # linearize system around equilibrium [beta, 0, 0, 0, 0, 0]
-    eq = [
-        (x,
-         0) for x in [
-            'phi',
-            'psi',
-            'beta_dot',
-            'phi_dot',
-            'psi_dot',
-            'beta_dd',
-            'phi_dd',
-            'psi_dd',
-            'omega_cmd']]
+    # linearize system around equilibrium [alpha_N, 0, ... , 0]
+    eq = [(x, 0) for x in ang[1:] + omega[:] + omega_dot[:]]
 
     dyn_lin = dyn_new.subs(eq)
     for vec in [ang, omega, omega_dot]:
@@ -186,7 +173,13 @@ if __name__ == '__main__':
 
     dyn_lin += dyn_new.diff(omega_cmd, 1).subs(eq) * omega_cmd
 
-    if not args.disable_printing_dynamics:
+    if not args.disable_saving_dynamics:
+        dynamics_pickle_file = 'linear_dynamics.p'
+        print('write dynamics to {}'.format(dynamics_pickle_file))
+        pickle.dump(dyn_lin, open(dynamics_pickle_file, "wb"))
+
+    if args.print_dynamics:
+
         print(dyn_lin)
 
         # calculate contact forces
@@ -196,25 +189,10 @@ if __name__ == '__main__':
 
         common_sub_expr = cse(F)
 
-        sub_list = [
-            (x,
-             symbols('self.p.' +
-                     x)) for x in [
-                'g',
-                'l',
-                'm1',
-                'm2',
-                'm3',
-                'r1',
-                'r2',
-                'tau',
-                'theta1',
-                'theta2',
-                'theta3']]
+        sub_list = [(x, symbols('self.p.' + str(x))) for x in all_constants]
 
         for term in common_sub_expr[0]:
             print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
 
-        print_symbolic(common_sub_expr[1][0], 'F1', sub_list)
-        print_symbolic(common_sub_expr[1][1], 'F12', sub_list)
-        print_symbolic(common_sub_expr[1][2], 'F23', sub_list)
+        for i, term in enumerate(common_sub_expr[1]):
+            print_symbolic(term, 'F_{}'.format(i), sub_list)
