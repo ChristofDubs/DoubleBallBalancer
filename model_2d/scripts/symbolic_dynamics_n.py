@@ -19,7 +19,7 @@ def print_symbolic(mat, name, sub_list, func=lambda x: x, ignore_symmetry=True):
 # angles
 
 
-N = 3
+N = 2
 alpha = [symbols('alpha_{}'.format(i)) for i in range(N)]
 alpha_dot = [symbols('alpha_dot_{}'.format(i)) for i in range(N)]
 alpha_ddot = [symbols('alpha_ddot_{}'.format(i)) for i in range(N)]
@@ -30,9 +30,9 @@ psi_ddot = [symbols('psi_ddot_{}'.format(i)) for i in range(N - 1)]
 
 phi, phi_dot, phi_ddot = symbols('phi phi_dot phi_ddot')
 
-ang = Matrix([alpha[N - 1]] + psi + [phi])
-omega = Matrix([alpha_dot[N - 1]] + psi_dot + [phi_dot])
-omega_dot = Matrix([alpha_ddot[N - 1]] + psi_ddot + [phi_ddot])
+ang = Matrix([alpha[N - 1]] + [phi] + psi)
+omega = Matrix([alpha_dot[N - 1]] + [phi_dot] + psi_dot)
+omega_dot = Matrix([alpha_ddot[N - 1]] + [phi_ddot] + psi_ddot)
 
 # parameter
 r_l, m_l, theta_l = symbols('r_l, m_l, theta_l')
@@ -111,7 +111,7 @@ if __name__ == '__main__':
         v_OS_i[j] = v_OS_i[j].subs(sub_list)
         omega_i[i] = omega_i[i].subs(sub_list)
 
-    r_SnSl = l * Matrix([sin(phi), -cos(phi), 0])
+    r_SnSl = r_l * Matrix([sin(phi), -cos(phi), 0])
     v_OS_i.append(v_OS_i[-1] + omega_i[-1].cross(r_SnSl))
 
     # calculate Jacobians
@@ -140,15 +140,15 @@ if __name__ == '__main__':
 
     # eliminate torque T by inspection
     dyn_new = dyn
-    dyn_new[0] = dyn_new[0] + dyn_new[-1]
-    dyn_new[-1] = 0
+    dyn_new[0] = dyn_new[0] + dyn_new[1]
+    dyn_new[1] = 0
     assert(dyn_new.diff(T) == zeros(N + 1, 1))
 
     # add motor dynamics
     gamma_ddot = phi_ddot - alpha_ddot[-1]
     gamma_dot = phi_dot - alpha_dot[-1]
 
-    dyn_new[-1] = gamma_ddot - 1 / tau * (omega_cmd - gamma_dot)
+    dyn_new[1] = gamma_ddot - 1 / tau * (omega_cmd - gamma_dot)
 
     if args.print_dynamics:
         A = dyn_new.jacobian(omega_dot)
@@ -165,7 +165,7 @@ if __name__ == '__main__':
         print_symbolic(common_sub_expr[1][1], 'b', sub_list)
 
     # linearize system around equilibrium [alpha_N, 0, ... , 0]
-    eq = [(x, 0) for x in ang[1:] + omega[:] + omega_dot[:]]
+    eq = [(x, 0) for x in ang[1:] + omega[:] + omega_dot[:] + [omega_cmd]]
 
     dyn_lin = dyn_new.subs(eq)
     for vec in [ang, omega, omega_dot]:
@@ -174,13 +174,13 @@ if __name__ == '__main__':
     dyn_lin += dyn_new.diff(omega_cmd, 1).subs(eq) * omega_cmd
 
     if not args.disable_saving_dynamics:
-        dynamics_pickle_file = 'linear_dynamics.p'
-        print('write dynamics to {}'.format(dynamics_pickle_file))
+        dynamics_pickle_file = f'linear_dynamics_{N}.p'
+        print(f'write dynamics to {dynamics_pickle_file}')
         pickle.dump(dyn_lin, open(dynamics_pickle_file, "wb"))
 
     if args.print_dynamics:
 
-        print(dyn_lin)
+        print(simplify(dyn_lin))
 
         # calculate contact forces
         F = [p_dot_i[-1] - F_i[-1]]

@@ -9,25 +9,18 @@ import pickle
 
 from symbolic_dynamics_n import ang, omega, omega_dot, omega_cmd, all_constants
 
-use_pole_placement = True
+N = 2
 
-dyn_lin = pickle.load(open("linear_dynamics.p", "rb"))
+dyn_lin = pickle.load(open(f"linear_dynamics_{N}.p", "rb"))
 
 # substitute parameters with numerical values
-dyn_lin = dyn_lin.subs("l", 1.0)
-dyn_lin = dyn_lin.subs("r_0", 4.0)
-dyn_lin = dyn_lin.subs("r_1", 3.0)
-dyn_lin = dyn_lin.subs("r_2", 2.0)
-dyn_lin = dyn_lin.subs("m_l", 1.0)
-dyn_lin = dyn_lin.subs("m_0", 1.0)
-dyn_lin = dyn_lin.subs("m_1", 1.0)
-dyn_lin = dyn_lin.subs("m_2", 1.0)
-dyn_lin = dyn_lin.subs("theta_l", 1.0)
-dyn_lin = dyn_lin.subs("theta_0", 1.0)
-dyn_lin = dyn_lin.subs("theta_1", 1.0)
-dyn_lin = dyn_lin.subs("theta_2", 1.0)
-dyn_lin = dyn_lin.subs("g", 9.81)
-dyn_lin = dyn_lin.subs("tau", 0.1)
+sub_list = [("g", 9.81), ("tau", 0.1), ("r_l", 1.0), ("m_l", 1.0), ("theta_l", 1.0)]
+for i in range(N):
+    sub_list.append(("r_{}".format(i), N + 1 - i))
+    sub_list.append(("m_{}".format(i), 1))
+    sub_list.append(("theta_{}".format(i), 1))
+
+dyn_lin = dyn_lin.subs(sub_list)
 
 assert(dyn_lin.jacobian(all_constants).is_zero_matrix)
 
@@ -50,6 +43,7 @@ B = np.zeros([2 * dim, 1], dtype=float)
 
 B[dim:, :] = np.array(-M.LUsolve(Bd))
 
+# check controlability matrix
 X = [B]
 for _ in range(dim - 1):
     X.append(np.dot(A, X[-1]))
@@ -61,13 +55,12 @@ assert(np.linalg.matrix_rank(X) == dim)
 # eigenvalues
 print('open loop eigenvalues: \n{}'.format(np.linalg.eigvals(A)))
 
-
 # LQR controller:
 # https://en.wikipedia.org/wiki/Linear%E2%80%93quadratic_regulator
 R = np.ones([1, 1], dtype=float) * 1
 # not punishing alpha_N deviations will stabilize the system at an arbitrary alpha_N
-# state: alpha_2, psi_0, psi_1, phi, alpha_2_dot, psi_0_dot, psi_1_dot, phi_dot
-Q = np.diag(np.array([0, 0, 0, 0, 4, 8, 16, 4], dtype=float))
+# state: alpha_N-1, phi, psi_0, ...,  psi_N, alpha_N-1_dot, phi_dot, psi_0_dot, ... , psi_N-1_dot
+Q = np.diag(np.concatenate([np.zeros(N + 1), np.array([4, 8]), np.array([4 * (2**x) for x in range(N - 1)])]))
 
 # solve continuous Riccati equation
 P = solve_continuous_are(A, B, Q, R)

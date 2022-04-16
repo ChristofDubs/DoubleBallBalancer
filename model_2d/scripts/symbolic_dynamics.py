@@ -16,7 +16,7 @@ def print_symbolic(mat, name, sub_list, func=lambda x: x, ignore_symmetry=True):
 
 
 parser = argparse.ArgumentParser(
-    description="generation of symbolic dynamics of 3D Double Ball Balancer")
+    description="generation of symbolic dynamics of 2D Double Ball Balancer")
 parser.add_argument(
     "-d",
     "--disable-printing-dynamics",
