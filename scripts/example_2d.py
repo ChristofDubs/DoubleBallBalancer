@@ -7,9 +7,14 @@ import argparse
 
 import context
 
-from model_2d.dynamic_model import ModelParam, DynamicModel
+from model_2d.dynamic_model import ModelParam
 from model_2d.controller import Controller
 from model_2d.definitions import *
+from model_2d.param import getDefaultParam
+
+N = 2
+
+exec(f'from model_2d.dynamics_{N} import DynamicModel{N} as DynamicModel')
 
 parser = argparse.ArgumentParser(description="Test 2D double ball balancer")
 parser.add_argument("-a", "--no-animation", help="disable animation", action="store_true")
@@ -39,11 +44,16 @@ param.theta1 = 1.0
 param.theta2 = 1.0
 param.theta3 = 1.0
 
+model_param = getDefaultParam(N)
+model_param["r_2"] = 1.0
+model_param["r_1"] = 2.0
+model_param["r_0"] = 3.0
+
 # initial state
 x0 = np.zeros(STATE_SIZE)
 
 # instantiate model
-model = DynamicModel(param, x0)
+model = DynamicModel(model_param, x0)
 
 # instantiate controller
 controller = Controller(param)
@@ -65,7 +75,7 @@ u = 0
 contact_forces = None
 
 # simulate until system is irrecoverable or max_sim_time reached
-while not model.is_irrecoverable(
+while model.is_recoverable(
         contact_forces=contact_forces,
         omega_cmd=u) and sim_time < max_sim_time:
     # get control input
@@ -82,13 +92,13 @@ while not model.is_irrecoverable(
 
         # plot
         plt.cla()
-        plt.plot(*vis['lower_ball'])
-        plt.plot(*vis['upper_ball'])
-        plt.plot(*vis['lever_arm'])
+        plt.plot(*vis['0'])
+        plt.plot(*vis['1'])
+        plt.plot(*vis['2'])
         if enable_contact_forces:
+            plt.arrow(*vis['F0'], head_width=0.1, color='red')
             plt.arrow(*vis['F1'], head_width=0.1, color='red')
-            plt.arrow(*vis['F12'], head_width=0.1, color='red')
-            plt.arrow(*vis['F23'], head_width=0.1, color='red')
+            plt.arrow(*vis['F2'], head_width=0.1, color='red')
         plt.xlabel('x [m]')
         plt.ylabel('y [m]')
         plt.axis('equal')
