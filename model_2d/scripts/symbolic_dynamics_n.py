@@ -39,8 +39,9 @@ def writeCSE(expr_list: dict, file: str, state_dict: dict, sub_list: list, print
         file.write(2 * indent + f'return [{", ".join(expr_list.keys())}]\n')
 
 
-# angles
 N = 2
+
+# angles
 alpha = [symbols('alpha_{}'.format(i)) for i in range(N)]
 alpha_dot = [symbols('alpha_dot_{}'.format(i)) for i in range(N)]
 alpha_ddot = [symbols('alpha_ddot_{}'.format(i)) for i in range(N)]
@@ -113,7 +114,7 @@ if __name__ == '__main__':
 
         r_OS_i.append(r_OS_i[i] + r_SiSj)
 
-        v_SiSj = r_SiSj.jacobian(alpha) * Matrix(alpha_dot) + r_SiSj.jacobian(psi) * Matrix(psi_dot)
+        v_SiSj = r_SiSj.jacobian(alpha[i:]) * Matrix(alpha_dot[i:]) + r_SiSj.jacobian(psi) * Matrix(psi_dot)
 
         v_OS_i.append(v_OS_i[i] + v_SiSj)
 
@@ -128,12 +129,13 @@ if __name__ == '__main__':
         omega_to_ang = [((alpha_dot + omega[1:])[i], (alpha + ang[1:])[i]) for i in range(len(alpha + ang[1:]))]
         sub_list = [(alpha_dot[i], constraint1), (alpha[i], constraint1.subs(omega_to_ang))]
 
-        r_OS_i[i] = r_OS_i[i].subs(sub_list)
-        r_OS_i[j] = r_OS_i[j].subs(sub_list)
-        v_OS_i[i] = v_OS_i[i].subs(sub_list)
-        v_OS_i[j] = v_OS_i[j].subs(sub_list)
-        omega_i[i] = omega_i[i].subs(sub_list)
-        alpha[i] = constraint1.subs(omega_to_ang)
+        for k in range(j + 1):
+            r_OS_i[k] = r_OS_i[k].subs(sub_list)
+            v_OS_i[k] = v_OS_i[k].subs(sub_list)
+            omega_i[k] = omega_i[k].subs(sub_list)
+
+        for k in range(j):
+            alpha[k] = alpha[k].subs(sub_list)
 
     r_SnSl = r[N] * Matrix([sin(phi), -cos(phi), 0])
     v_OS_i.append(v_OS_i[-1] + omega_i[-1].cross(r_SnSl))

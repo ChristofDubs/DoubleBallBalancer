@@ -92,13 +92,10 @@ while model.is_recoverable(
 
         # plot
         plt.cla()
-        plt.plot(*vis['0'])
-        plt.plot(*vis['1'])
-        plt.plot(*vis['2'])
-        if enable_contact_forces:
-            plt.arrow(*vis['F0'], head_width=0.1, color='red')
-            plt.arrow(*vis['F1'], head_width=0.1, color='red')
-            plt.arrow(*vis['F2'], head_width=0.1, color='red')
+        for i in range(N + 1):
+            plt.plot(*vis[str(i)])
+            if enable_contact_forces:
+                plt.arrow(*vis[f'F{i}'], head_width=0.1, color='red')
         plt.xlabel('x [m]')
         plt.ylabel('y [m]')
         plt.axis('equal')
