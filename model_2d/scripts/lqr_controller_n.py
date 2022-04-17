@@ -1,29 +1,22 @@
 """Script to compute LQR-controller gain for stabilizing the 2D N Ball Balancer, based on numerical parameter values.
 """
+import context
+
 import numpy as np
 from scipy.linalg import solve_continuous_are
-from scipy.signal import place_poles
 import matplotlib.pyplot as plt
 
 import pickle
 
 from symbolic_dynamics_n import ang, omega, omega_dot, omega_cmd, all_constants
+from model_2d.param import getDefaultParam
 
-def generateParameterSubstitutionList(N: int):
-    # substitute parameters with numerical values
-    sub_list = [("g", 9.81), ("tau", 0.1), ("r_l", 1.0), ("m_l", 1.0), ("theta_l", 1.0)]
-    for i in range(N):
-        sub_list.append(("r_{}".format(i), 1))
-        # sub_list.append(("r_{}".format(i), N + 1 - i))
-        sub_list.append(("m_{}".format(i), 1))
-        sub_list.append(("theta_{}".format(i), 1))
-    return sub_list
 
 def computeControllerGains(N: int, verbose: bool=False):
 
     dyn_lin = pickle.load(open(f"linear_dynamics_{N}.p", "rb"))
 
-    dyn_lin = dyn_lin.subs(generateParameterSubstitutionList(N))
+    dyn_lin = dyn_lin.subs(getDefaultParam(N))
 
     assert(dyn_lin.jacobian(all_constants).is_zero_matrix)
 
@@ -80,8 +73,9 @@ def computeControllerGains(N: int, verbose: bool=False):
         # find minimal damping coefficient
         zeta = [np.absolute(e.real) / np.absolute(e) for e in eig if e < 0]
         print('minimal damping ratio: {}'.format(min(zeta)))
-    
+
     return K, eig
+
 
 if __name__ == '__main__':
 

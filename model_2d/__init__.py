@@ -1,1 +1,1 @@
-__all__ = ['definitions', 'dynamic_model', 'controller']
+__all__ = ['definitions', 'dynamic_model', 'dynamics_2', 'controller', 'param']

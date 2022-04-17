@@ -198,7 +198,7 @@ if __name__ == '__main__':
             file.write('import numpy as np\n')
             file.write('from numpy import sin, cos\n')
 
-            sub_list = [(x, symbols('param.' + str(x))) for x in all_constants]
+            sub_list = [(x, symbols(f'param["{x}"]')) for x in all_constants]
 
             # enum with state indices
             state_dict = {x: str(x).upper() + '_IDX' for y in [ang, omega] for x in y}
@@ -235,15 +235,5 @@ if __name__ == '__main__':
             file.write('\n\ndef computePositions(x, param):\n')
 
             writeCSE({f'r_OS_{i}': val for i, val in enumerate(r_OS_i)}, file, state_dict, sub_list)
-
-            # default params
-            file.write('\n\n@dataclass\nclass ModelParam:\n')
-
-            for key, val in [("g", 9.81), ("tau", 0.1), ("r_l", 1.0), ("m_l", 1.0), ("theta_l", 1.0)]:
-                file.write(indent + f'{key}: float={val}\n')
-
-            for i in range(N):
-                for prefix in ["r", "m", "theta"]:
-                    file.write(indent + f'{prefix}_{i}: float=1.0\n')
 
         print(f"written dynamics to {file_name}")
