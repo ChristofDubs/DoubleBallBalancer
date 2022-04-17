@@ -19,19 +19,20 @@ def getDefaultParam(N: int):
     Returns: dictionary of parameters values (key: parameter name; value: parameter value)
 
         g: Gravitational constant [m/s^2]
-        m_l: Mass of lever arm [kg]
-        r_l: Arm length of lever [m] (distance from rotation axis to center of mass)
-        theta_l: Mass moment of inertia of lever arm wrt. its center of mass [kg*m^2]
 
         m_0, m_1, ... , m_{N-1}: Mass of each ball [kg]
         r_0, r_1, ... , r_{N-1}: Radius of each ball [m]
         theta_0, theta_1, ... , theta_{N-1}: Mass moment of inertia of each ball wrt. its center of mass [kg*m^2]
 
+        m_{N}: Mass of lever arm [kg]
+        r_{N}: Arm length of lever [m] (distance from rotation axis to center of mass)
+        theta_{N}: Mass moment of inertia of lever arm wrt. its center of mass [kg*m^2]
+
         tau: time constant of speed controlled motor [s]
     """
-    d = {"g": 9.81, "tau": 0.1, "r_l": 1.0, "m_l": 1.0, "theta_l": 1.0}
-    for i in range(N):
+    d = {"g": 9.81, "tau": 0.1}
+    for i in range(N + 1):
         for prefix in ["r", "m", "theta"]:
             d[f'{prefix}_{i}'] = 1.0
-
+    d[f'r_{N}'] = 0.8
     return d

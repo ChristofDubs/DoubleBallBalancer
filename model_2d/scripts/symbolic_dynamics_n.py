@@ -56,10 +56,9 @@ omega = Matrix([alpha_dot[N - 1]] + [phi_dot] + psi_dot)
 omega_dot = Matrix([alpha_ddot[N - 1]] + [phi_ddot] + psi_ddot)
 
 # parameter
-r_l, m_l, theta_l = symbols('r_l, m_l, theta_l')
-m = [symbols('m_{}'.format(i)) for i in range(N)] + [m_l]
-r = [symbols('r_{}'.format(i)) for i in range(N)] + [r_l]
-theta = [symbols('theta_{}'.format(i)) for i in range(N)] + [theta_l]
+m = [symbols('m_{}'.format(i)) for i in range(N + 1)]
+r = [symbols('r_{}'.format(i)) for i in range(N + 1)]
+theta = [symbols('theta_{}'.format(i)) for i in range(N + 1)]
 
 # constants
 g, tau = symbols('g tau')
@@ -135,8 +134,9 @@ if __name__ == '__main__':
         v_OS_i[j] = v_OS_i[j].subs(sub_list)
         omega_i[i] = omega_i[i].subs(sub_list)
 
-    r_SnSl = r_l * Matrix([sin(phi), -cos(phi), 0])
+    r_SnSl = r[N] * Matrix([sin(phi), -cos(phi), 0])
     v_OS_i.append(v_OS_i[-1] + omega_i[-1].cross(r_SnSl))
+    r_OS_i.append(r_OS_i[-1] + r_SnSl)
 
     # calculate Jacobians
     J_i = [v.jacobian(omega) for v in v_OS_i]
