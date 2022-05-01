@@ -6,7 +6,7 @@ import numpy as np
 import context
 
 from model_2d.dynamic_model import ModelParam, DynamicModel
-from model_2d.controller import Controller as Ctrl
+from model_2d.controller_2 import Controller as Ctrl
 from model_2d.definitions import *
 from crocoddyl_controller import Controller
 

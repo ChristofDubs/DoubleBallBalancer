@@ -11,7 +11,10 @@ def saturate(x, limit):
 
 
 class Controller3(object):
-    def __init__(self,):
+    ANGLE_MODE = StateIndex.ALPHA_2_IDX
+    VELOCITY_MODE = StateIndex.ALPHA_DOT_2_IDX
+
+    def __init__(self, _):
         self.K = np.array([0., 26.62771567, -199.45731763, -327.80147739, -
                            1.23606798, 9.73717718, -133.08516459, -137.62380736])
         self.kp = 0.2
@@ -19,11 +22,11 @@ class Controller3(object):
         self.beta_dot_max = None
         self.beta_ddot_max = 5
 
-    def compute_ctrl_input(self, x, beta_cmd, mode=StateIndex.ALPHA_2_IDX):
+    def compute_ctrl_input(self, x, beta_cmd, mode=ANGLE_MODE):
         beta_dot_cmd = None
-        if mode is StateIndex.ALPHA_2_IDX:
+        if mode is self.ANGLE_MODE:
             beta_dot_cmd = self.kp * (beta_cmd - x[StateIndex.ALPHA_2_IDX]) - self.kd * x[StateIndex.ALPHA_DOT_2_IDX]
-        elif mode is StateIndex.ALPHA_DOT_2_IDX:
+        elif mode is self.VELOCITY_MODE:
             beta_dot_cmd = beta_cmd
         else:
             assert(False)
@@ -44,5 +47,3 @@ class Controller3(object):
             (phi_des - x[StateIndex.PHI_IDX]) - self.K[StateIndex.PHI_DOT_IDX] * x[StateIndex.PHI_DOT_IDX]
 
         return phi_dot_des - x[StateIndex.ALPHA_DOT_2_IDX]
-
-        # return -np.dot(self.K, x) + (self.K[StateIndex.ALPHA_DOT_2_IDX] - 1) * beta_dot_cmd

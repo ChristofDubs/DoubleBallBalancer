@@ -35,4 +35,11 @@ def getDefaultParam(N: int):
         for prefix in ["r", "m", "theta"]:
             d[f'{prefix}_{i}'] = 1.0
     d[f'r_{N}'] = 0.8
+
+    if N == 2:
+        # parameters for which the 2-Ball controllers were tuned
+        d["r_2"] = 1.0
+        d["r_1"] = 2.0
+        d["r_0"] = 3.0
+
     return d

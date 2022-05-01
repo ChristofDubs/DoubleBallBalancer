@@ -82,8 +82,8 @@ class PyBulletSim:
         self.respawn()
 
     def respawn(self):
-        lowerBallSpawnPos = [0, 0, self.controller.ctrl_2d.param.r1]
-        robotSpawnPos = [0, 0, 2 * self.controller.ctrl_2d.param.r1 + self.controller.ctrl_2d.param.r2]
+        lowerBallSpawnPos = [0, 0, self.controller.ctrl_2d.param["r_0"]]
+        robotSpawnPos = [0, 0, 2 * self.controller.ctrl_2d.param["r_0"] + self.controller.ctrl_2d.param["r_1"]]
         defaultOrientation = p.getQuaternionFromEuler([0, 0, 0])
         p.resetBasePositionAndOrientation(self.lower_ball_id, lowerBallSpawnPos, defaultOrientation)
         p.resetBasePositionAndOrientation(self.robot_id, robotSpawnPos, defaultOrientation)
