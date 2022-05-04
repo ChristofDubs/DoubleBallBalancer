@@ -5,26 +5,17 @@ import numpy as np
 
 import context
 
-from model_2d.dynamic_model import ModelParam, DynamicModel
-from model_2d.controller_2 import Controller as Ctrl
-from model_2d.definitions import *
+from model_2d.param import getDefaultParam
+from model_2d.dynamics_2 import DynamicModel2 as DynamicModel
+from model_2d.dynamics_2 import StateIndex
+from model_2d.controller_2 import Controller2 as Ctrl
 from crocoddyl_controller import Controller
 
 # create parameter struct
-param = ModelParam()
-param.l = 1.0
-param.m1 = 1.0
-param.m2 = 1.0
-param.m3 = 1.0
-param.r1 = 3.0
-param.r2 = 2.0
-param.tau = 0.100
-param.theta1 = 1.0
-param.theta2 = 1.0
-param.theta3 = 1.0
+param = getDefaultParam(2)
 
 # initial state
-x0 = np.zeros(STATE_SIZE)
+x0 = np.zeros(StateIndex.NUM_STATES)
 # x0[2] = 0.05
 x0[0] = 0
 
@@ -40,24 +31,26 @@ dt = 0.05
 # commands
 beta_cmd = 2.0
 
-ctrl_mode = BETA_DOT_IDX
+ctrl_mode = controller.VELOCITY_MODE
 us, state_vec = controller.compute_ctrl_input(model.x, beta_cmd, ctrl_mode)
 sim_time_vec = np.array(range(state_vec.shape[0])) * dt
 
 plt.figure()
-if ctrl_mode == BETA_IDX:
-    plt.plot(sim_time_vec, state_vec[:, BETA_IDX], label='beta')
-plt.plot(sim_time_vec, state_vec[:, PHI_IDX], label='phi')
-plt.plot(sim_time_vec, state_vec[:, PSI_IDX], label='psi')
+for x in StateIndex:
+    if x.value > StateIndex.NUM_STATES // 2:
+        break
+    if x.value != StateIndex.ALPHA_1_IDX or ctrl_mode == controller.ANGLE_MODE:
+        plt.plot(sim_time_vec, state_vec[:, x.value], label=x.name)
 plt.xlabel('time [s]')
 plt.ylabel('angles [rad]')
 plt.legend()
 plt.title('angles')
 
 plt.figure()
-plt.plot(sim_time_vec, state_vec[:, BETA_DOT_IDX], label='beta_dot')
-plt.plot(sim_time_vec, state_vec[:, PHI_DOT_IDX], label='phi_dot')
-plt.plot(sim_time_vec, state_vec[:, PSI_DOT_IDX], label='psi_dot')
+for x in StateIndex:
+    if x.value < StateIndex.NUM_STATES // 2 or x.value == StateIndex.NUM_STATES:
+        continue
+    plt.plot(sim_time_vec, state_vec[:, x.value], label=x.name)
 plt.plot(sim_time_vec[:-1], us, label='motor_cmd')
 plt.xlabel('time [s]')
 plt.ylabel('omega [rad]')

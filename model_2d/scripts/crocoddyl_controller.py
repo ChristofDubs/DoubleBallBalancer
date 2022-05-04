@@ -2,8 +2,8 @@
 """
 import numpy as np
 
-from model_2d.definitions import *
-from model_2d.dynamic_model import DynamicModel
+from model_2d.dynamics_2 import StateIndex
+from model_2d.dynamics_2 import DynamicModel2 as DynamicModel
 
 import crocoddyl
 
@@ -18,14 +18,14 @@ class ActionModel(crocoddyl.ActionModelAbstract):
         self.param = param
         self.costWeightsState = [10, 0, 0, 4, 8, 4]
         self.costWeightsInput = [10]
-        self.model = DynamicModel(param)
+        self.model = DynamicModel(param, np.zeros(StateIndex.NUM_STATES))
         self.dt = 0.05
 
     def calc(self, data, x, u=None):
         if u is None:
             u = self.unone
 
-        if self.model.is_irrecoverable(x=x[:-1], omega_cmd=u):
+        if not self.model.is_recoverable(x=x[:-1], omega_cmd=u):
             data.xnext[:] = x * np.nan
             data.cost = np.nan
             data.r = np.ones(self.nr) * np.nan
@@ -39,11 +39,14 @@ class ActionModel(crocoddyl.ActionModelAbstract):
 
     def setSetpoint(self, x, mode):
         self.des = x
-        if mode == BETA_DOT_IDX:
+        if mode == StateIndex.ALPHA_DOT_1_IDX:
             self.costWeightsState[0] = 0
 
 
 class Controller:
+    ANGLE_MODE = StateIndex.ALPHA_1_IDX
+    VELOCITY_MODE = StateIndex.ALPHA_DOT_1_IDX
+
     def __init__(self, param):
         model = ActionModel(param)
         self.pred_model = crocoddyl.ActionModelNumDiff(model, True)
@@ -51,7 +54,7 @@ class Controller:
         self.terminal_model.costWeightsState = [5 * x for x in self.terminal_model.costWeightsState]
         self.terminal_model = crocoddyl.ActionModelNumDiff(self.terminal_model, True)
 
-    def compute_ctrl_input(self, x0, r, mode=BETA_IDX):
+    def compute_ctrl_input(self, x0, r, mode=ANGLE_MODE):
         des = np.zeros(np.shape(x0))
         des[mode] = r
         self.pred_model.model.setSetpoint(des, mode)
