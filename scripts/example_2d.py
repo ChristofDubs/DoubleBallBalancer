@@ -10,11 +10,10 @@ from model_2d.dynamics_2 import StateIndex
 
 from model_2d.param import getDefaultParam
 
-N = 2
+N = 3
 
-exec(f'from model_2d.dynamics_{N} import DynamicModel{N} as DynamicModel')
-exec(f'from model_2d.dynamics_{N} import StateIndex')
-exec(f'from model_2d.controller_{N} import Controller{N} as Controller')
+exec(f'from model_2d.dynamics_{N} import DynamicModel, StateIndex')
+exec(f'from model_2d.controller_{N} import Controller')
 
 parser = argparse.ArgumentParser(description="Test 2D double ball balancer")
 parser.add_argument("-a", "--no-animation", help="disable animation", action="store_true")

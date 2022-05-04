@@ -2,8 +2,7 @@
 """
 import numpy as np
 
-from model_2d.dynamics_2 import StateIndex
-from model_2d.dynamics_2 import DynamicModel2 as DynamicModel
+from model_2d.dynamics_2 import DynamicModel, StateIndex
 
 import crocoddyl
 

@@ -10,7 +10,7 @@ def saturate(x, limit):
     return max(-limit, min(limit, x))
 
 
-class Controller3(object):
+class Controller(object):
     ANGLE_MODE = StateIndex.ALPHA_2_IDX
     VELOCITY_MODE = StateIndex.ALPHA_DOT_2_IDX
 

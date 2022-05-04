@@ -4,9 +4,9 @@ import numpy as np
 
 import context
 
-from model_2d.controller_2 import Controller2 as Controller
+from model_2d.controller_2 import Controller as Controller2
 from model_2d.dynamics_2 import StateIndex as StateIndex2
-from model_2d.controller_3 import Controller3
+from model_2d.controller_3 import Controller as Controller3
 from model_2d.dynamics_3 import StateIndex as StateIndex3
 from model_2d.param import getDefaultParam
 
@@ -15,7 +15,7 @@ delta = 1e-6
 
 
 class TestController(unittest.TestCase):
-    controller = Controller(getDefaultParam(2))
+    controller = Controller2(getDefaultParam(2))
 
     K = np.array([0.447213596e+00, 1.03556079e+01, -4.73012271e+01,
                   3.683281576e+00, 6.05877477e-01, -3.53469304e+01])

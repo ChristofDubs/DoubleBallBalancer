@@ -6,9 +6,7 @@ import numpy as np
 import context
 
 from model_2d.param import getDefaultParam
-from model_2d.dynamics_2 import DynamicModel2 as DynamicModel
-from model_2d.dynamics_2 import StateIndex
-from model_2d.controller_2 import Controller2 as Ctrl
+from model_2d.dynamics_2 import DynamicModel, StateIndex
 from crocoddyl_controller import Controller
 
 # create parameter struct

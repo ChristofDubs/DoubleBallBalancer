@@ -39,7 +39,7 @@ def writeCSE(expr_list: dict, file: str, state_dict: dict, sub_list: list, print
         file.write(2 * indent + f'return [{", ".join(expr_list.keys())}]\n')
 
 
-N = 3
+N = 2
 
 # angles
 alpha = [symbols('alpha_{}'.format(i)) for i in range(N)]
@@ -212,7 +212,7 @@ if __name__ == '__main__':
             file.write(indent + f'NUM_STATES = {len(state_dict)},\n')
 
             # class definition
-            file.write(f'\n\nclass DynamicModel{N}(NBallDynamicModel):\n')
+            file.write('\n\nclass DynamicModel(NBallDynamicModel):\n')
             file.write(indent + 'def __init__(self, param, x0):\n')
             file.write(2 * indent + 'super().__init__(StateIndex.NUM_STATES, param, x0)\n')
 

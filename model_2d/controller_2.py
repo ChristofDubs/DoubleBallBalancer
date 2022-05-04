@@ -66,7 +66,7 @@ def compute_phi_from_psi(psi, param):
     return compute_phi_from_beta_ddot(beta_ddot, param)
 
 
-class Controller2(object):
+class Controller(object):
     ANGLE_MODE = StateIndex.ALPHA_1_IDX
     VELOCITY_MODE = StateIndex.ALPHA_DOT_1_IDX
 

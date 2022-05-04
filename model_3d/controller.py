@@ -6,7 +6,7 @@ from pyrotation import Quaternion
 
 import context
 
-from model_2d.controller_2 import Controller2 as Controller2D
+from model_2d.controller_2 import Controller as Controller2D
 from model_2d.dynamics_2 import StateIndex
 from model_2d.param import getDefaultParam
 
