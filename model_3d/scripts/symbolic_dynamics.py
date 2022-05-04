@@ -5,7 +5,8 @@ Derivation of the rigid multi-body dynamics using the Projected Newton-Euler met
 import argparse
 import pickle
 
-from sympy import symbols, Matrix, simplify, solve, diff, eye, diag, zeros, cse, pi, exp, Max
+from sympy import symbols, Matrix, simplify, solve, diff, eye, diag, zeros, cse, cos, pi, exp, Max
+from sympy.solvers.solveset import linsolve
 from sympy.matrices.dense import rot_axis1, rot_axis2
 
 
@@ -94,11 +95,10 @@ if __name__ == '__main__':
     y_dot = v_OS1[1]
 
     # kinematic constraints: upper ball rolling on lower ball
-    e_S1S2 = rot_axis2(-psi_y) * rot_axis1(-psi_x) * Matrix([0, 0, 1])
+    R_IP = rot_axis2(-psi_y) * rot_axis1(-psi_x)
+    e_S1S2 = R_IP * Matrix([0, 0, 1])
 
-    r_S1P1 = r1 * e_S1S2
-
-    v_P1 = v_OS1 + omega_1.cross(r_S1P1)
+    v_P1 = R_IP.T * v_OS1 + (R_IP.T * omega_1).cross(r1 * Matrix([0, 0, 1]))
 
     r_S1S2 = (r1 + r2) * e_S1S2
 
@@ -107,16 +107,15 @@ if __name__ == '__main__':
     v_OS2 = diff(r_OS2, x, 1) * x_dot + diff(r_OS2, y, 1) * y_dot + \
         diff(r_OS2, psi_x, 1) * psi_x_dot + diff(r_OS2, psi_y, 1) * psi_y_dot
 
-    r_S2P2 = -r2 * e_S1S2
-
-    v_P2 = v_OS2 + (R_IB2 * b_omega_2).cross(r_S2P2)
+    v_P2 = R_IP.T * v_OS2 + (R_IP.T * R_IB2 * b_omega_2).cross(-r2 * Matrix([0, 0, 1]))
 
     constraints = v_P1 - v_P2
 
-    sol = solve(constraints, omega_1)
+    assert(simplify(constraints[2]) == 0)
+    sol = solve(constraints[0:2], omega_1[0:2], dict=True)[0]
 
-    omega_1[0] = sol[w_1x]
-    omega_1[1] = sol[w_1y]
+    omega_1[0] = simplify(sol[w_1x] * cos(psi_y)) / cos(psi_y)
+    omega_1[1] = simplify(sol[w_1y] * cos(psi_y) * cos(psi_x)) / (cos(psi_y) * cos(psi_x))
     omega_1[2] = w_1z
 
     sub_list = [(w_1x, omega_1[0]), (w_1y, omega_1[1]), (w_1z, omega_1[2])]
@@ -230,8 +229,8 @@ if __name__ == '__main__':
 
         sub_list = [
             (x,
-             'self.p.' +
-             x) for x in [
+             symbols('self.p.' +
+                     x)) for x in [
                 'a',
                 'g',
                 'l',
