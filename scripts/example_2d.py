@@ -10,7 +10,7 @@ from model_2d.dynamics_2 import StateIndex
 
 from model_2d.param import getDefaultParam
 
-N = 3
+N = 2
 
 exec(f'from model_2d.dynamics_{N} import DynamicModel, StateIndex')
 exec(f'from model_2d.controller_{N} import Controller')
@@ -103,20 +103,15 @@ while model.is_recoverable(
 
 if enable_plot:
     plt.figure()
-    for x in StateIndex:
-        if x.value > StateIndex.NUM_STATES // 2:
-            break
+    for x in list(StateIndex)[:StateIndex.NUM_STATES // 2]:
         plt.plot(sim_time_vec, state_vec[:, x.value], label=x.name)
-
     plt.xlabel('time [s]')
     plt.ylabel('angles [rad]')
     plt.legend()
     plt.title('angles')
 
     plt.figure()
-    for x in StateIndex:
-        if x.value < StateIndex.NUM_STATES // 2 or x.value == StateIndex.NUM_STATES:
-            continue
+    for x in list(StateIndex)[StateIndex.NUM_STATES // 2: StateIndex.NUM_STATES]:
         plt.plot(sim_time_vec, state_vec[:, x.value], label=x.name)
     plt.plot(sim_time_vec[:-1], input_vec, label='motor_cmd')
     plt.xlabel('time [s]')
