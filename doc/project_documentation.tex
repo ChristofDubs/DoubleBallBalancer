@@ -83,11 +83,11 @@ In the following subsection, the position and linear / angular velocities of eac
 \subsubsection{Lower ball state}
 Position, velocity and angular velocity of the lower ball are given as per definition of the states:
 \begin{equation}
-{}_I \vec{r}_{OS1} = 
-\left( {\begin{array}{c} x \\ r_1 \\ 0 \\ \end{array} } \right), \quad 
+{}_I \vec{r}_{OS1} =
+\left( {\begin{array}{c} x \\ r_1 \\ 0 \\ \end{array} } \right), \quad
 {}_I \vec{v}_{S1} = {}_I \dot{\vec{r}}_{OS1} =
-\left( {\begin{array}{c} \dot{x} \\ 0 \\ 0 \\ \end{array} } \right), \quad 
-{}_I \vec{\Omega}_1 = 
+\left( {\begin{array}{c} \dot{x} \\ 0 \\ 0 \\ \end{array} } \right), \quad
+{}_I \vec{\Omega}_1 =
 \left( {\begin{array}{c} 0 \\ 0 \\ \dot{\alpha} \\ \end{array} } \right)
 \end{equation}
 The external forces acting on the lower ball is the gravitational force:
@@ -98,7 +98,7 @@ The external forces acting on the lower ball is the gravitational force:
 \subsubsection{Rolling constraint: Lower ball on ground}
 Consider point G which is the contact point of the lower ball on the ground:
 \begin{equation}
-{}_I \vec{r}_{S1G} = 
+{}_I \vec{r}_{S1G} =
 \left( {\begin{array}{c} 0 \\ -r_1 \\ 0 \\ \end{array} } \right)
 \end{equation}
 Momentarily, point G is both a point on the ball, as well as a point on the ground.
@@ -116,15 +116,15 @@ This leads to the following rolling constraint:
 \subsubsection{Upper ball state}
 The angular velocity of the lower ball is given as per definition of the states:
 \begin{equation}
-{}_I \vec{\Omega}_2 = 
+{}_I \vec{\Omega}_2 =
 \left( {\begin{array}{c} 0 \\ 0 \\ \dot{\beta} \\ \end{array} } \right)
 \end{equation}
 The directional vector from lower to upper ball is
 \begin{equation}
-{}_I \vec{e}_{S1S2} = 
+{}_I \vec{e}_{S1S2} =
 \left( {\begin{array}{c} -\sin{\psi} \\ \cos{\psi} \\ 0 \\ \end{array} } \right)
 \end{equation}
-and consequently, 
+and consequently,
 \begin{equation}
 {}_I \vec{r}_{S1S2} = (r1+r2) \cdot {}_I \vec{e}_{S1S2} =
 (r1+r2) \cdot \left( {\begin{array}{c} -\sin{\psi} \\ \cos{\psi} \\ 0 \\ \end{array} } \right)
@@ -133,12 +133,12 @@ Finally,
 \begin{equation}
 {}_I \vec{r}_{OS2} = {}_I \vec{r}_{OS1} + {}_I \vec{r}_{S1S2} =
 \left( {\begin{array}{c} x - (r1+r2) \cdot \sin{\psi} \\ r_1 + (r1+r2) \cdot \cos{\psi} \\ 0 \\ \end{array} } \right)
-\end{equation} 
+\end{equation}
 and
 \begin{equation}
 {}_I \vec{v}_{S2} = {}_I \dot{\vec{r}}_{OS2} =
 \left( {\begin{array}{c} \dot{x} - (r1+r2) \cdot \dot{\psi} \cdot \cos{\psi} \\ - (r1+r2) \cdot \dot{\psi} \cdot \sin{\psi} \\ 0 \\ \end{array} } \right)
-\end{equation} 
+\end{equation}
 The external forces acting on the upper ball is the gravitational force:
 \begin{equation}
 {}_I \vec{F}_{2} = \left( {\begin{array}{c} 0 \\ -m_2 \cdot g \\ 0 \\ \end{array} } \right)
@@ -169,19 +169,19 @@ This leads to
 
 The angular velocity of the lever arm is given as per definition of the states:
 \begin{equation}
-{}_I \vec{\Omega}_3 = 
+{}_I \vec{\Omega}_3 =
 \left( {\begin{array}{c} 0 \\ 0 \\ \dot{\varphi} \\ \end{array} } \right)
 \end{equation}
 The vector from the upper ball's center to the center of mass of the lever arm is
 \begin{equation}
-{}_I \vec{r}_{S2S3} = 
+{}_I \vec{r}_{S2S3} =
 l \cdot \left( {\begin{array}{c} \sin{\varphi} \\ -\cos{\varphi} \\ 0 \\ \end{array} } \right)
 \end{equation}
 The position of the center of mass of the lever arm is
 \begin{equation}
 {}_I \vec{r}_{OS3} = {}_I \vec{r}_{OS2} + {}_I \vec{r}_{S2S3} =
 \left( {\begin{array}{c} x - (r1+r2) \cdot \sin{\psi} + l \cdot \sin{\varphi} \\ r_1 + (r1+r2) \cdot \cos{\psi} - l \cdot \cos{\varphi} \\ 0 \\ \end{array} } \right)
-\end{equation} 
+\end{equation}
 The external forces acting on the lever arm is the gravitational force:
 \begin{equation}
 {}_I \vec{F}_{3} = \left( {\begin{array}{c} 0 \\ -m_3 \cdot g \\ 0 \\ \end{array} } \right)
@@ -196,11 +196,11 @@ From accelerating the lever arm through the motor, the upper ball feels the moto
 %\left( {\begin{array}{c} \dot{x} - (r1+r2) \cdot \dot{\psi} \cdot \cos{\psi} + l \dot{\varphi} \cdot \cos{\varphi} \\
 %- (r1+r2) \cdot \dot{\psi} \cdot \sin{\psi} + l \dot{\varphi} \cdot \sin{\varphi}\\
 %0 \\ \end{array} } \right)
-%\end{equation} 
+%\end{equation}
 
 \subsection{Derivation of the equations of motion}
 To derive the equations of motion, the concept of projected Newton-Euler equations is used, for which the following terms are needed:
-For each rigid body $i$, 
+For each rigid body $i$,
 \begin{enumerate}
 	\item Express the position its center of mass ($\vec{r}_{OSi}$) and its angular velocity ($\vec{\Omega}_i$) as a function of the minimal coordinates
 	\item Formulate the all external forces $F_i$ and torques $M_i$
@@ -240,9 +240,9 @@ A much simpler approach is controlling the velocity of a (DC)-motor with a gearb
 \begin{equation}
 \ddot{\varphi}_m = \frac{1}{\tau_m} \cdot \left(\breve{\dot{\varphi}}_m - \dot{\varphi}_m \right)
 \label{eq:motordyn}
-\end{equation} 
+\end{equation}
 In order to incorporate this motor model into the equations of motion, the torque $T$ has to be eliminated from the equations of motion, and the motor dynamics have to be expressed in the minimal coordinates to replace the eliminated equation.
-By inspecting the $b[0]$ and $b[1]$ terms, it can be immediately seen that $T$ can be eliminated by adding the first two equations. 
+By inspecting the $b[0]$ and $b[1]$ terms, it can be immediately seen that $T$ can be eliminated by adding the first two equations.
 The relation between the motor dynamics and the minimal coordinates is $\beta + \varphi_m = \varphi$, and consequently $\varphi_m = \varphi - \beta$, $\dot{\varphi}_m = \dot{\varphi} - \dot{\beta}$ and $\ddot{\varphi}_m = \ddot{\varphi} - \ddot{\beta}$.
 Substituting back these expressions into eq. \ref{eq:motordyn}, we get:
 \begin{equation}

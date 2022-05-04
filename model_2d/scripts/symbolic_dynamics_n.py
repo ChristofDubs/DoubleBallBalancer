@@ -19,7 +19,7 @@ def print_symbolic(file, mat, name, sub_list, ignore_symmetry=True):
                 file.write(2 * indent + f'{name}[{row},{col}] = {mat[row, col].subs(sub_list)}\n')
 
 
-def writeCSE(expr_list: dict, file: str, state_dict: dict, sub_list: list, print_return: bool=True):
+def writeCSE(expr_list: dict, file: str, state_dict: dict, sub_list: list, print_return: bool = True):
     common_sub_expr = cse(expr_list.values())
 
     for key, idx in state_dict.items():
