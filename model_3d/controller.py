@@ -6,11 +6,12 @@ from pyrotation import Quaternion
 
 import context
 
-from model_2d.controller import Controller as Controller2D
-from model_2d.definitions import BETA_IDX, PHI_IDX, PSI_IDX, BETA_DOT_IDX, PHI_DOT_IDX, PSI_DOT_IDX
+from model_2d.controller_2 import Controller as Controller2D
+from model_2d.dynamics_2 import StateIndex
+from model_2d.param import getDefaultParam
 
-ANGLE_MODE = BETA_IDX
-VELOCITY_MODE = BETA_DOT_IDX
+ANGLE_MODE = StateIndex.ALPHA_1_IDX
+VELOCITY_MODE = StateIndex.ALPHA_DOT_1_IDX
 
 
 def projectModelState(state):
@@ -116,31 +117,31 @@ def projectModelState(state):
     # principal motor axis direction (y-axis)
     y = np.zeros(6)
 
-    y[BETA_IDX] = B2h_phi_y - phi_y
-    y[PHI_IDX] = B2h_phi_y
-    y[PSI_IDX] = B2h_psi_y
+    y[StateIndex.ALPHA_1_IDX] = B2h_phi_y - phi_y
+    y[StateIndex.PHI_IDX] = B2h_phi_y
+    y[StateIndex.PSI_0_IDX] = B2h_psi_y
 
-    y[BETA_DOT_IDX] = B2h_omega_2y
-    y[PHI_DOT_IDX] = B2h_phi_y_dot
-    y[PSI_DOT_IDX] = B2h_psi_y_dot
+    y[StateIndex.ALPHA_DOT_1_IDX] = B2h_omega_2y
+    y[StateIndex.PHI_DOT_IDX] = B2h_phi_y_dot
+    y[StateIndex.PSI_DOT_0_IDX] = B2h_psi_y_dot
 
     # lateral motor axis direction (x-axis)
 
     x = np.zeros(6)
-    x[BETA_IDX] = B2h_phi_x - phi_x
-    x[PHI_IDX] = B2h_phi_x
-    x[PSI_IDX] = B2h_psi_x
+    x[StateIndex.ALPHA_1_IDX] = B2h_phi_x - phi_x
+    x[StateIndex.PHI_IDX] = B2h_phi_x
+    x[StateIndex.PSI_0_IDX] = B2h_psi_x
 
-    x[BETA_DOT_IDX] = B2h_omega_2x
-    x[PHI_DOT_IDX] = B2h_phi_x_dot
-    x[PSI_DOT_IDX] = B2h_psi_x_dot
+    x[StateIndex.ALPHA_DOT_1_IDX] = B2h_omega_2x
+    x[StateIndex.PHI_DOT_IDX] = B2h_phi_x_dot
+    x[StateIndex.PSI_DOT_0_IDX] = B2h_psi_x_dot
 
     return x, y, z
 
 
 class Controller(object):
-    def __init__(self, param):
-        self.ctrl_2d = Controller2D(param)
+    def __init__(self, _):
+        self.ctrl_2d = Controller2D(getDefaultParam(2))
         self.ctrl_2d.beta_dot_max = 2.5
 
         self.omega_2_z_to_omega_2_y_max = 0.3
@@ -169,7 +170,7 @@ class Controller(object):
 
         beta_dot_cmd = beta_cmd if mode == VELOCITY_MODE else self.ctrl_2d.compute_beta_dot_cmd(y, beta_cmd)
 
-        omega_y = y[BETA_DOT_IDX]
+        omega_y = y[StateIndex.ALPHA_DOT_1_IDX]
 
         ux_offset = 0
 

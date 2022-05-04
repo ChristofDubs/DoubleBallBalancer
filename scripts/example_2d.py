@@ -6,10 +6,14 @@ import time
 import argparse
 
 import context
+from model_2d.dynamics_2 import StateIndex
 
-from model_2d.dynamic_model import ModelParam, DynamicModel
-from model_2d.controller import Controller
-from model_2d.definitions import *
+from model_2d.param import getDefaultParam
+
+N = 2
+
+exec(f'from model_2d.dynamics_{N} import DynamicModel, StateIndex')
+exec(f'from model_2d.controller_{N} import Controller')
 
 parser = argparse.ArgumentParser(description="Test 2D double ball balancer")
 parser.add_argument("-a", "--no-animation", help="disable animation", action="store_true")
@@ -27,26 +31,16 @@ enable_animation = not args.no_animation
 enable_contact_forces = args.contact_forces
 
 # create parameter struct
-param = ModelParam()
-param.l = 1.0
-param.m1 = 1.0
-param.m2 = 1.0
-param.m3 = 1.0
-param.r1 = 3.0
-param.r2 = 2.0
-param.tau = 0.100
-param.theta1 = 1.0
-param.theta2 = 1.0
-param.theta3 = 1.0
+model_param = getDefaultParam(N)
 
 # initial state
-x0 = np.zeros(STATE_SIZE)
+x0 = np.zeros(StateIndex.NUM_STATES)
 
 # instantiate model
-model = DynamicModel(param, x0)
+model = DynamicModel(model_param, x0)
 
 # instantiate controller
-controller = Controller(param)
+controller = Controller(model_param)
 
 # simulation time step
 dt = 0.05
@@ -65,11 +59,11 @@ u = 0
 contact_forces = None
 
 # simulate until system is irrecoverable or max_sim_time reached
-while not model.is_irrecoverable(
+while model.is_recoverable(
         contact_forces=contact_forces,
         omega_cmd=u) and sim_time < max_sim_time:
     # get control input
-    u = controller.compute_ctrl_input(model.x, beta_cmd)
+    u = controller.compute_ctrl_input(model.x, beta_cmd, mode=controller.ANGLE_MODE)
 
     # calculate contact forces
     contact_forces = model.compute_contact_forces(omega_cmd=u)
@@ -82,13 +76,10 @@ while not model.is_irrecoverable(
 
         # plot
         plt.cla()
-        plt.plot(*vis['lower_ball'])
-        plt.plot(*vis['upper_ball'])
-        plt.plot(*vis['lever_arm'])
-        if enable_contact_forces:
-            plt.arrow(*vis['F1'], head_width=0.1, color='red')
-            plt.arrow(*vis['F12'], head_width=0.1, color='red')
-            plt.arrow(*vis['F23'], head_width=0.1, color='red')
+        for i in range(N + 1):
+            plt.plot(*vis[str(i)])
+            if enable_contact_forces:
+                plt.arrow(*vis[f'F{i}'], head_width=0.1, color='red')
         plt.xlabel('x [m]')
         plt.ylabel('y [m]')
         plt.axis('equal')
@@ -112,18 +103,16 @@ while not model.is_irrecoverable(
 
 if enable_plot:
     plt.figure()
-    plt.plot(sim_time_vec, state_vec[:, BETA_IDX], label='beta')
-    plt.plot(sim_time_vec, state_vec[:, PHI_IDX], label='phi')
-    plt.plot(sim_time_vec, state_vec[:, PSI_IDX], label='psi')
+    for x in list(StateIndex)[:StateIndex.NUM_STATES // 2]:
+        plt.plot(sim_time_vec, state_vec[:, x.value], label=x.name)
     plt.xlabel('time [s]')
     plt.ylabel('angles [rad]')
     plt.legend()
     plt.title('angles')
 
     plt.figure()
-    plt.plot(sim_time_vec, state_vec[:, BETA_DOT_IDX], label='beta_dot')
-    plt.plot(sim_time_vec, state_vec[:, PHI_DOT_IDX], label='phi_dot')
-    plt.plot(sim_time_vec, state_vec[:, PSI_DOT_IDX], label='psi_dot')
+    for x in list(StateIndex)[StateIndex.NUM_STATES // 2: StateIndex.NUM_STATES]:
+        plt.plot(sim_time_vec, state_vec[:, x.value], label=x.name)
     plt.plot(sim_time_vec[:-1], input_vec, label='motor_cmd')
     plt.xlabel('time [s]')
     plt.ylabel('omega [rad]')
