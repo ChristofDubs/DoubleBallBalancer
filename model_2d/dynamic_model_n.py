@@ -185,7 +185,8 @@ class NBallDynamicModel(ABC):
             r_j = self.param[f'r_{j}']
 
             contact_pt = r_OS_i[j] + (r_OS_i[i] - r_OS_i[j]) * r_j / (r_i + r_j)
-            vis[f'F{i}'] = list(itertools.chain.from_iterable([contact_pt[:2].flatten(), force_scale * contact_forces[i][:2].flatten()]))
+            vis[f'F{i}'] = list(itertools.chain.from_iterable(
+                [contact_pt[:2].flatten(), force_scale * contact_forces[i][:2].flatten()]))
 
         vis[f'F{N}'] = list(itertools.chain.from_iterable(
             [r_OS_i[N - 1][:2].flatten(), force_scale * contact_forces[-1][:2].flatten()]))

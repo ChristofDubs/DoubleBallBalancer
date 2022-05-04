@@ -219,7 +219,7 @@ class Controller(object):
         omega_y = np.array(omega_y)
 
         A = np.column_stack([a * b for a in [omega_z_cmd / omega_y, (omega_z_cmd / omega_y) *
-                                             np.abs(omega_z_cmd / omega_y)] for b in [np.ones(omega_y.shape), omega_y ** 2]])
+                            np.abs(omega_z_cmd / omega_y)] for b in [np.ones(omega_y.shape), omega_y ** 2]])
         phi_x_cmd = np.dot(A, np.array([1.04931272, 0.69646952, -0.25660126, 0.24174059]))
 
         return phi_x_cmd / self.get_phi_x_max(omega_y)

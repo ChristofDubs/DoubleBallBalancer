@@ -12,7 +12,7 @@ from symbolic_dynamics_n import ang, omega, omega_dot, omega_cmd, all_constants
 from model_2d.param import getDefaultParam
 
 
-def computeControllerGains(N: int, verbose: bool=False):
+def computeControllerGains(N: int, verbose: bool = False):
 
     dyn_lin = pickle.load(open(f"linear_dynamics_{N}.p", "rb"))
 
