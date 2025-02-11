@@ -117,7 +117,7 @@ class ModelState(object):
             return
 
         if x0 is None or not self.set_state(x0):
-            self.x = np.zeros(STATE_SIZE, dtype=np.float)
+            self.x = np.zeros(STATE_SIZE, dtype=float)
             self.x[Q_1_W_IDX] = 1
             self.x[Q_2_W_IDX] = 1
 
