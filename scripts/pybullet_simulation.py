@@ -145,7 +145,12 @@ class PyBulletSim:
     def get_state(self):
         state = ModelState()
 
-        contact = len(p.getContactPoints(bodyA=self.robot_id, bodyB=self.lower_ball_id)) > 0
+        # Note: one would expect that only checking getContactPoints would suffice here;
+        # However, there are cases where getContactPoints(...) returns no points,
+        # but getClosestPoints(..., distance=0) does.
+        contact = p.getContactPoints(bodyA=self.robot_id, bodyB=self.lower_ball_id) \
+            or p.getClosestPoints(bodyA=self.robot_id, bodyB=self.lower_ball_id, distance=0)
+
         if not contact:
             return state
 
