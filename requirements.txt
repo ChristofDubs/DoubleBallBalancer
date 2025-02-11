@@ -1,4 +1,4 @@
-git+https://github.com/ChristofDubs/pyrotation.git@v0.0.1#egg=pyrotation
+git+https://github.com/ChristofDubs/pyrotation.git@v0.0.2#egg=pyrotation
 crocoddyl>=1.8.1
 imageio>=2.15.0
 matplotlib>=3.3.3
