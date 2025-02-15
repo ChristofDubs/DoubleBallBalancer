@@ -46,8 +46,8 @@ except FileNotFoundError:
         print(f'stored data in {processed_data}')
 
 # generate symmetric data (negative omega_y_cmd / negative omega_x_command_offset)
-data = np.row_stack([np.dot(data, np.diag(x)) for x in [[1, 1, 1, 1, 1, 1], [
-                    1, -1, -1, -1, -1, -1], [-1, -1, 1, 1, 1, 1], [-1, 1, -1, -1, -1, -1]]])
+data = np.vstack([np.dot(data, np.diag(x)) for x in [[1, 1, 1, 1, 1, 1], [
+    1, -1, -1, -1, -1, -1], [-1, -1, 1, 1, 1, 1], [-1, 1, -1, -1, -1, -1]]])
 
 omega_y = data[:, 0]
 omega_z = data[:, 1]
@@ -70,6 +70,7 @@ b = omega_x_cmd
 
 x = np.linalg.solve(np.dot(A.T, A), np.dot(A.T, b))
 
+print(f'gains for converting omega_y, phi_x_motor to omega_x_cmd:')
 print(x)
 
 ax.scatter(omega_y, phi_x_motor, np.dot(A, x), marker='^', label="function approximation")
@@ -103,6 +104,7 @@ def fun(x):
 # find lower bound
 res = minimize(fun, 0.7 * np.linalg.solve(np.dot(A.T, A), np.dot(A.T, b)))
 
+print('gains for converting omega_y to phi_x_motor_max:')
 print(res.x)
 
 plt.figure()
@@ -127,6 +129,7 @@ b = phi_x_motor
 
 x = np.linalg.solve(np.dot(A.T, A), np.dot(A.T, b))
 
+print('gains for converting omega_y, omega_z to phi_x_motor:')
 print(x)
 
 ax.scatter(omega_z / omega_y, omega_y, np.dot(A, x), marker='^', label="function approximation")
