@@ -25,11 +25,12 @@ for file in glob.glob('data/data*'):
 
     A = np.array([projectModelState(state)[0] for state in state_vec[:-1]])
 
+    # x = gains that reproduce the control signals us given the projected model state
     x = np.linalg.solve(np.dot(A.T, A), np.dot(A.T, us))
 
     # plt.figure()
     # plt.plot(us, 'b*', label="desired u")
-    # plt.plot(np.dot(A,x), 'r-', label='linear fit')
+    # plt.plot(np.dot(A, x), 'r-', label='linear fit')
     # plt.legend()
     omega_2_y = projectModelState(state_vec[0])[1][3]
     data.append([omega_2_y, x])
