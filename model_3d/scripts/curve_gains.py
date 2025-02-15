@@ -9,7 +9,12 @@ from scipy.optimize import minimize
 import context
 from model_3d.dynamic_model import ModelState
 from model_3d.controller import projectModelState
-from model_2d.definitions import BETA_IDX, PHI_IDX, PSI_IDX, BETA_DOT_IDX, PHI_DOT_IDX, PSI_DOT_IDX
+from model_2d.dynamics_2 import StateIndex as StateIndex2D
+
+BETA_IDX = StateIndex2D.ALPHA_1_IDX
+PHI_IDX = StateIndex2D.PHI_IDX
+PSI_IDX = StateIndex2D.PSI_0_IDX
+BETA_DOT_IDX = StateIndex2D.ALPHA_DOT_1_IDX
 
 data = []
 
