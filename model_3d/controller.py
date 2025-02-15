@@ -176,19 +176,15 @@ class Controller(object):
 
         # no turning commands while reversing rolling direction
         if beta_dot_cmd * omega_y > 0:
-            omega_y_upper = max(omega_y, beta_dot_cmd, key=abs)
-            omega_y_lower = min(omega_y, beta_dot_cmd, key=abs)
-
-            # limit phi_x_cmd command
+            # limit normalized_phi_x_cmd command
             normalized_phi_x_cmd = 0.9 * np.clip(normalized_phi_x_cmd, -1, 1)
 
-            o_y = np.array([omega_y_upper, omega_y_lower])
-
+            # given current omega_y and desired beta_dot_cmd, pick the lower phi_x_max of the two
+            o_y = np.array([omega_y, beta_dot_cmd])
             phi_x_cmd = normalized_phi_x_cmd * min(self.get_phi_x_max(o_y), key=abs)
 
-            # adjustment for lateral controller
+            # given phi_x_cmd and the current omega_y and desired beta_dot_cmd, pick the lower command offset
             A = phi_x_cmd * np.column_stack(np.abs([np.ones(o_y.shape), o_y, o_y**2]))
-
             ux_offset = min(np.dot(A, np.array([0.89283332, -0.86604715, 0.77455687])), key=abs)
 
         else:
