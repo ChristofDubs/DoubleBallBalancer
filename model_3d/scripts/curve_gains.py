@@ -16,30 +16,34 @@ PHI_IDX = StateIndex2D.PHI_IDX
 PSI_IDX = StateIndex2D.PSI_0_IDX
 BETA_DOT_IDX = StateIndex2D.ALPHA_DOT_1_IDX
 
+processed_data = 'data/all_turn_data.pickle'
+
 data = []
 
-for file in glob.glob('disabled_turn_data/turn_data_*'):
-    with open(file, 'rb') as handle:
-        beta_cmd, omega_x_cmd_offset, state_vec = pickle.load(handle)
+try:
+    with open(processed_data, 'rb') as handle:
+        data = np.array(pickle.load(handle))
+        print(f'loaded data from {processed_data}')
+except FileNotFoundError:
+    print(f'{processed_data} not found; regenerating from turn data')
+    for file in glob.glob('data/turn_data_*'):
+        with open(file, 'rb') as handle:
+            print(f'processing {file}')
+            beta_cmd, omega_x_cmd_offset, state_vec = pickle.load(handle)
 
-    num_data = len(state_vec)
+        num_data = len(state_vec)
 
-    projected = [projectModelState(state) for state in state_vec[3 * num_data // 4:-1]]
+        projected = [projectModelState(state) for state in state_vec[3 * num_data // 4:-1]]
 
-    x = np.mean([p[0] for p in projected], axis=0)
-    y = np.mean([p[1] for p in projected], axis=0)
-    z = np.mean([p[2] for p in projected], axis=0)
+        x = np.mean([p[0] for p in projected], axis=0)
+        y = np.mean([p[1] for p in projected], axis=0)
+        z = np.mean([p[2] for p in projected], axis=0)
 
-    data.append([y[BETA_DOT_IDX], z[1], x[BETA_IDX], x[PHI_IDX], x[PSI_IDX], omega_x_cmd_offset])
+        data.append([y[BETA_DOT_IDX], z[1], x[BETA_IDX], x[PHI_IDX], x[PSI_IDX], omega_x_cmd_offset])
 
-# with open('all_turn_data.pickle', 'wb') as handle:
-#     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-with open('all_turn_data.pickle', 'rb') as handle:
-    data2 = pickle.load(handle)
-
-data = np.array(data2)
+    with open(processed_data, 'wb') as handle:
+        pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        print(f'stored data in {processed_data}')
 
 # generate symmetric data (negative omega_y_cmd / negative omega_x_command_offset)
 data = np.row_stack([np.dot(data, np.diag(x)) for x in [[1, 1, 1, 1, 1, 1], [

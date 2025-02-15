@@ -1,0 +1,4 @@
+# directory for temporary data storage
+# ignore all files in here, except for .gitignore
+*
+!.gitignore
