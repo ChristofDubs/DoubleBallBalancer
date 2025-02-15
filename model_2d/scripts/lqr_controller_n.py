@@ -2,7 +2,7 @@
 """
 import pickle
 
-import context
+import context  # noqa: F401
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.linalg import solve_continuous_are
@@ -17,7 +17,7 @@ def computeControllerGains(N: int, verbose: bool = False):
 
     dyn_lin = dyn_lin.subs(getDefaultParam(N))
 
-    assert(dyn_lin.jacobian(all_constants).is_zero_matrix)
+    assert dyn_lin.jacobian(all_constants).is_zero_matrix
 
     # extract matrices such that M*x_ddot + D*x_dot + K*x = Bd*u
     M = dyn_lin.jacobian(omega_dot)
@@ -45,7 +45,7 @@ def computeControllerGains(N: int, verbose: bool = False):
 
     X = np.column_stack(X)
 
-    assert(np.linalg.matrix_rank(X) == dim)
+    assert np.linalg.matrix_rank(X) == dim
 
     # eigenvalues
     if verbose:

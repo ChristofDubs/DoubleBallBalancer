@@ -167,7 +167,8 @@ if __name__ == '__main__':
 
     # torsional friction model: http://gazebosim.org/tutorials?tut=torsional_friction&cat=physics
     # smooth version of sign, to avoid numerical problems due to sign's discontinuity
-    def sign(x): return 2 / (1 + exp(-x)) - 1
+    def sign(x):
+        return 2 / (1 + exp(-x)) - 1
 
     f1_scale = 3 * pi / 16 * (a * r1) * mu1 * sign(-w_1z)
 

@@ -406,7 +406,7 @@ class DynamicModel(object):
             if arccos_psi < arccos_psi_crit:
                 return True
 
-         # lift off: contact force between lower and upper ball <= 0
+        # lift off: contact force between lower and upper ball <= 0
         if not ignore_force_check:
             if contact_forces is None:
                 contact_forces = self.compute_contact_forces(state, omega_cmd)
@@ -777,7 +777,8 @@ class DynamicModel(object):
         b = np.zeros(8)
 
         # lambda for auto-generated sympy.Max() function
-        def Max(x, y): return np.max([x, y])
+        def Max(x, y):
+            return np.max([x, y])
 
         # auto-generated symbolic expressions
         x0 = self.p.r1**2
@@ -820,7 +821,7 @@ class DynamicModel(object):
         x37 = x14 * x7
         x38 = x31 * x7
         x39 = self.p.r2 * x19 * x7
-        x40 = -1 + 2 / (exp(x11 * (-w_1z + x24 + x25 + x26) - x13 * (r_yx * w_2x + r_yy * w_2y + r_yz * w_2z - x27 * (-psi_x_dot * x37 - psi_x_dot * x38 + psi_y_dot * self.p.r1 + psi_y_dot * self.p.r2 - w_1z * x20 - w_2x * x34 - w_2y * x35 - \
+        x40 = -1 + 2 / (exp(x11 * (-w_1z + x24 + x25 + x26) - x13 * (r_yx * w_2x + r_yy * w_2y + r_yz * w_2z - x27 * (-psi_x_dot * x37 - psi_x_dot * x38 + psi_y_dot * self.p.r1 + psi_y_dot * self.p.r2 - w_1z * x20 - w_2x * x34 - w_2y * x35 -
                         w_2z * x36 - x24 * x39 - x25 * x39 - x26 * x39)) + x18 * (r_xx * w_2x + r_xy * w_2y + r_xz * w_2z - x27 * (psi_x_dot * x32 + psi_x_dot * x33 + w_1z * x14 - w_2x * x28 - w_2y * x29 - w_2z * x30 + x24 * x31 + x25 * x31 + x26 * x31))) + 1)
         x41 = 3 * pi * self.p.a * self.p.mu12 * x12 * x23 * x40 / 16
         x42 = x11 * x41

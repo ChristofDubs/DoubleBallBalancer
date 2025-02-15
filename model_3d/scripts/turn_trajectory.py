@@ -3,8 +3,8 @@
 import copy
 import pickle
 
-import context
-import matplotlib.pyplot as plt
+import context  # noqa: F401
+import matplotlib.pyplot as plt  # noqa: F401
 import numpy as np
 
 from model_2d.dynamics_2 import StateIndex as StateIndex2D

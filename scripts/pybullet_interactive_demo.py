@@ -1,6 +1,5 @@
 """Script for interactively contolling the 3D Double Ball Balancer in the pybullet simulation
 """
-import copy
 import time
 from enum import Enum
 

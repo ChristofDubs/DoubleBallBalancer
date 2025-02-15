@@ -2,7 +2,7 @@
 """
 import time
 
-import context
+import context  # noqa: F401
 import numpy as np
 import pybullet as p
 import pybullet_data

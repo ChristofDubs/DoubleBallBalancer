@@ -29,7 +29,7 @@ class Controller(object):
         elif mode is self.VELOCITY_MODE:
             beta_dot_cmd = beta_cmd
         else:
-            assert(False)
+            assert False
 
         if self.beta_dot_max:
             beta_dot_cmd = saturate(beta_dot_cmd, self.beta_dot_max)

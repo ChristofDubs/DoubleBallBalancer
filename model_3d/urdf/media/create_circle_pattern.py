@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy import cos, sin
 
 theta = np.linspace(0, 2 * np.pi, 1001)
 r = np.sqrt(2)

@@ -1,6 +1,6 @@
 """LQR-Controller class for controlling 3D Double Ball Balancer
 """
-import context
+import context  # noqa: F401
 import numpy as np
 from pyrotation import Quaternion
 

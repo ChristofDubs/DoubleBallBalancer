@@ -1,14 +1,13 @@
 import glob
 import pickle
 
-import context
+import context  # noqa: F401
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import minimize
 
 from model_2d.dynamics_2 import StateIndex as StateIndex2D
 from model_3d.controller import projectModelState
-from model_3d.dynamic_model import ModelState
 
 BETA_IDX = StateIndex2D.ALPHA_1_IDX
 PHI_IDX = StateIndex2D.PHI_IDX
@@ -69,7 +68,7 @@ b = omega_x_cmd
 
 x = np.linalg.solve(np.dot(A.T, A), np.dot(A.T, b))
 
-print(f'gains for converting omega_y, phi_x_motor to omega_x_cmd:')
+print('gains for converting omega_y, phi_x_motor to omega_x_cmd:')
 print(x)
 
 ax.scatter(omega_y, phi_x_motor, np.dot(A, x), marker='^', label="function approximation")

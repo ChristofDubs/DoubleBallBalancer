@@ -22,7 +22,7 @@ repos:
     rev: 7.0.0
     hooks:
     -   id: flake8
-        args: ["--ignore=E501,W503,W504"]
+        args: ["--ignore=E501,E502,E741,W503,W504"]
 -   repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:

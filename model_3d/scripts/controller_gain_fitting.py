@@ -8,12 +8,11 @@ author: Christof Dubs
 import glob
 import pickle
 
-import context
+import context  # noqa: F401
 import matplotlib.pyplot as plt
 import numpy as np
 
 from model_3d.controller import projectModelState
-from model_3d.dynamic_model import ModelState
 
 data = []
 

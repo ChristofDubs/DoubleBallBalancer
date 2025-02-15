@@ -1,6 +1,6 @@
 import unittest
 
-import context
+import context  # noqa: F401
 import numpy as np
 
 from model_2d.controller_2 import Controller as Controller2

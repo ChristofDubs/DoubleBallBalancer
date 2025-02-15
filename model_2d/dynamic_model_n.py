@@ -134,7 +134,7 @@ class NBallDynamicModel(ABC):
             if contact_forces is None:
                 contact_forces = self.computeContactForces(x, self.param, omega_cmd)
 
-            assert(len(contact_forces) == N + 1)
+            assert len(contact_forces) == N + 1
             for i in range(N):
                 up_dir = np.array([0, 1, 0]) if i == 0 else r_OS_i[i] - r_OS_i[i - 1]
                 if np.dot(contact_forces[i].flatten(), up_dir.flatten()) <= 0:

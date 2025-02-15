@@ -3,7 +3,7 @@
 import argparse
 import time
 
-import context
+import context  # noqa: F401
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -37,10 +37,10 @@ model_param = getDefaultParam(N)
 x0 = np.zeros(StateIndex.NUM_STATES)
 
 # instantiate model
-model = DynamicModel(model_param, x0)
+model = DynamicModel(model_param, x0)  # noqa: F821
 
 # instantiate controller
-controller = Controller(model_param)
+controller = Controller(model_param)  # noqa: F821
 
 # simulation time step
 dt = 0.05

@@ -1,6 +1,6 @@
 """Controller class for controlling 3D Double Ball Balancer
 """
-import context
+import context  # noqa: F401
 import numpy as np
 from numpy import cos, sin
 from pyrotation import Quaternion

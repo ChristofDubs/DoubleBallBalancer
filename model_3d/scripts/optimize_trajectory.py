@@ -2,7 +2,7 @@
 """
 import pickle
 
-import context
+import context  # noqa: F401
 import matplotlib.pyplot as plt
 import numpy as np
 from crocoddyl_controller import VELOCITY_MODE, Controller

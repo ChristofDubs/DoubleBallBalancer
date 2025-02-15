@@ -5,8 +5,7 @@ Derivation of the rigid multi-body dynamics using the Projected Newton-Euler met
 import argparse
 import pickle
 
-from sympy import (Matrix, cos, cse, diff, expand, factor, simplify, sin,
-                   solve, symbols, zeros)
+from sympy import Matrix, cos, cse, simplify, sin, solve, symbols, zeros
 
 indent = " " * 4
 
@@ -125,7 +124,7 @@ if __name__ == '__main__':
         constraint1 = solve([v_SiPi[0] - v_SiPj[0]], [alpha_dot[i]])[alpha_dot[i]]
         constraint2 = solve([v_SiPi[1] - v_SiPj[1]], [alpha_dot[i]])[alpha_dot[i]]
 
-        assert(simplify(constraint1 - constraint2) == 0)
+        assert simplify(constraint1 - constraint2) == 0
 
         omega_to_ang = [((alpha_dot + omega[1:])[i], (alpha + ang[1:])[i]) for i in range(len(alpha + ang[1:]))]
         sub_list = [(alpha_dot[i], constraint1), (alpha[i], constraint1.subs(omega_to_ang))]
@@ -170,7 +169,7 @@ if __name__ == '__main__':
     dyn_new = dyn
     dyn_new[0] = dyn_new[0] + dyn_new[1]
     dyn_new[1] = 0
-    assert(dyn_new.diff(T) == zeros(N + 1, 1))
+    assert dyn_new.diff(T) == zeros(N + 1, 1)
 
     # add motor dynamics
     gamma_ddot = phi_ddot - alpha_ddot[-1]

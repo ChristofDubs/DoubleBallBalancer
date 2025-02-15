@@ -6,8 +6,6 @@ The controller then tries to find control inputs for the lateral controller to o
 """
 import crocoddyl
 import numpy as np
-from numpy import cos, sin
-from pyrotation import Quaternion
 
 from model_3d.controller import VELOCITY_MODE
 from model_3d.controller import Controller as LinearController

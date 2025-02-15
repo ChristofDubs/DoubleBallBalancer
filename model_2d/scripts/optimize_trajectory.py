@@ -1,6 +1,6 @@
 """Find optimal trajectories for 2D Double Ball Balancer
 """
-import context
+import context  # noqa: F401
 import matplotlib.pyplot as plt
 import numpy as np
 from crocoddyl_controller import Controller

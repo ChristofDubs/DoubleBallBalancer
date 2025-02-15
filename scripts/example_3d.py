@@ -4,10 +4,11 @@ import argparse
 import copy
 import time
 
-import context
+import context  # noqa: F401
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D  # needed for resolving projection='3d'
+from mpl_toolkits.mplot3d import \
+    Axes3D  # noqa: F401 needed for resolving projection='3d'
 
 from model_3d.controller import ANGLE_MODE, Controller  # , VELOCITY_MODE
 from model_3d.dynamic_model import DynamicModel, ModelParam, ModelState
