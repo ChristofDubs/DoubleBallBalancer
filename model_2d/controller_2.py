@@ -32,20 +32,20 @@ class LQRController(object):
 
 def compute_phi_max(param):
     """compute lever arm angle for maximum beta_ddot acceleration"""
-    return np.arccos(-param["r_2"] * param["m_2"] * param["r_1"] / (param["theta_0"] * param["r_1"]**2 / \
-                     param["r_0"] ** 2 + param["theta_1"] + (param["m_0"] + param["m_1"] + param["m_2"]) * param["r_1"]**2))
+    return np.arccos(np.clip(-param["r_2"] * param["m_2"] * param["r_1"] / (param["theta_0"] * param["r_1"]**2 / \
+                     param["r_0"] ** 2 + param["theta_1"] + (param["m_0"] + param["m_1"] + param["m_2"]) * param["r_1"]**2), -1, 1))
 
 
 def compute_phi_from_beta_ddot(beta_ddot, param):
     """compute lever arm angle during constant beta_ddot acceleration"""
-    return -np.arctan(param["r_1"] * beta_ddot / param["g"]) - np.arcsin((param["theta_0"] * param["r_1"]**2 / param["r_0"]**2 + param["theta_1"] + (
-        param["m_0"] + param["m_1"] + param["m_2"]) * param["r_1"]**2) * beta_ddot / (param["r_2"] * param["m_2"] * np.sqrt(param["g"]**2 + beta_ddot**2 * param["r_1"]**2)))
+    return -np.arctan(param["r_1"] * beta_ddot / param["g"]) - np.arcsin(np.clip((param["theta_0"] * param["r_1"]**2 / param["r_0"]**2 + param["theta_1"] + (
+        param["m_0"] + param["m_1"] + param["m_2"]) * param["r_1"]**2) * beta_ddot / (param["r_2"] * param["m_2"] * np.sqrt(param["g"]**2 + beta_ddot**2 * param["r_1"]**2)), -1, 1))
 
 
 def compute_psi_from_beta_ddot(beta_ddot, param):
     """compute angle of upper on lower ball during constant beta_ddot acceleration"""
-    return -np.arctan(param["r_1"] * beta_ddot / param["g"]) - np.arcsin((1 + (param["theta_0"] / param["r_0"]**2 + \
-                      param["m_0"]) / (param["m_1"] + param["m_2"])) * beta_ddot / np.sqrt(beta_ddot**2 + param["g"]**2 / param["r_1"]**2))
+    return -np.arctan(param["r_1"] * beta_ddot / param["g"]) - np.arcsin(np.clip((1 + (param["theta_0"] / param["r_0"]**2 + \
+                      param["m_0"]) / (param["m_1"] + param["m_2"])) * beta_ddot / np.sqrt(beta_ddot**2 + param["g"]**2 / param["r_1"]**2), -1, 1))
 
 
 def compute_beta_ddot_to_psi_gain(param):

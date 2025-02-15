@@ -8,7 +8,7 @@ import context
 import copy
 
 import pickle
-from model_2d.definitions import BETA_IDX
+from model_2d.dynamics_2 import StateIndex as StateIndex2D
 from model_3d.dynamic_model import DynamicModel, ModelParam, ModelState
 from model_3d.controller import Controller, projectModelState, VELOCITY_MODE
 
@@ -51,7 +51,7 @@ for beta_cmd in [0.1, 0.2, 0.4, 0.7, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]:
 
         omega_x_cmd_offset = 0.05 * scale
 
-        print(f"generating trajectory for {beta_cmd} {omega_x_cmd_offset}")
+        print(f"generating trajectory for {beta_cmd:.3} {omega_x_cmd_offset:.3}")
 
         # simulate until system is irrecoverable or max_sim_time reached
         while sim_time < max_sim_time:
@@ -71,10 +71,10 @@ for beta_cmd in [0.1, 0.2, 0.4, 0.7, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]:
             state_vec.append(copy.copy(model.state))
             sim_time_vec.append(sim_time)
 
-        stop_iteration = stop_iteration or np.abs(projectModelState(state_vec[-1])[0][BETA_IDX]) > 1
+        stop_iteration = stop_iteration or np.abs(projectModelState(state_vec[-1])[0][StateIndex2D.ALPHA_1_IDX]) > 1
 
         if not stop_iteration:
-            with open('ttturn_data_{}_{}.pickle'.format(beta_cmd, omega_x_cmd_offset), 'wb') as handle:
+            with open(f'data/turn_data_{beta_cmd:.3}_{omega_x_cmd_offset:.3}.pickle', 'wb') as handle:
                 pickle.dump([beta_cmd, omega_x_cmd_offset, state_vec], handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         # plt.figure()
