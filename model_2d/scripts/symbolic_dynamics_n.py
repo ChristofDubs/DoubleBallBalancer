@@ -5,7 +5,8 @@ Derivation of the rigid multi-body dynamics using the Projected Newton-Euler met
 import argparse
 import pickle
 
-from sympy import Matrix, cse, diff, factor, expand, simplify, solve, symbols, zeros, sin, cos
+from sympy import (Matrix, cos, cse, diff, expand, factor, simplify, sin,
+                   solve, symbols, zeros)
 
 indent = " " * 4
 

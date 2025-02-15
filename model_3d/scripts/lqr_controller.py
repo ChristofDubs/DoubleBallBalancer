@@ -1,13 +1,12 @@
 """Script to compute LQR-controller gain for stabilizing the 3D Double Ball Balancer, based on numerical parameter values.
 """
+import pickle
+
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.linalg import solve_continuous_are
 from scipy.signal import place_poles
-import matplotlib.pyplot as plt
-
-import pickle
-
-from symbolic_dynamics_linearization import ang, omega, omega_dot, omega_cmd
+from symbolic_dynamics_linearization import ang, omega, omega_cmd, omega_dot
 
 use_pole_placement = True
 

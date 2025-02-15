@@ -5,10 +5,11 @@ This module contains the class DynamicModel for simulating the non-linear dynami
 author: Christof Dubs
 """
 import itertools
+
 import numpy as np
-from numpy import sin, cos, tan, exp, pi
-from scipy.integrate import odeint
+from numpy import cos, exp, pi, sin, tan
 from pyrotation import Quaternion, quat_from_angle_vector
+from scipy.integrate import odeint
 
 
 class ModelParam(object):

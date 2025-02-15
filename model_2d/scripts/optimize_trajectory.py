@@ -1,13 +1,12 @@
 """Find optimal trajectories for 2D Double Ball Balancer
 """
+import context
 import matplotlib.pyplot as plt
 import numpy as np
-
-import context
-
-from model_2d.param import getDefaultParam
-from model_2d.dynamics_2 import DynamicModel, StateIndex
 from crocoddyl_controller import Controller
+
+from model_2d.dynamics_2 import DynamicModel, StateIndex
+from model_2d.param import getDefaultParam
 
 # create parameter struct
 param = getDefaultParam(2)

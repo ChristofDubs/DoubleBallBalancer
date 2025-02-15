@@ -1,13 +1,13 @@
 """Simple test script for 2D Double Ball Balancer
 """
-import matplotlib.pyplot as plt
-import numpy as np
-import time
 import argparse
+import time
 
 import context
-from model_2d.dynamics_2 import StateIndex
+import matplotlib.pyplot as plt
+import numpy as np
 
+from model_2d.dynamics_2 import StateIndex
 from model_2d.param import getDefaultParam
 
 N = 2

@@ -1,10 +1,9 @@
 """Controller class for controlling 2D Double Ball Balancer
 """
+import crocoddyl
 import numpy as np
 
 from model_2d.dynamics_2 import DynamicModel, StateIndex
-
-import crocoddyl
 
 
 class ActionModel(crocoddyl.ActionModelAbstract):

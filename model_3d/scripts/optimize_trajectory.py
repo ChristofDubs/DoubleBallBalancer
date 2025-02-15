@@ -1,14 +1,13 @@
 """Find an optimal trajectories for 3D Double Ball Balancer
 """
-import matplotlib.pyplot as plt
-import numpy as np
+import pickle
 
 import context
+import matplotlib.pyplot as plt
+import numpy as np
+from crocoddyl_controller import VELOCITY_MODE, Controller
 
-import pickle
 from model_3d.dynamic_model import ModelParam, ModelState
-from crocoddyl_controller import Controller, VELOCITY_MODE
-
 
 # create parameter struct
 param = ModelParam()

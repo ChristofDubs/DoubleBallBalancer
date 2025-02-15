@@ -1,14 +1,13 @@
 """Script to compute LQR-controller gain for stabilizing the 2D N Ball Balancer, based on numerical parameter values.
 """
-import context
-
-import numpy as np
-from scipy.linalg import solve_continuous_are
-import matplotlib.pyplot as plt
-
 import pickle
 
-from symbolic_dynamics_n import ang, omega, omega_dot, omega_cmd, all_constants
+import context
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.linalg import solve_continuous_are
+from symbolic_dynamics_n import all_constants, ang, omega, omega_cmd, omega_dot
+
 from model_2d.param import getDefaultParam
 
 

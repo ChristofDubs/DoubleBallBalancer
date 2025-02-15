@@ -1,15 +1,13 @@
 import unittest
 
+import context
 import numpy as np
 
-import context
-
 from model_2d.controller_2 import Controller as Controller2
-from model_2d.dynamics_2 import StateIndex as StateIndex2
 from model_2d.controller_3 import Controller as Controller3
+from model_2d.dynamics_2 import StateIndex as StateIndex2
 from model_2d.dynamics_3 import StateIndex as StateIndex3
 from model_2d.param import getDefaultParam
-
 
 delta = 1e-6
 

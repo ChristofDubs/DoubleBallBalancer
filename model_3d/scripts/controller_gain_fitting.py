@@ -5,17 +5,15 @@
 
 author: Christof Dubs
 """
-import context
-
-
-from model_3d.dynamic_model import ModelState
-from model_3d.controller import projectModelState
-
-import numpy as np
+import glob
 import pickle
 
-import glob
+import context
 import matplotlib.pyplot as plt
+import numpy as np
+
+from model_3d.controller import projectModelState
+from model_3d.dynamic_model import ModelState
 
 data = []
 

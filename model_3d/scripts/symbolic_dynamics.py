@@ -5,7 +5,8 @@ Derivation of the rigid multi-body dynamics using the Projected Newton-Euler met
 import argparse
 import pickle
 
-from sympy import symbols, Matrix, simplify, solve, diff, eye, diag, zeros, cse, pi, exp, Max
+from sympy import (Matrix, Max, cse, diag, diff, exp, eye, pi, simplify, solve,
+                   symbols, zeros)
 from sympy.matrices.dense import rot_axis1, rot_axis2
 
 

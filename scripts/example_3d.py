@@ -1,16 +1,16 @@
 """Simple test script for 3D Double Ball Balancer
 """
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # needed for resolving projection='3d'
-import numpy as np
-import time
-import copy
 import argparse
+import copy
+import time
 
 import context
+import matplotlib.pyplot as plt
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D  # needed for resolving projection='3d'
 
-from model_3d.dynamic_model import ModelParam, DynamicModel, ModelState
-from model_3d.controller import Controller, ANGLE_MODE  # , VELOCITY_MODE
+from model_3d.controller import ANGLE_MODE, Controller  # , VELOCITY_MODE
+from model_3d.dynamic_model import DynamicModel, ModelParam, ModelState
 
 parser = argparse.ArgumentParser(description="Test double ball balancer")
 parser.add_argument("-a", "--no-animation", help="disable animation", action="store_true")
@@ -64,8 +64,9 @@ if enable_animation or args.gif:
     fig = plt.figure(0)
     ax = fig.add_subplot(111, projection='3d')
     if args.gif:
-        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
         import imageio
+        from matplotlib.backends.backend_agg import \
+            FigureCanvasAgg as FigureCanvas
         canvas = FigureCanvas(fig)
         images = []
 

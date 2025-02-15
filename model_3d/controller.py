@@ -1,10 +1,9 @@
 """Controller class for controlling 3D Double Ball Balancer
 """
-import numpy as np
-from numpy import sin, cos
-from pyrotation import Quaternion
-
 import context
+import numpy as np
+from numpy import cos, sin
+from pyrotation import Quaternion
 
 from model_2d.controller_2 import Controller as Controller2D
 from model_2d.dynamics_2 import StateIndex

@@ -2,8 +2,8 @@
 
 author: Christof Dubs
 """
-from abc import ABC, abstractmethod
 import itertools
+from abc import ABC, abstractmethod
 
 import numpy as np
 from scipy.integrate import odeint

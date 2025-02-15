@@ -1,15 +1,14 @@
-import matplotlib.pyplot as plt
-import numpy as np
-
+import glob
 import pickle
 
-import glob
+import context
+import matplotlib.pyplot as plt
+import numpy as np
 from scipy.optimize import minimize
 
-import context
-from model_3d.dynamic_model import ModelState
-from model_3d.controller import projectModelState
 from model_2d.dynamics_2 import StateIndex as StateIndex2D
+from model_3d.controller import projectModelState
+from model_3d.dynamic_model import ModelState
 
 BETA_IDX = StateIndex2D.ALPHA_1_IDX
 PHI_IDX = StateIndex2D.PHI_IDX

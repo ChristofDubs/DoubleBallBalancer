@@ -1,17 +1,17 @@
 """Script for running pybullet simulation of 3D Double Ball Balancer
 """
-import pybullet as p
 import time
-import pybullet_data
-import numpy as np
-from numpy import sin, cos
 
 import context
-
+import numpy as np
+import pybullet as p
+import pybullet_data
+from numpy import cos, sin
 from pyrotation import Quaternion
 
+from model_3d.controller import (ANGLE_MODE, VELOCITY_MODE, Controller,
+                                 projectModelState)
 from model_3d.dynamic_model import ModelParam, ModelState
-from model_3d.controller import Controller, projectModelState, ANGLE_MODE, VELOCITY_MODE
 
 ANGLE_MODE = ANGLE_MODE
 VELOCITY_MODE = VELOCITY_MODE

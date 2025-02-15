@@ -1,13 +1,12 @@
 """Script for interactively contolling the 3D Double Ball Balancer in the pybullet simulation
 """
 import copy
-import pygame
 import time
 from enum import Enum
 
 import numpy as np
-
-from pybullet_simulation import PyBulletSim, VELOCITY_MODE
+import pygame
+from pybullet_simulation import VELOCITY_MODE, PyBulletSim
 
 # https://stackoverflow.com/questions/42014195/rendering-text-with-multiple-lines-in-pygame
 

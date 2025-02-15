@@ -1,17 +1,15 @@
 """generate a turning trajectories for 3D Double Ball Balancer
 """
+import copy
+import pickle
+
+import context
 import matplotlib.pyplot as plt
 import numpy as np
 
-import context
-
-import copy
-
-import pickle
 from model_2d.dynamics_2 import StateIndex as StateIndex2D
+from model_3d.controller import VELOCITY_MODE, Controller, projectModelState
 from model_3d.dynamic_model import DynamicModel, ModelParam, ModelState
-from model_3d.controller import Controller, projectModelState, VELOCITY_MODE
-
 
 # create parameter struct
 param = ModelParam()

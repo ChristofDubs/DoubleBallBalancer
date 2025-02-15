@@ -4,16 +4,15 @@
 The controller then tries to find control inputs for the lateral controller to optimize the trajectory
 
 """
+import crocoddyl
 import numpy as np
-from numpy import sin, cos
+from numpy import cos, sin
 from pyrotation import Quaternion
 
-from model_3d.dynamic_model import DynamicModel, ModelState, STATE_SIZE
-
+from model_3d.controller import VELOCITY_MODE
 from model_3d.controller import Controller as LinearController
-from model_3d.controller import projectModelState, VELOCITY_MODE
-
-import crocoddyl
+from model_3d.controller import projectModelState
+from model_3d.dynamic_model import STATE_SIZE, DynamicModel, ModelState
 
 
 class ActionModel(crocoddyl.ActionModelAbstract):

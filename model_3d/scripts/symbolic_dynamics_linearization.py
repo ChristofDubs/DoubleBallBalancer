@@ -1,10 +1,10 @@
 """Script to linearize symbolic dynamics of 3D Double Ball Balancer"""
 
 import pickle
-from sympy import symbols, Matrix, pi
-from sympy.matrices.dense import rot_axis1, rot_axis2, rot_axis3
 
-from symbolic_dynamics import ang, omega, omega_dot, omega_cmd, R_IB2
+from symbolic_dynamics import R_IB2, ang, omega, omega_cmd, omega_dot
+from sympy import Matrix, pi, symbols
+from sympy.matrices.dense import rot_axis1, rot_axis2, rot_axis3
 
 # select equilibrium beta_z
 beta_z_eq = 0 * pi
