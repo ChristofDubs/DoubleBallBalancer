@@ -69,6 +69,8 @@ class PyBulletSim:
         self.timestep_param_id = p.addUserDebugParameter("simulation_timestep", 1 / 240, 1 / 60, 1 / 60)
         self.rtf_param_id = p.addUserDebugParameter("realtime_factor", 0.1, 5, 2)
 
+        self.upper_ball_transparency_id = p.addUserDebugParameter("upper ball transparency", 0, 1, 0.8)
+
         self.logging_id = None
 
         # load controller
@@ -116,6 +118,9 @@ class PyBulletSim:
             cameraYaw=p.readUserDebugParameter(self.cam_yaw_param_id) + camera_yaw_offset,
             cameraPitch=p.readUserDebugParameter(self.cam_pitch_param_id),
             cameraTargetPosition=[state.pos[0], state.pos[1], 5])
+
+        transparency = p.readUserDebugParameter(self.upper_ball_transparency_id)
+        p.changeVisualShape(objectUniqueId=self.robot_id, linkIndex=-1, rgbaColor=[0, 0, 1, transparency])
 
         realtime_factor = p.readUserDebugParameter(self.rtf_param_id)
         time_passed = time.time() - self.start_time
