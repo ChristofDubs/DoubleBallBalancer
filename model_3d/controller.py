@@ -199,27 +199,6 @@ class Controller(object):
 
         return np.array([ux, uy])
 
-    def get_normalized_phi_x_command(self, omega_z_cmd, omega_y):
-        """convert desired z and y angular velocities of the upper ball to normalized lateral motor angle
-
-        args:
-            omega_z_cmd [rad/s]: desired angular velocity z (inertial frame) of upper ball
-            omega_y [rad/s]:     angular forward rolling velocity y of upper ball
-
-        Returns:
-            steady-state normalized lateral motor angle phi_x (normalized with maximum allowed at omega_y) [-]
-        """
-        if omega_y == 0:
-            return 0
-
-        omega_y = np.array(omega_y)
-
-        A = np.column_stack([a * b for a in [omega_z_cmd / omega_y, (omega_z_cmd / omega_y) *
-                            np.abs(omega_z_cmd / omega_y)] for b in [np.ones(omega_y.shape), omega_y ** 2]])
-        phi_x_cmd = np.dot(A, np.array([1.04931272, 0.69646952, -0.25660126, 0.24174059]))
-
-        return phi_x_cmd / self.get_phi_x_max(omega_y)
-
     def get_phi_x_max(self, omega_y):
         """get maximum lateral motor angle phi_x angular at a given forward rolling velocity y of upper ball
 

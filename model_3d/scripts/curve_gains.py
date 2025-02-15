@@ -129,7 +129,7 @@ b = phi_x_motor
 
 x = np.linalg.solve(np.dot(A.T, A), np.dot(A.T, b))
 
-print('gains for converting omega_y, omega_z to phi_x_motor:')
+print('(unused in controller): gains for converting omega_y, omega_z to phi_x_motor:')
 print(x)
 
 ax.scatter(omega_z / omega_y, omega_y, np.dot(A, x), marker='^', label="function approximation")
