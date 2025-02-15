@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 data = []
 
-for file in glob.glob('data*'):
+for file in glob.glob('data/data*'):
     with open(file, 'rb') as handle:
         us, state_vec, _ = pickle.load(handle)
 

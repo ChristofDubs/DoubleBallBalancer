@@ -20,7 +20,11 @@ param.r2 = 2.0
 x0 = ModelState()
 
 # commands
-for beta_cmd in [0.7, 0.8, 1.5, 1.7, 1.8, 2.0, 2.2]:
+beta_cmds = np.round(np.arange(0.1, 2.3, 0.1), 3)
+print(f'Generating trajectories for forward velocities {beta_cmds}')
+print('This will take a while.')
+for beta_cmd in beta_cmds:
+    print(f'Generating trajectory for forward velocity {beta_cmd}')
 
     x0.omega_2 = np.array([0, beta_cmd, 0])
 
@@ -35,7 +39,7 @@ for beta_cmd in [0.7, 0.8, 1.5, 1.7, 1.8, 2.0, 2.2]:
     us, state_vec = controller.compute_ctrl_input(x0, beta_cmd, VELOCITY_MODE)
     sim_time_vec = np.array(range(len(state_vec))) * dt
 
-    with open('data_{}.pickle'.format(beta_cmd), 'wb') as handle:
+    with open('data/data_{}.pickle'.format(beta_cmd), 'wb') as handle:
         pickle.dump([us, state_vec, sim_time_vec], handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
