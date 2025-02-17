@@ -1,5 +1,6 @@
 """Controller class for controlling 2D Double Ball Balancer
 """
+
 import numpy as np
 
 from .dynamics_2 import StateIndex
@@ -11,20 +12,20 @@ def saturate(x, limit):
 
 
 class LQRController(object):
-    def __init__(self,):
-        self.K = np.array([2.67619260e-15, 1.03556079e+01, -4.73012271e+01,
-                           3.23606798e+00, 6.05877477e-01, -3.53469304e+01])
+    def __init__(self):
+        self.K = np.array(
+            [2.67619260e-15, 1.03556079e01, -4.73012271e01, 3.23606798e00, 6.05877477e-01, -3.53469304e01]
+        )
         self.kp = 0.2
         self.kd = 0.2
         self.beta_dot_max = 2
 
     def compute_ctrl_input(self, x, beta_cmd):
         # PD beta controller
-        beta_dot_cmd = saturate(self.kp *
-                                (beta_cmd -
-                                 x[StateIndex.ALPHA_1_IDX]) -
-                                self.kd *
-                                x[StateIndex.ALPHA_DOT_1_IDX], self.beta_dot_max)
+        beta_dot_cmd = saturate(
+            self.kp * (beta_cmd - x[StateIndex.ALPHA_1_IDX]) - self.kd * x[StateIndex.ALPHA_DOT_1_IDX],
+            self.beta_dot_max,
+        )
 
         # beta_dot controller
         return -np.dot(self.K, x) + (self.K[StateIndex.ALPHA_DOT_1_IDX] - 1) * beta_dot_cmd
@@ -32,32 +33,72 @@ class LQRController(object):
 
 def compute_phi_max(param):
     """compute lever arm angle for maximum beta_ddot acceleration"""
-    return np.arccos(np.clip(-param["r_2"] * param["m_2"] * param["r_1"] / (param["theta_0"] * param["r_1"]**2 / \
-                     param["r_0"] ** 2 + param["theta_1"] + (param["m_0"] + param["m_1"] + param["m_2"]) * param["r_1"]**2), -1, 1))
+    return np.arccos(
+        np.clip(
+            -param["r_2"]
+            * param["m_2"]
+            * param["r_1"]
+            / (
+                param["theta_0"] * param["r_1"] ** 2 / param["r_0"] ** 2
+                + param["theta_1"]
+                + (param["m_0"] + param["m_1"] + param["m_2"]) * param["r_1"] ** 2
+            ),
+            -1,
+            1,
+        )
+    )
 
 
 def compute_phi_from_beta_ddot(beta_ddot, param):
     """compute lever arm angle during constant beta_ddot acceleration"""
-    return -np.arctan(param["r_1"] * beta_ddot / param["g"]) - np.arcsin(np.clip((param["theta_0"] * param["r_1"]**2 / param["r_0"]**2 + param["theta_1"] + (
-        param["m_0"] + param["m_1"] + param["m_2"]) * param["r_1"]**2) * beta_ddot / (param["r_2"] * param["m_2"] * np.sqrt(param["g"]**2 + beta_ddot**2 * param["r_1"]**2)), -1, 1))
+    return -np.arctan(param["r_1"] * beta_ddot / param["g"]) - np.arcsin(
+        np.clip(
+            (
+                param["theta_0"] * param["r_1"] ** 2 / param["r_0"] ** 2
+                + param["theta_1"]
+                + (param["m_0"] + param["m_1"] + param["m_2"]) * param["r_1"] ** 2
+            )
+            * beta_ddot
+            / (param["r_2"] * param["m_2"] * np.sqrt(param["g"] ** 2 + beta_ddot**2 * param["r_1"] ** 2)),
+            -1,
+            1,
+        )
+    )
 
 
 def compute_psi_from_beta_ddot(beta_ddot, param):
     """compute angle of upper on lower ball during constant beta_ddot acceleration"""
-    return -np.arctan(param["r_1"] * beta_ddot / param["g"]) - np.arcsin(np.clip((1 + (param["theta_0"] / param["r_0"]**2 + \
-                      param["m_0"]) / (param["m_1"] + param["m_2"])) * beta_ddot / np.sqrt(beta_ddot**2 + param["g"]**2 / param["r_1"]**2), -1, 1))
+    return -np.arctan(param["r_1"] * beta_ddot / param["g"]) - np.arcsin(
+        np.clip(
+            (1 + (param["theta_0"] / param["r_0"] ** 2 + param["m_0"]) / (param["m_1"] + param["m_2"]))
+            * beta_ddot
+            / np.sqrt(beta_ddot**2 + param["g"] ** 2 / param["r_1"] ** 2),
+            -1,
+            1,
+        )
+    )
 
 
 def compute_beta_ddot_to_psi_gain(param):
     """beta_ddot to psi gain for small accelerations"""
-    return -param["r_1"] / param["g"] * (2 + (param["theta_0"] / param["r_0"]**2 +
-                                              param["m_0"]) / (param["m_1"] + param["m_2"]))
+    return (
+        -param["r_1"]
+        / param["g"]
+        * (2 + (param["theta_0"] / param["r_0"] ** 2 + param["m_0"]) / (param["m_1"] + param["m_2"]))
+    )
 
 
 def compute_beta_ddot_from_psi(psi, param):
     """compute acceleration beta_ddot from psi angle"""
-    return -(param["m_1"] + param["m_2"]) * param["g"] * np.sin(psi) / ((param["theta_0"] / param["r_0"]
-                                                                         ** 2 + param["m_0"] + (param["m_1"] + param["m_2"]) * (1 + np.cos(psi))) * param["r_1"])
+    return (
+        -(param["m_1"] + param["m_2"])
+        * param["g"]
+        * np.sin(psi)
+        / (
+            (param["theta_0"] / param["r_0"] ** 2 + param["m_0"] + (param["m_1"] + param["m_2"]) * (1 + np.cos(psi)))
+            * param["r_1"]
+        )
+    )
 
 
 def compute_phi_from_psi(psi, param):
@@ -121,12 +162,18 @@ class Controller(object):
         if phi_dot_cmd is not None:
             return self.compute_motor_cmd(x, phi_dot_cmd)
 
-        print('invalid mode: {} is not in {}'.format(mode,
-                                                     [StateIndex.ALPHA_1_IDX,
-                                                      StateIndex.PHI_IDX,
-                                                      StateIndex.PSI_0_IDX,
-                                                      StateIndex.ALPHA_DOT_1_IDX,
-                                                      StateIndex.PHI_DOT_IDX]))
+        print(
+            "invalid mode: {} is not in {}".format(
+                mode,
+                [
+                    StateIndex.ALPHA_1_IDX,
+                    StateIndex.PHI_IDX,
+                    StateIndex.PSI_0_IDX,
+                    StateIndex.ALPHA_DOT_1_IDX,
+                    StateIndex.PHI_DOT_IDX,
+                ],
+            )
+        )
         return 0
 
     def compute_beta_dot_cmd(self, x, beta_cmd):
@@ -165,15 +212,20 @@ class Controller(object):
 
         phi_ff = compute_phi_from_psi(x[StateIndex.PSI_0_IDX], self.param)
 
-        return self.K[StateIndex.PSI_0_IDX] * (psi_cmd - x[StateIndex.PSI_0_IDX]) - \
-            self.K[StateIndex.PSI_DOT_0_IDX] * x[StateIndex.PSI_DOT_0_IDX] + phi_ff
+        return (
+            self.K[StateIndex.PSI_0_IDX] * (psi_cmd - x[StateIndex.PSI_0_IDX])
+            - self.K[StateIndex.PSI_DOT_0_IDX] * x[StateIndex.PSI_DOT_0_IDX]
+            + phi_ff
+        )
 
     def compute_phi_dot_cmd(self, x, phi_cmd):
         # prevent phi commands outside approx. [-pi/2, pi/2]
         phi_cmd = saturate(phi_cmd, self.phi_max)
 
-        return self.K[StateIndex.PHI_IDX] * (phi_cmd - x[StateIndex.PHI_IDX]) - \
-            self.K[StateIndex.PHI_DOT_IDX] * x[StateIndex.PHI_DOT_IDX]
+        return (
+            self.K[StateIndex.PHI_IDX] * (phi_cmd - x[StateIndex.PHI_IDX])
+            - self.K[StateIndex.PHI_DOT_IDX] * x[StateIndex.PHI_DOT_IDX]
+        )
 
     def compute_motor_cmd(self, x, phi_dot_cmd):
         return phi_dot_cmd - x[StateIndex.ALPHA_DOT_1_IDX]

@@ -5,22 +5,20 @@
 
 author: Christof Dubs
 """
-import context
-
-
-from model_3d.dynamic_model import ModelState
-from model_3d.controller import projectModelState
-
-import numpy as np
-import pickle
 
 import glob
+import pickle
+
+import context  # noqa: F401
 import matplotlib.pyplot as plt
+import numpy as np
+
+from model_3d.controller import projectModelState
 
 data = []
 
-for file in glob.glob('data/data*'):
-    with open(file, 'rb') as handle:
+for file in glob.glob("data/data*"):
+    with open(file, "rb") as handle:
         us, state_vec, _ = pickle.load(handle)
 
     A = np.array([projectModelState(state)[0] for state in state_vec[:-1]])
@@ -45,18 +43,18 @@ for i in range(len(data[0][1])):
     b = np.array([K[i][0] for _, K in data])
     x = np.linalg.solve(np.dot(A.T, A), np.dot(A.T, b))
 
-    print('coefficients x that map f(u)*x = K_i')
+    print("coefficients x that map f(u)*x = K_i")
     print(x)
 
     plt.figure()
-    plt.plot(us, b, 'b*')
+    plt.plot(us, b, "b*")
     ref = np.linspace(0, 2.5, 31)
     # plt.plot(ref, x[4]*ref**4 + x[3]*ref**3 + x[2]*ref**2 + x[1]*ref + x[0])
     # plt.plot(ref, x[3]*ref**4 + x[2]*ref**3 + x[1]*ref**2 + x[0])
-    plt.plot(ref, x[5] * ref**6 + x[4] * ref**5 + x[3] * ref**4 + x[2] * ref**3 + x[1] * ref**2 + x[0], 'r-')
+    plt.plot(ref, x[5] * ref**6 + x[4] * ref**5 + x[3] * ref**4 + x[2] * ref**3 + x[1] * ref**2 + x[0], "r-")
     # plt.plot(ref, x[2]*np.cos(ref) + x[1]*ref**2 + x[0])
     # plt.plot(ref, x[2]*ref**4 + x[1]*ref**2 + x[0])
     # plt.plot(ref, x[2]*ref**2 + x[1]*ref + x[0])
-    plt.xlabel('omega_2_y')
-    plt.ylabel(f'gain {i}')
+    plt.xlabel("omega_2_y")
+    plt.ylabel(f"gain {i}")
 plt.show(block=True)

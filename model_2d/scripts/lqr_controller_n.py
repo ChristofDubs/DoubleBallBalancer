@@ -1,14 +1,14 @@
 """Script to compute LQR-controller gain for stabilizing the 2D N Ball Balancer, based on numerical parameter values.
 """
-import context
-
-import numpy as np
-from scipy.linalg import solve_continuous_are
-import matplotlib.pyplot as plt
 
 import pickle
 
-from symbolic_dynamics_n import ang, omega, omega_dot, omega_cmd, all_constants
+import context  # noqa: F401
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.linalg import solve_continuous_are
+from symbolic_dynamics_n import all_constants, ang, omega, omega_cmd, omega_dot
+
 from model_2d.param import getDefaultParam
 
 
@@ -18,7 +18,7 @@ def computeControllerGains(N: int, verbose: bool = False):
 
     dyn_lin = dyn_lin.subs(getDefaultParam(N))
 
-    assert(dyn_lin.jacobian(all_constants).is_zero_matrix)
+    assert dyn_lin.jacobian(all_constants).is_zero_matrix
 
     # extract matrices such that M*x_ddot + D*x_dot + K*x = Bd*u
     M = dyn_lin.jacobian(omega_dot)
@@ -46,11 +46,11 @@ def computeControllerGains(N: int, verbose: bool = False):
 
     X = np.column_stack(X)
 
-    assert(np.linalg.matrix_rank(X) == dim)
+    assert np.linalg.matrix_rank(X) == dim
 
     # eigenvalues
     if verbose:
-        print('open loop eigenvalues: \n{}'.format(np.linalg.eigvals(A)))
+        print("open loop eigenvalues: \n{}".format(np.linalg.eigvals(A)))
 
     # LQR controller:
     # https://en.wikipedia.org/wiki/Linear%E2%80%93quadratic_regulator
@@ -68,23 +68,23 @@ def computeControllerGains(N: int, verbose: bool = False):
     if verbose:
         # compute eigenvalues of closed loop system
         eig = np.linalg.eigvals(A - np.dot(B, K))
-        print('closed loop eigenvalues: \n{}'.format(eig))
+        print("closed loop eigenvalues: \n{}".format(eig))
 
         # find minimal damping coefficient
         zeta = [np.absolute(e.real) / np.absolute(e) for e in eig if e < 0]
-        print('minimal damping ratio: {}'.format(min(zeta)))
+        print("minimal damping ratio: {}".format(min(zeta)))
 
     return K, eig
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     K, eig = computeControllerGains(2, True)
 
     plt.figure()
-    plt.plot(eig.real, eig.imag, 'b*')
-    plt.xlabel('real')
-    plt.ylabel('imag')
-    plt.title('poles of closed loop system')
-    plt.axis('equal')
+    plt.plot(eig.real, eig.imag, "b*")
+    plt.xlabel("real")
+    plt.ylabel("imag")
+    plt.title("poles of closed loop system")
+    plt.axis("equal")
     plt.show(block=True)

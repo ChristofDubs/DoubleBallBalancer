@@ -1,24 +1,23 @@
 """Simple test script for 3D Double Ball Balancer
 """
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # needed for resolving projection='3d'
-import numpy as np
-import time
-import copy
+
 import argparse
+import copy
+import time
 
-import context
+import context  # noqa: F401
+import matplotlib.pyplot as plt
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 needed for resolving projection='3d'
 
-from model_3d.dynamic_model import ModelParam, DynamicModel, ModelState
-from model_3d.controller import Controller, ANGLE_MODE  # , VELOCITY_MODE
+from model_3d.controller import ANGLE_MODE, Controller  # , VELOCITY_MODE
+from model_3d.dynamic_model import DynamicModel, ModelParam, ModelState
 
 parser = argparse.ArgumentParser(description="Test double ball balancer")
 parser.add_argument("-a", "--no-animation", help="disable animation", action="store_true")
 parser.add_argument(
-    "-c",
-    "--contact-forces",
-    help="enable visualization of contact forces in the animation",
-    action="store_true")
+    "-c", "--contact-forces", help="enable visualization of contact forces in the animation", action="store_true"
+)
 parser.add_argument("-g", "--gif", help="create gif of animation", action="store_true")
 parser.add_argument("-p", "--no-plot", help="disable plotting states", action="store_true")
 parser.add_argument("-v", "--verbose", help="print simulation time", action="store_true")
@@ -62,17 +61,16 @@ contact_forces = None
 
 if enable_animation or args.gif:
     fig = plt.figure(0)
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
     if args.gif:
-        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
         import imageio
+        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+
         canvas = FigureCanvas(fig)
         images = []
 
 # simulate until system is irrecoverable or max_sim_time reached
-while not model.is_irrecoverable(
-        contact_forces=contact_forces,
-        omega_cmd=omega_cmd) and sim_time < max_sim_time:
+while not model.is_irrecoverable(contact_forces=contact_forces, omega_cmd=omega_cmd) and sim_time < max_sim_time:
     # get control input
     omega_cmd = controller.compute_ctrl_input(model.state, beta_cmd, control_mode)
 
@@ -81,25 +79,23 @@ while not model.is_irrecoverable(
         if enable_contact_forces:
             contact_forces = model.compute_contact_forces(omega_cmd=omega_cmd)
 
-        vis = model.get_visualization(
-            contact_forces=contact_forces,
-            visualize_contact_forces=enable_contact_forces)
+        vis = model.get_visualization(contact_forces=contact_forces, visualize_contact_forces=enable_contact_forces)
 
         # plot
         plt.cla()
 
-        ax.plot_wireframe(*vis['lower_ball'], color='b', linewidth=0.5)
-        ax.plot_wireframe(*vis['upper_ball'], color='r', linewidth=0.5)
-        ax.plot_wireframe(*vis['lever_arm'], color='g')
+        ax.plot_wireframe(*vis["lower_ball"], color="b", linewidth=0.5)
+        ax.plot_wireframe(*vis["upper_ball"], color="r", linewidth=0.5)
+        ax.plot_wireframe(*vis["lever_arm"], color="g")
 
         if enable_contact_forces:
-            ax.quiver(*vis['F1'], color='m')
-            ax.quiver(*vis['F12'], color='m')
-            ax.quiver(*vis['F23'], color='m')
+            ax.quiver(*vis["F1"], color="m")
+            ax.quiver(*vis["F12"], color="m")
+            ax.quiver(*vis["F23"], color="m")
 
-        ax.set_xlabel('x [m]')
-        ax.set_ylabel('y [m]')
-        ax.set_zlabel('z [m]')
+        ax.set_xlabel("x [m]")
+        ax.set_ylabel("y [m]")
+        ax.set_zlabel("z [m]")
 
         ball_pos = model.state.pos
         range = param.r1 + param.r2
@@ -123,7 +119,7 @@ while not model.is_irrecoverable(
         sim_time_vec.append(sim_time)
 
     if args.verbose:
-        print('sim_time: {0:.3f} s'.format(sim_time))
+        print("sim_time: {0:.3f} s".format(sim_time))
 
     if args.gif:
         # convert figure to numpy image:
@@ -137,31 +133,31 @@ while not model.is_irrecoverable(
         images.append(image)
 
 if args.gif:
-    imageio.mimsave('doc/img/3d_demo.gif', images, fps=1 / dt, palettesize=64, subrectangles=True)
+    imageio.mimsave("doc/img/3d_demo.gif", images, fps=1 / dt, palettesize=64, subrectangles=True)
 
 if enable_plot:
     plt.figure()
-    plt.plot(sim_time_vec, [state.psi_x for state in state_vec], label='psi_x')
-    plt.plot(sim_time_vec, [state.phi_x for state in state_vec], label='phi_x')
-    plt.xlabel('time [s]')
-    plt.ylabel('angles [rad]')
+    plt.plot(sim_time_vec, [state.psi_x for state in state_vec], label="psi_x")
+    plt.plot(sim_time_vec, [state.phi_x for state in state_vec], label="phi_x")
+    plt.xlabel("time [s]")
+    plt.ylabel("angles [rad]")
     plt.legend()
-    plt.title('x angles')
+    plt.title("x angles")
 
     plt.figure()
-    plt.plot(sim_time_vec, [state.psi_y for state in state_vec], label='psi_y')
-    plt.plot(sim_time_vec, [state.phi_y for state in state_vec], label='phi_y')
-    plt.xlabel('time [s]')
-    plt.ylabel('angles [rad]')
+    plt.plot(sim_time_vec, [state.psi_y for state in state_vec], label="psi_y")
+    plt.plot(sim_time_vec, [state.phi_y for state in state_vec], label="phi_y")
+    plt.xlabel("time [s]")
+    plt.ylabel("angles [rad]")
     plt.legend()
-    plt.title('y angles')
+    plt.title("y angles")
 
     plt.figure()
-    plt.plot(sim_time_vec, [state.psi_y_dot for state in state_vec], label='psi_y_dot')
-    plt.plot(sim_time_vec, [state.omega_2[1] for state in state_vec], label='omega_2y')
-    plt.plot(sim_time_vec, [state.phi_y_dot for state in state_vec], label='phi_y_dot')
-    plt.xlabel('time [s]')
-    plt.ylabel('omega [rad]')
+    plt.plot(sim_time_vec, [state.psi_y_dot for state in state_vec], label="psi_y_dot")
+    plt.plot(sim_time_vec, [state.omega_2[1] for state in state_vec], label="omega_2y")
+    plt.plot(sim_time_vec, [state.phi_y_dot for state in state_vec], label="phi_y_dot")
+    plt.xlabel("time [s]")
+    plt.ylabel("omega [rad]")
     plt.legend()
-    plt.title('omega')
+    plt.title("omega")
     plt.show(block=True)

@@ -1,13 +1,13 @@
 """Script to compute LQR-controller gain for stabilizing the 3D Double Ball Balancer, based on numerical parameter values.
 """
-import numpy as np
-from scipy.linalg import solve_continuous_are
-from scipy.signal import place_poles
-import matplotlib.pyplot as plt
 
 import pickle
 
-from symbolic_dynamics_linearization import ang, omega, omega_dot, omega_cmd
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.linalg import solve_continuous_are
+from scipy.signal import place_poles
+from symbolic_dynamics_linearization import ang, omega, omega_cmd, omega_dot
 
 use_pole_placement = True
 
@@ -46,7 +46,7 @@ B = np.zeros([16, 2], dtype=float)
 B[8:, :] = np.array(-M.LUsolve(Bd))
 
 # eigenvalues
-print('open loop eigenvalues: \n{}'.format(np.linalg.eigvals(A)))
+print("open loop eigenvalues: \n{}".format(np.linalg.eigvals(A)))
 
 # remove uncontrollable states of the linear system:
 # angles: alpha_z, beta_z
@@ -62,23 +62,35 @@ B = np.delete(B, delete_mask, 0)
 
 if use_pole_placement:
     # [beta, phi, psi, beta_dot, phi_dot, psi_dot]
-    poles_2D = np.array([-2.07789478e+01 + 0.j, -1.23128756e-15 + 0.j, -1.48613821e+00 + 1.18812958j, -
-                         1.48613821e+00 - 1.18812958j, -5.80068041e-01 + 0.27468173j, -5.80068041e-01 - 0.27468173j])
+    poles_2D = np.array(
+        [
+            -2.07789478e01 + 0.0j,
+            -1.23128756e-15 + 0.0j,
+            -1.48613821e00 + 1.18812958j,
+            -1.48613821e00 - 1.18812958j,
+            -5.80068041e-01 + 0.27468173j,
+            -5.80068041e-01 - 0.27468173j,
+        ]
+    )
 
-    p = np.array([poles_2D[2],
-                  poles_2D[2],
-                  poles_2D[0],
-                  poles_2D[0],
-                  poles_2D[1],
-                  poles_2D[1],
-                  poles_2D[5],
-                  poles_2D[5],
-                  poles_2D[3],
-                  poles_2D[3],
-                  poles_2D[4],
-                  poles_2D[4]])
+    p = np.array(
+        [
+            poles_2D[2],
+            poles_2D[2],
+            poles_2D[0],
+            poles_2D[0],
+            poles_2D[1],
+            poles_2D[1],
+            poles_2D[5],
+            poles_2D[5],
+            poles_2D[3],
+            poles_2D[3],
+            poles_2D[4],
+            poles_2D[4],
+        ]
+    )
 
-    K = place_poles(A, B, p, method='YT').gain_matrix
+    K = place_poles(A, B, p, method="YT").gain_matrix
 
 else:
     # LQR controller:
@@ -95,16 +107,16 @@ else:
 
 # compute eigenvalues of closed loop system
 eig = np.linalg.eigvals(A - np.dot(B, K))
-print('closed loop eigenvalues: \n{}'.format(eig))
+print("closed loop eigenvalues: \n{}".format(eig))
 
 # find minimal damping coefficient
 zeta = [np.absolute(e.real) / np.absolute(e) for e in eig if e < 0]
-print('minimal damping ratio: {}'.format(min(zeta)))
+print("minimal damping ratio: {}".format(min(zeta)))
 
 plt.figure()
-plt.plot(eig.real, eig.imag, 'b*')
-plt.xlabel('real')
-plt.ylabel('imag')
-plt.title('poles of closed loop system')
-plt.axis('equal')
+plt.plot(eig.real, eig.imag, "b*")
+plt.xlabel("real")
+plt.ylabel("imag")
+plt.title("poles of closed loop system")
+plt.axis("equal")
 plt.show(block=True)

@@ -1,10 +1,10 @@
 """Controller class for controlling 2D Double Ball Balancer
 """
+
+import crocoddyl
 import numpy as np
 
 from model_2d.dynamics_2 import DynamicModel, StateIndex
-
-import crocoddyl
 
 
 class ActionModel(crocoddyl.ActionModelAbstract):
@@ -33,7 +33,7 @@ class ActionModel(crocoddyl.ActionModelAbstract):
             data.xnext[:-1] = x[:-1] + self.model._x_dot(x[:-1], 0, data.xnext[-1]) * self.dt
             data.r[:-1] = self.costWeightsState * (data.xnext[:-1] - self.des)
             data.r[-1] = self.costWeightsInput[0] * u
-            data.cost = .5 * sum(data.r**2)
+            data.cost = 0.5 * sum(data.r**2)
         return data.xnext, data.cost
 
     def setSetpoint(self, x, mode):

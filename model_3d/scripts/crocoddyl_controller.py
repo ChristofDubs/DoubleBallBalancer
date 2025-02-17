@@ -4,16 +4,14 @@
 The controller then tries to find control inputs for the lateral controller to optimize the trajectory
 
 """
-import numpy as np
-from numpy import sin, cos
-from pyrotation import Quaternion
-
-from model_3d.dynamic_model import DynamicModel, ModelState, STATE_SIZE
-
-from model_3d.controller import Controller as LinearController
-from model_3d.controller import projectModelState, VELOCITY_MODE
 
 import crocoddyl
+import numpy as np
+
+from model_3d.controller import VELOCITY_MODE
+from model_3d.controller import Controller as LinearController
+from model_3d.controller import projectModelState
+from model_3d.dynamic_model import STATE_SIZE, DynamicModel, ModelState
 
 
 class ActionModel(crocoddyl.ActionModelAbstract):
@@ -52,20 +50,22 @@ class ActionModel(crocoddyl.ActionModelAbstract):
         uy = self.linear_controller.compute_ctrl_input(ModelState(x[:-2] + self.des), self.r, self.mode)[1]
         data.xnext[-1] = uy
 
-        if self.model.is_irrecoverable(state=ModelState(
-                x[:-2] + self.des, skip_checks=True), omega_cmd=data.xnext[-2:]):
+        if self.model.is_irrecoverable(
+            state=ModelState(x[:-2] + self.des, skip_checks=True), omega_cmd=data.xnext[-2:]
+        ):
             data.xnext = x * np.nan
             data.cost = np.nan
             data.r = np.ones(self.nr) * np.nan
         else:
-            state = ModelState(x[:-2] + self.des + self.model._x_dot(x[:-2] + self.des,
-                                                                     0, data.xnext[-2:]) * self.dt, skip_checks=True)
+            state = ModelState(
+                x[:-2] + self.des + self.model._x_dot(x[:-2] + self.des, 0, data.xnext[-2:]) * self.dt, skip_checks=True
+            )
             state.normalize_quaternions()
             data.xnext[:-2] = state.x - self.des
 
             data.r[:6] = self.costWeightsState * projectModelState(state)[0]
-            data.r[-self.nu:] = self.costWeightsInput * u
-            data.cost = .5 * sum(data.r**2)
+            data.r[-self.nu :] = self.costWeightsInput * u
+            data.cost = 0.5 * sum(data.r**2)
         return data.xnext, data.cost
 
     def setSetpoint(self, des, r, mode):
@@ -98,8 +98,9 @@ class Controller:
 
         T = int(20 / 0.05)  # number of knots
 
-        problem = crocoddyl.ShootingProblem(np.concatenate(
-            [x0 - des, np.array([0, -r])]), [self.pred_model] * T, self.terminal_model)
+        problem = crocoddyl.ShootingProblem(
+            np.concatenate([x0 - des, np.array([0, -r])]), [self.pred_model] * T, self.terminal_model
+        )
 
         # use linear controller for an initial solution of {x, u}
         xs = []
@@ -111,13 +112,8 @@ class Controller:
             u = self.controller.compute_ctrl_input(state, r, mode)
 
             next_state = ModelState(
-                state.x +
-                self.pred_model.model.model._x_dot(
-                    state.x,
-                    0,
-                    u) *
-                self.pred_model.model.dt,
-                skip_checks=True)
+                state.x + self.pred_model.model.model._x_dot(state.x, 0, u) * self.pred_model.model.dt, skip_checks=True
+            )
             next_state.normalize_quaternions()
 
             us.append(np.array([u[0] - xs[-1][-2]]))
