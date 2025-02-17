@@ -27,14 +27,14 @@ class DynamicModel(NBallDynamicModel):
         alpha_dot_1 = x[StateIndex.ALPHA_DOT_1_IDX]
         phi_dot = x[StateIndex.PHI_DOT_IDX]
         psi_dot_0 = x[StateIndex.PSI_DOT_0_IDX]
-        x0 = param["r_1"]**2
+        x0 = param["r_1"] ** 2
         x1 = cos(phi)
         x2 = param["r_2"] * x1
         x3 = param["m_2"] * x2
         x4 = param["r_1"] * x3
-        x5 = param["theta_0"] / param["r_0"]**2
+        x5 = param["theta_0"] / param["r_0"] ** 2
         x6 = sin(phi)
-        x7 = param["m_2"] * param["r_2"]**2
+        x7 = param["m_2"] * param["r_2"] ** 2
         x8 = -param["r_0"] - param["r_1"]
         x9 = sin(psi_0)
         x10 = x8 * x9
@@ -67,8 +67,14 @@ class DynamicModel(NBallDynamicModel):
         A[1, 2] = 0
         A[2, 0] = x19
         A[2, 1] = x15
-        A[2, 2] = param["m_0"] * x20 + param["m_1"] * x23 + param["m_2"] * \
-            x20 * x21 + param["m_2"] * x23 + x17**2 * x5 - x21 * x22 * x8
+        A[2, 2] = (
+            param["m_0"] * x20
+            + param["m_1"] * x23
+            + param["m_2"] * x20 * x21
+            + param["m_2"] * x23
+            + x17**2 * x5
+            - x21 * x22 * x8
+        )
         b[0, 0] = -param["r_1"] * x28 - x11 * x29 + x16 * x25 * x9 - x2 * x28
         b[1, 0] = (alpha_dot_1 + omega_cmd - phi_dot) / param["tau"]
         b[2, 0] = x10 * x14 * x25 - x10 * x29 - x10 * (param["g"] * param["m_1"] - x13 * x22 * x24) - x14 * x28

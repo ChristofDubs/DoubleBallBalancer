@@ -1,5 +1,6 @@
 """Simple test script for 2D Double Ball Balancer
 """
+
 import argparse
 import time
 
@@ -12,16 +13,14 @@ from model_2d.param import getDefaultParam
 
 N = 2
 
-exec(f'from model_2d.dynamics_{N} import DynamicModel, StateIndex')
-exec(f'from model_2d.controller_{N} import Controller')
+exec(f"from model_2d.dynamics_{N} import DynamicModel, StateIndex")
+exec(f"from model_2d.controller_{N} import Controller")
 
 parser = argparse.ArgumentParser(description="Test 2D double ball balancer")
 parser.add_argument("-a", "--no-animation", help="disable animation", action="store_true")
 parser.add_argument(
-    "-c",
-    "--contact-forces",
-    help="enable visualization of contact forces in the animation",
-    action="store_true")
+    "-c", "--contact-forces", help="enable visualization of contact forces in the animation", action="store_true"
+)
 parser.add_argument("-p", "--no-plot", help="disable plotting states", action="store_true")
 parser.add_argument("-v", "--verbose", help="print simulation time", action="store_true")
 args = parser.parse_args()
@@ -59,9 +58,7 @@ u = 0
 contact_forces = None
 
 # simulate until system is irrecoverable or max_sim_time reached
-while model.is_recoverable(
-        contact_forces=contact_forces,
-        omega_cmd=u) and sim_time < max_sim_time:
+while model.is_recoverable(contact_forces=contact_forces, omega_cmd=u) and sim_time < max_sim_time:
     # get control input
     u = controller.compute_ctrl_input(model.x, beta_cmd, mode=controller.ANGLE_MODE)
 
@@ -79,10 +76,10 @@ while model.is_recoverable(
         for i in range(N + 1):
             plt.plot(*vis[str(i)])
             if enable_contact_forces:
-                plt.arrow(*vis[f'F{i}'], head_width=0.1, color='red')
-        plt.xlabel('x [m]')
-        plt.ylabel('y [m]')
-        plt.axis('equal')
+                plt.arrow(*vis[f"F{i}"], head_width=0.1, color="red")
+        plt.xlabel("x [m]")
+        plt.ylabel("y [m]")
+        plt.axis("equal")
         plt.show(block=False)
         time_passed = time.time() - start_time
         plt.pause(max(dt - time_passed, 0.001))
@@ -99,23 +96,23 @@ while model.is_recoverable(
     input_vec.append(u)
 
     if args.verbose:
-        print('sim_time: {0:.3f} s'.format(sim_time))
+        print("sim_time: {0:.3f} s".format(sim_time))
 
 if enable_plot:
     plt.figure()
-    for x in list(StateIndex)[:StateIndex.NUM_STATES // 2]:
+    for x in list(StateIndex)[: StateIndex.NUM_STATES // 2]:
         plt.plot(sim_time_vec, state_vec[:, x.value], label=x.name)
-    plt.xlabel('time [s]')
-    plt.ylabel('angles [rad]')
+    plt.xlabel("time [s]")
+    plt.ylabel("angles [rad]")
     plt.legend()
-    plt.title('angles')
+    plt.title("angles")
 
     plt.figure()
-    for x in list(StateIndex)[StateIndex.NUM_STATES // 2: StateIndex.NUM_STATES]:
+    for x in list(StateIndex)[StateIndex.NUM_STATES // 2 : StateIndex.NUM_STATES]:
         plt.plot(sim_time_vec, state_vec[:, x.value], label=x.name)
-    plt.plot(sim_time_vec[:-1], input_vec, label='motor_cmd')
-    plt.xlabel('time [s]')
-    plt.ylabel('omega [rad]')
+    plt.plot(sim_time_vec[:-1], input_vec, label="motor_cmd")
+    plt.xlabel("time [s]")
+    plt.ylabel("omega [rad]")
     plt.legend()
-    plt.title('omega')
+    plt.title("omega")
     plt.show(block=True)

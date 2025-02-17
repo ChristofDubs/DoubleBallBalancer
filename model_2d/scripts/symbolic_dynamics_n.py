@@ -2,6 +2,7 @@
 
 Derivation of the rigid multi-body dynamics using the Projected Newton-Euler method.
 """
+
 import argparse
 import pickle
 
@@ -14,9 +15,9 @@ def print_symbolic(file, mat, name, sub_list, ignore_symmetry=True):
     for row in range(mat.rows):
         for col in range(mat.cols):
             if not ignore_symmetry and row > col and simplify(mat[row, col] - mat[col, row]) == 0:
-                file.write(2 * indent + f'{name}[{row},{col}] = {name}[{col},{row}]\n')
+                file.write(2 * indent + f"{name}[{row},{col}] = {name}[{col},{row}]\n")
             else:
-                file.write(2 * indent + f'{name}[{row},{col}] = {mat[row, col].subs(sub_list)}\n')
+                file.write(2 * indent + f"{name}[{row},{col}] = {mat[row, col].subs(sub_list)}\n")
 
 
 def writeCSE(expr_list: dict, file: str, state_dict: dict, sub_list: list, print_return: bool = True):
@@ -24,13 +25,13 @@ def writeCSE(expr_list: dict, file: str, state_dict: dict, sub_list: list, print
 
     for key, idx in state_dict.items():
         if not all((term.diff(key).is_zero_matrix for term in expr_list.values())):
-            file.write(2 * indent + f'{str(key)} = x[StateIndex.{idx}]\n')
+            file.write(2 * indent + f"{str(key)} = x[StateIndex.{idx}]\n")
 
     for term in common_sub_expr[0]:
-        file.write(2 * indent + f'{term[0]} = {term[1].subs(sub_list)}\n')
+        file.write(2 * indent + f"{term[0]} = {term[1].subs(sub_list)}\n")
 
     for key, val in expr_list.items():
-        file.write(2 * indent + f'{key} = np.zeros({val.shape})\n')
+        file.write(2 * indent + f"{key} = np.zeros({val.shape})\n")
 
     for i, term in enumerate(common_sub_expr[1]):
         print_symbolic(file, term, list(expr_list.keys())[i], sub_list)
@@ -42,55 +43,56 @@ def writeCSE(expr_list: dict, file: str, state_dict: dict, sub_list: list, print
 N = 2
 
 # angles
-alpha = [symbols('alpha_{}'.format(i)) for i in range(N)]
-alpha_dot = [symbols('alpha_dot_{}'.format(i)) for i in range(N)]
-alpha_ddot = [symbols('alpha_ddot_{}'.format(i)) for i in range(N)]
+alpha = [symbols("alpha_{}".format(i)) for i in range(N)]
+alpha_dot = [symbols("alpha_dot_{}".format(i)) for i in range(N)]
+alpha_ddot = [symbols("alpha_ddot_{}".format(i)) for i in range(N)]
 
-psi = [symbols('psi_{}'.format(i)) for i in range(N - 1)]
-psi_dot = [symbols('psi_dot_{}'.format(i)) for i in range(N - 1)]
-psi_ddot = [symbols('psi_ddot_{}'.format(i)) for i in range(N - 1)]
+psi = [symbols("psi_{}".format(i)) for i in range(N - 1)]
+psi_dot = [symbols("psi_dot_{}".format(i)) for i in range(N - 1)]
+psi_ddot = [symbols("psi_ddot_{}".format(i)) for i in range(N - 1)]
 
-phi, phi_dot, phi_ddot = symbols('phi phi_dot phi_ddot')
+phi, phi_dot, phi_ddot = symbols("phi phi_dot phi_ddot")
 
 ang = Matrix([alpha[N - 1]] + [phi] + psi)
 omega = Matrix([alpha_dot[N - 1]] + [phi_dot] + psi_dot)
 omega_dot = Matrix([alpha_ddot[N - 1]] + [phi_ddot] + psi_ddot)
 
 # parameter
-m = [symbols('m_{}'.format(i)) for i in range(N + 1)]
-r = [symbols('r_{}'.format(i)) for i in range(N + 1)]
-theta = [symbols('theta_{}'.format(i)) for i in range(N + 1)]
+m = [symbols("m_{}".format(i)) for i in range(N + 1)]
+r = [symbols("r_{}".format(i)) for i in range(N + 1)]
+theta = [symbols("theta_{}".format(i)) for i in range(N + 1)]
 
 # constants
-g, tau = symbols('g tau')
+g, tau = symbols("g tau")
 
 all_constants = m + r + theta + [g, tau]
 
 # inputs
-omega_cmd, T = symbols('omega_cmd T')
+omega_cmd, T = symbols("omega_cmd T")
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description="generation of symbolic dynamics of 2D N Ball Balancer")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="generation of symbolic dynamics of 2D N Ball Balancer")
 
     parser.add_argument(
         "-d",
         "--disable-saving-dynamics",
         help="Disable writing non-linear dynamics to pickle file",
         action="store_true",
-        default=False)
+        default=False,
+    )
     parser.add_argument(
         "-p",
         "--print-dynamics",
         help="print common sub-expressions for dynamic model",
         action="store_true",
-        default=True)
+        default=True,
+    )
 
     args = parser.parse_args()
 
     if args.disable_saving_dynamics and not args.print_dynamics:
-        print('Nothing to do: {} ! Exiting.'.format(args.__dict__))
+        print("Nothing to do: {} ! Exiting.".format(args.__dict__))
         exit()
 
     # kinematic constraints: lower ball rolling on the ground
@@ -187,67 +189,67 @@ if __name__ == '__main__':
     dyn_lin += dyn_new.diff(omega_cmd, 1).subs(eq) * omega_cmd
 
     if not args.disable_saving_dynamics:
-        dynamics_pickle_file = f'linear_dynamics_{N}.p'
-        print(f'write dynamics to {dynamics_pickle_file}')
+        dynamics_pickle_file = f"linear_dynamics_{N}.p"
+        print(f"write dynamics to {dynamics_pickle_file}")
         pickle.dump(dyn_lin, open(dynamics_pickle_file, "wb"))
 
     if args.print_dynamics:
-        file_name = f'dynamics_{N}.py'
+        file_name = f"dynamics_{N}.py"
 
-        with open(file_name, 'w') as file:
+        with open(file_name, "w") as file:
             file.write("# Autogenerated using symbolic_dynamics_n.py; don't edit!\n")
-            file.write('from enum import IntEnum\n')
-            file.write('import numpy as np\n')
-            file.write('from numpy import sin, cos\n')
-            file.write('\nfrom .dynamic_model_n import NBallDynamicModel\n')
+            file.write("from enum import IntEnum\n")
+            file.write("import numpy as np\n")
+            file.write("from numpy import sin, cos\n")
+            file.write("\nfrom .dynamic_model_n import NBallDynamicModel\n")
 
             sub_list = [(x, symbols(f'param["{x}"]')) for x in all_constants]
 
             # enum with state indices
-            state_dict = {x: str(x).upper() + '_IDX' for y in [ang, omega] for x in y}
+            state_dict = {x: str(x).upper() + "_IDX" for y in [ang, omega] for x in y}
 
-            file.write('\n\nclass StateIndex(IntEnum):\n')
+            file.write("\n\nclass StateIndex(IntEnum):\n")
             for i, val in enumerate(state_dict.values()):
-                file.write(indent + f'{val} = {i},\n')
-            file.write(indent + f'NUM_STATES = {len(state_dict)},\n')
+                file.write(indent + f"{val} = {i},\n")
+            file.write(indent + f"NUM_STATES = {len(state_dict)},\n")
 
             # class definition
-            file.write('\n\nclass DynamicModel(NBallDynamicModel):\n')
-            file.write(indent + 'def __init__(self, param, x0):\n')
-            file.write(2 * indent + 'super().__init__(StateIndex.NUM_STATES, param, x0)\n')
+            file.write("\n\nclass DynamicModel(NBallDynamicModel):\n")
+            file.write(indent + "def __init__(self, param, x0):\n")
+            file.write(2 * indent + "super().__init__(StateIndex.NUM_STATES, param, x0)\n")
 
             # compute omega dot
             A = dyn_new.jacobian(omega_dot)
             b = -dyn_new.subs([(x, 0) for x in omega_dot])
-            file.write('\n\n' + indent + 'def computeOmegaDot(self, x, param, omega_cmd):\n')
+            file.write("\n\n" + indent + "def computeOmegaDot(self, x, param, omega_cmd):\n")
 
             writeCSE({"A": A, "b": b}, file, state_dict, sub_list, False)
 
-            file.write(2 * indent + 'return np.linalg.solve(A, b)\n')
+            file.write(2 * indent + "return np.linalg.solve(A, b)\n")
 
             # compute contact forces
-            F = {f'F_{N}': p_dot_i[-1] - F_i[-1]}
+            F = {f"F_{N}": p_dot_i[-1] - F_i[-1]}
             for i in range(N - 1, -1, -1):
-                F[f'F_{i}'] = F[f'F_{i+1}'] + p_dot_i[i] - F_i[i]
+                F[f"F_{i}"] = F[f"F_{i+1}"] + p_dot_i[i] - F_i[i]
 
             F = {key: F[key] for key in sorted(F.keys())}
 
-            file.write('\n\n' + indent + 'def computeContactForces(self, x, param, omega_cmd):\n')
+            file.write("\n\n" + indent + "def computeContactForces(self, x, param, omega_cmd):\n")
 
-            file.write(2 * indent + 'omega_dot = self.computeOmegaDot(x, param, omega_cmd)\n')
+            file.write(2 * indent + "omega_dot = self.computeOmegaDot(x, param, omega_cmd)\n")
             for i in range(len(omega_dot)):
-                file.write(2 * indent + f'{omega_dot[i]} = omega_dot[StateIndex.{state_dict[ang[i]]}]\n')
+                file.write(2 * indent + f"{omega_dot[i]} = omega_dot[StateIndex.{state_dict[ang[i]]}]\n")
 
             writeCSE(F, file, state_dict, sub_list)
 
             # r_OS_i
-            file.write('\n\n' + indent + 'def computePositions(self, x, param):\n')
+            file.write("\n\n" + indent + "def computePositions(self, x, param):\n")
 
-            writeCSE({f'r_OS_{i}': val for i, val in enumerate(r_OS_i)}, file, state_dict, sub_list)
+            writeCSE({f"r_OS_{i}": val for i, val in enumerate(r_OS_i)}, file, state_dict, sub_list)
 
             # alpha
-            file.write('\n\n' + indent + 'def computeBallAngles(self, x, param):\n')
+            file.write("\n\n" + indent + "def computeBallAngles(self, x, param):\n")
 
-            writeCSE({'alpha': Matrix([alpha])}, file, state_dict, sub_list)
+            writeCSE({"alpha": Matrix([alpha])}, file, state_dict, sub_list)
 
         print(f"written dynamics to {file_name}")

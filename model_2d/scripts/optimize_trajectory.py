@@ -1,5 +1,6 @@
 """Find optimal trajectories for 2D Double Ball Balancer
 """
+
 import context  # noqa: F401
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,20 +33,20 @@ us, state_vec = controller.compute_ctrl_input(model.x, beta_cmd, ctrl_mode)
 sim_time_vec = np.array(range(state_vec.shape[0])) * dt
 
 plt.figure()
-for x in list(StateIndex)[:StateIndex.NUM_STATES // 2]:
+for x in list(StateIndex)[: StateIndex.NUM_STATES // 2]:
     if x.value != StateIndex.ALPHA_1_IDX or ctrl_mode == controller.ANGLE_MODE:
         plt.plot(sim_time_vec, state_vec[:, x.value], label=x.name)
-plt.xlabel('time [s]')
-plt.ylabel('angles [rad]')
+plt.xlabel("time [s]")
+plt.ylabel("angles [rad]")
 plt.legend()
-plt.title('angles')
+plt.title("angles")
 
 plt.figure()
-for x in list(StateIndex)[StateIndex.NUM_STATES // 2: StateIndex.NUM_STATES]:
+for x in list(StateIndex)[StateIndex.NUM_STATES // 2 : StateIndex.NUM_STATES]:
     plt.plot(sim_time_vec, state_vec[:, x.value], label=x.name)
-plt.plot(sim_time_vec[:-1], us, label='motor_cmd')
-plt.xlabel('time [s]')
-plt.ylabel('omega [rad]')
+plt.plot(sim_time_vec[:-1], us, label="motor_cmd")
+plt.xlabel("time [s]")
+plt.ylabel("omega [rad]")
 plt.legend()
-plt.title('omega')
+plt.title("omega")
 plt.show(block=True)

@@ -2,6 +2,7 @@
 
 author: Christof Dubs
 """
+
 import itertools
 from abc import ABC, abstractmethod
 
@@ -49,17 +50,17 @@ class NBallDynamicModel(ABC):
             bool: True if state could be set successfully, False otherwise.
         """
         if not isinstance(x0, np.ndarray):
-            print(
-                'called set_state with argument of type {} instead of numpy.ndarray. Ignoring.'.format(
-                    type(x0)))
+            print("called set_state with argument of type {} instead of numpy.ndarray. Ignoring.".format(type(x0)))
             return False
 
         # make 1D version of x0
         x0_flat = x0.flatten()
         if len(x0_flat) != self.state_size:
             print(
-                'called set_state with array of length {} instead of {}. Ignoring.'.format(
-                    len(x0_flat), self.state_size))
+                "called set_state with array of length {} instead of {}. Ignoring.".format(
+                    len(x0_flat), self.state_size
+                )
+            )
             return False
         self.x = x0_flat
         return True
@@ -96,12 +97,7 @@ class NBallDynamicModel(ABC):
         omega_dot = self.computeOmegaDot(x, self.param, u)
         return np.concatenate([x[h:], omega_dot.flatten()])
 
-    def is_recoverable(
-            self,
-            x=None,
-            contact_forces=None,
-            omega_cmd=None,
-            ignore_force_check=False):
+    def is_recoverable(self, x=None, contact_forces=None, omega_cmd=None, ignore_force_check=False):
         """Checks if system is recoverable
 
         args:
@@ -120,13 +116,13 @@ class NBallDynamicModel(ABC):
         r_OS_i = self.computePositions(x, self.param)
         N = len(r_OS_i) - 1
         for i in range(1, N):
-            if r_OS_i[i][1] < self.param[f'r_{i}']:
+            if r_OS_i[i][1] < self.param[f"r_{i}"]:
                 return False
 
         # any ball touching another ball apart from the immediate neighbors
         for i in range(N):
             for j in range(i + 2, N):
-                if np.linalg.norm(r_OS_i[j] - r_OS_i[i]) < self.param[f'r_{i}'] + self.param[f'r_{j}']:
+                if np.linalg.norm(r_OS_i[j] - r_OS_i[i]) < self.param[f"r_{i}"] + self.param[f"r_{j}"]:
                     return False
 
         # lift off: contact force between two balls  <= 0
@@ -171,25 +167,30 @@ class NBallDynamicModel(ABC):
         N = len(alpha_i)
 
         for i in range(N):
-            vis[str(i)] = self._compute_ball_visualization(r_OS_i[i].flatten(), self.param[f'r_{i}'], alpha_i[i])
+            vis[str(i)] = self._compute_ball_visualization(r_OS_i[i].flatten(), self.param[f"r_{i}"], alpha_i[i])
 
         vis[str(N)] = [np.array([r_OS_i[-2][i], r_OS_i[-1][i]]) for i in range(2)]
 
         force_scale = 0.05
-        vis['F0'] = list(itertools.chain.from_iterable(
-            [np.array([r_OS_i[0][0][0], 0]), force_scale * contact_forces[0][:2].flatten()]))
+        vis["F0"] = list(
+            itertools.chain.from_iterable(
+                [np.array([r_OS_i[0][0][0], 0]), force_scale * contact_forces[0][:2].flatten()]
+            )
+        )
 
         for i in range(1, N):
             j = i - 1
-            r_i = self.param[f'r_{i}']
-            r_j = self.param[f'r_{j}']
+            r_i = self.param[f"r_{i}"]
+            r_j = self.param[f"r_{j}"]
 
             contact_pt = r_OS_i[j] + (r_OS_i[i] - r_OS_i[j]) * r_j / (r_i + r_j)
-            vis[f'F{i}'] = list(itertools.chain.from_iterable(
-                [contact_pt[:2].flatten(), force_scale * contact_forces[i][:2].flatten()]))
+            vis[f"F{i}"] = list(
+                itertools.chain.from_iterable([contact_pt[:2].flatten(), force_scale * contact_forces[i][:2].flatten()])
+            )
 
-        vis[f'F{N}'] = list(itertools.chain.from_iterable(
-            [r_OS_i[N - 1][:2].flatten(), force_scale * contact_forces[-1][:2].flatten()]))
+        vis[f"F{N}"] = list(
+            itertools.chain.from_iterable([r_OS_i[N - 1][:2].flatten(), force_scale * contact_forces[-1][:2].flatten()])
+        )
 
         return vis
 

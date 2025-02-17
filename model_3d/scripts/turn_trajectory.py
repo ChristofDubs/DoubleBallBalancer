@@ -1,5 +1,6 @@
 """generate a turning trajectories for 3D Double Ball Balancer
 """
+
 import copy
 import pickle
 
@@ -72,7 +73,7 @@ for beta_cmd in [0.1, 0.2, 0.4, 0.7, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]:
         stop_iteration = stop_iteration or np.abs(projectModelState(state_vec[-1])[0][StateIndex2D.ALPHA_1_IDX]) > 1
 
         if not stop_iteration:
-            with open(f'data/turn_data_{beta_cmd:.3}_{omega_x_cmd_offset:.3}.pickle', 'wb') as handle:
+            with open(f"data/turn_data_{beta_cmd:.3}_{omega_x_cmd_offset:.3}.pickle", "wb") as handle:
                 pickle.dump([beta_cmd, omega_x_cmd_offset, state_vec], handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         # plt.figure()

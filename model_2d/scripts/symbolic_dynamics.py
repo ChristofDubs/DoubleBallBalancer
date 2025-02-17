@@ -2,6 +2,7 @@
 
 Derivation of the rigid multi-body dynamics using the Projected Newton-Euler method.
 """
+
 import argparse
 
 from sympy import (Matrix, cos, cse, diff, expand, factor, simplify, sin,
@@ -12,52 +13,48 @@ def print_symbolic(mat, name, sub_list, func=lambda x: x, ignore_symmetry=True):
     for row in range(mat.rows):
         for col in range(mat.cols):
             if not ignore_symmetry and row > col and simplify(mat[row, col] - mat[col, row]) == 0:
-                print('{}[{},{}] = {}[{},{}]'.format(name, row, col, name, col, row))
+                print("{}[{},{}] = {}[{},{}]".format(name, row, col, name, col, row))
             else:
-                print('{}[{},{}] = {}'.format(name, row, col, func(mat[row, col]).subs(sub_list)))
+                print("{}[{},{}] = {}".format(name, row, col, func(mat[row, col]).subs(sub_list)))
 
 
-parser = argparse.ArgumentParser(
-    description="generation of symbolic dynamics of 2D Double Ball Balancer")
+parser = argparse.ArgumentParser(description="generation of symbolic dynamics of 2D Double Ball Balancer")
 parser.add_argument(
     "-d",
     "--disable-printing-dynamics",
     help="disable printing of common sub-expressions for dynamic model",
     action="store_true",
-    default=False)
+    default=False,
+)
 parser.add_argument(
-    "-l",
-    "--print-latex-expressions",
-    help="print latex expressions",
-    action="store_true",
-    default=False)
+    "-l", "--print-latex-expressions", help="print latex expressions", action="store_true", default=False
+)
 args = parser.parse_args()
 
 if args.disable_printing_dynamics and not args.print_latex_expressions:
-    print('Nothing to do: {} ! Exiting.'.format(args.__dict__))
+    print("Nothing to do: {} ! Exiting.".format(args.__dict__))
     exit()
 
 # angles
-alpha, beta, phi, psi = symbols('alpha beta phi psi')
+alpha, beta, phi, psi = symbols("alpha beta phi psi")
 ang = Matrix([beta, phi, psi])
 
 # angular velocities
-alpha_dot, beta_dot, phi_dot, psi_dot = symbols('alpha_d beta_dot phi_dot psi_dot')
+alpha_dot, beta_dot, phi_dot, psi_dot = symbols("alpha_d beta_dot phi_dot psi_dot")
 omega = Matrix([beta_dot, phi_dot, psi_dot])
 
 # angular accelerations
-beta_ddot, phi_ddot, psi_ddot = symbols('beta_dd phi_dd psi_dd')
+beta_ddot, phi_ddot, psi_ddot = symbols("beta_dd phi_dd psi_dd")
 omega_dot = Matrix([beta_ddot, phi_ddot, psi_ddot])
 
 # parameter
-l, m1, m2, m3, r1, r2, tau, theta1, theta2, theta3 = symbols(
-    'l, m1, m2, m3, r1, r2, tau, theta1, theta2, theta3')
+l, m1, m2, m3, r1, r2, tau, theta1, theta2, theta3 = symbols("l, m1, m2, m3, r1, r2, tau, theta1, theta2, theta3")
 
 # constants
-g = symbols('g')
+g = symbols("g")
 
 # inputs
-omega_cmd, T = symbols('omega_cmd T')
+omega_cmd, T = symbols("omega_cmd T")
 
 # parameter lists:
 m = [m1, m2, m3]
@@ -70,7 +67,7 @@ x_dot = -r1 * alpha_dot
 # kinematic constraints: upper ball rolling on lower ball
 
 om1 = Matrix([0, 0, alpha_dot])
-r_S1P1 = r1 * Matrix([- sin(psi), cos(psi), 0])
+r_S1P1 = r1 * Matrix([-sin(psi), cos(psi), 0])
 v_OS1 = Matrix([-r1 * alpha_dot, 0, 0])
 
 v_P1 = v_OS1 + om1.cross(r_S1P1)
@@ -128,39 +125,25 @@ if args.print_latex_expressions:
     b = -dyn.subs([(x, 0) for x in omega_dot])
 
     latex_sub_list = [
-        ('m1',
-         'm_1'),
-        ('m2',
-         'm_2'),
-        ('m3',
-         'm_3'),
-        ('r1',
-         'r_1'),
-        ('r2',
-         'r_2'),
-        ('tau',
-         '\\tau'),
-        ('theta1',
-         '\\theta_1'),
-        ('theta2',
-         '\\theta_2'),
-        ('theta3',
-         '\\theta_3'),
-        ('beta',
-         '\\beta'),
-        ('phi',
-         '\\varphi'),
-        ('psi',
-         '\\psi'),
-        ('beta_dot',
-         '\\dot{\\beta}'),
-        ('phi_dot',
-         '\\dot{\\varphi}'),
-        ('psi_dot',
-         '\\dot{\\psi}')]
+        ("m1", "m_1"),
+        ("m2", "m_2"),
+        ("m3", "m_3"),
+        ("r1", "r_1"),
+        ("r2", "r_2"),
+        ("tau", "\\tau"),
+        ("theta1", "\\theta_1"),
+        ("theta2", "\\theta_2"),
+        ("theta3", "\\theta_3"),
+        ("beta", "\\beta"),
+        ("phi", "\\varphi"),
+        ("psi", "\\psi"),
+        ("beta_dot", "\\dot{\\beta}"),
+        ("phi_dot", "\\dot{\\varphi}"),
+        ("psi_dot", "\\dot{\\psi}"),
+    ]
 
-    print_symbolic(A, 'A', latex_sub_list, lambda x: factor(simplify(x)), False)
-    print_symbolic(b, 'b', latex_sub_list, lambda x: simplify(factor(expand(x))))
+    print_symbolic(A, "A", latex_sub_list, lambda x: factor(simplify(x)), False)
+    print_symbolic(b, "b", latex_sub_list, lambda x: simplify(factor(expand(x))))
 
 # eliminate torque T by inspection
 dyn_new = Matrix([0, 0, 0])
@@ -180,40 +163,18 @@ if not args.disable_printing_dynamics:
     common_sub_expr = cse([A, b])
 
     sub_list = [
-        (x,
-         symbols('self.p.' +
-                 x)) for x in [
-            'g',
-            'l',
-            'm1',
-            'm2',
-            'm3',
-            'r1',
-            'r2',
-            'tau',
-            'theta1',
-            'theta2',
-            'theta3']]
+        (x, symbols("self.p." + x))
+        for x in ["g", "l", "m1", "m2", "m3", "r1", "r2", "tau", "theta1", "theta2", "theta3"]
+    ]
 
     for term in common_sub_expr[0]:
-        print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
+        print("        {} = {}".format(term[0], term[1].subs(sub_list)))
 
-    print_symbolic(common_sub_expr[1][0], 'A', sub_list)
-    print_symbolic(common_sub_expr[1][1], 'b', sub_list)
+    print_symbolic(common_sub_expr[1][0], "A", sub_list)
+    print_symbolic(common_sub_expr[1][1], "b", sub_list)
 
 # linearize system around equilibrium [beta, 0, 0, 0, 0, 0]
-eq = [
-    (x,
-     0) for x in [
-        'phi',
-        'psi',
-        'beta_dot',
-        'phi_dot',
-        'psi_dot',
-        'beta_dd',
-        'phi_dd',
-        'psi_dd',
-        'omega_cmd']]
+eq = [(x, 0) for x in ["phi", "psi", "beta_dot", "phi_dot", "psi_dot", "beta_dd", "phi_dd", "psi_dd", "omega_cmd"]]
 
 dyn_lin = dyn_new.subs(eq)
 for vec in [ang, omega, omega_dot]:
@@ -230,10 +191,10 @@ if args.print_latex_expressions:
     K = dyn_lin.jacobian(ang)
     F = -dyn_new.diff(omega_cmd, 1)
 
-    print_symbolic(M, 'M', latex_sub_list, lambda x: simplify(factor(expand(x))))
-    print_symbolic(D, 'D', latex_sub_list, lambda x: factor(simplify(x)))
-    print_symbolic(K, 'K', latex_sub_list, lambda x: factor(simplify(x)))
-    print_symbolic(F, 'F', latex_sub_list, lambda x: factor(simplify(x)))
+    print_symbolic(M, "M", latex_sub_list, lambda x: simplify(factor(expand(x))))
+    print_symbolic(D, "D", latex_sub_list, lambda x: factor(simplify(x)))
+    print_symbolic(K, "K", latex_sub_list, lambda x: factor(simplify(x)))
+    print_symbolic(F, "F", latex_sub_list, lambda x: factor(simplify(x)))
 
 if not args.disable_printing_dynamics:
     # calculate contact forces
@@ -244,24 +205,13 @@ if not args.disable_printing_dynamics:
     common_sub_expr = cse([F1, F12, F23])
 
     sub_list = [
-        (x,
-         symbols('self.p.' +
-                 x)) for x in [
-            'g',
-            'l',
-            'm1',
-            'm2',
-            'm3',
-            'r1',
-            'r2',
-            'tau',
-            'theta1',
-            'theta2',
-            'theta3']]
+        (x, symbols("self.p." + x))
+        for x in ["g", "l", "m1", "m2", "m3", "r1", "r2", "tau", "theta1", "theta2", "theta3"]
+    ]
 
     for term in common_sub_expr[0]:
-        print('        {} = {}'.format(term[0], term[1].subs(sub_list)))
+        print("        {} = {}".format(term[0], term[1].subs(sub_list)))
 
-    print_symbolic(common_sub_expr[1][0], 'F1', sub_list)
-    print_symbolic(common_sub_expr[1][1], 'F12', sub_list)
-    print_symbolic(common_sub_expr[1][2], 'F23', sub_list)
+    print_symbolic(common_sub_expr[1][0], "F1", sub_list)
+    print_symbolic(common_sub_expr[1][1], "F12", sub_list)
+    print_symbolic(common_sub_expr[1][2], "F23", sub_list)

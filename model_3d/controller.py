@@ -1,5 +1,6 @@
 """Controller class for controlling 3D Double Ball Balancer
 """
+
 import context  # noqa: F401
 import numpy as np
 from numpy import cos, sin
@@ -79,30 +80,19 @@ def projectModelState(state):
     B2h_phi_y = np.arcsin(-B2h_e_S2S3[0])
 
     # express lever arm angular velocity in B2h frame
-    B3_omega_IB3 = np.array([phi_x_dot +
-                             w_2x *
-                             cos(phi_y) -
-                             w_2z *
-                             sin(phi_y), phi_y_dot *
-                             cos(phi_x) +
-                             w_2x *
-                             sin(phi_x) *
-                             sin(phi_y) +
-                             w_2y *
-                             cos(phi_x) +
-                             w_2z *
-                             sin(phi_x) *
-                             cos(phi_y), -
-                             phi_y_dot *
-                             sin(phi_x) +
-                             w_2x *
-                             sin(phi_y) *
-                             cos(phi_x) -
-                             w_2y *
-                             sin(phi_x) +
-                             w_2z *
-                             cos(phi_x) *
-                             cos(phi_y)])
+    B3_omega_IB3 = np.array(
+        [
+            phi_x_dot + w_2x * cos(phi_y) - w_2z * sin(phi_y),
+            phi_y_dot * cos(phi_x)
+            + w_2x * sin(phi_x) * sin(phi_y)
+            + w_2y * cos(phi_x)
+            + w_2z * sin(phi_x) * cos(phi_y),
+            -phi_y_dot * sin(phi_x)
+            + w_2x * sin(phi_y) * cos(phi_x)
+            - w_2y * sin(phi_x)
+            + w_2z * cos(phi_x) * cos(phi_y),
+        ]
+    )
 
     B2h_omega_IB3 = np.dot(R_IB2h.T, np.dot(R_IB3, B3_omega_IB3))
 
@@ -145,12 +135,16 @@ class Controller(object):
 
         self.omega_2_z_to_omega_2_y_max = 0.3
 
-        self.K = np.array([[-0.80754292, 12.15076322, -17.24354006, 10.23122588, -2.94008421, 0.34736014],
-                           [-3.94498008, 1.86483491, -2.55867509, 1.50560133, -0.42315158, 0.04674095],
-                           [28.56857473, -46.54088186, 44.42735085, -11.57973861, -1.50021012, 0.75523765],
-                           [-4.25523481, 0.27597899, 9.92376958, -11.74578938, 4.85308982, -0.68952721],
-                           [0.14795505, 0.36941466, 1.01868728, -1.43413212, 0.59845657, -0.08073203],
-                           [24.7124679, 4.79484575, -58.55748287, 64.51408958, -26.28326935, 3.76317956]])
+        self.K = np.array(
+            [
+                [-0.80754292, 12.15076322, -17.24354006, 10.23122588, -2.94008421, 0.34736014],
+                [-3.94498008, 1.86483491, -2.55867509, 1.50560133, -0.42315158, 0.04674095],
+                [28.56857473, -46.54088186, 44.42735085, -11.57973861, -1.50021012, 0.75523765],
+                [-4.25523481, 0.27597899, 9.92376958, -11.74578938, 4.85308982, -0.68952721],
+                [0.14795505, 0.36941466, 1.01868728, -1.43413212, 0.59845657, -0.08073203],
+                [24.7124679, 4.79484575, -58.55748287, 64.51408958, -26.28326935, 3.76317956],
+            ]
+        )
 
     def compute_ctrl_input(self, state, beta_cmd, mode=ANGLE_MODE, normalized_phi_x_cmd=0):
         """computes desired motor commands [ux, uy]

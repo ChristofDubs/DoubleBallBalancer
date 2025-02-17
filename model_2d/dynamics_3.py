@@ -31,15 +31,15 @@ class DynamicModel(NBallDynamicModel):
         phi_dot = x[StateIndex.PHI_DOT_IDX]
         psi_dot_0 = x[StateIndex.PSI_DOT_0_IDX]
         psi_dot_1 = x[StateIndex.PSI_DOT_1_IDX]
-        x0 = param["r_2"]**2
+        x0 = param["r_2"] ** 2
         x1 = cos(phi)
         x2 = param["r_3"] * x1
         x3 = param["m_3"] * x2
         x4 = -param["r_2"] * x3
-        x5 = param["theta_0"] / param["r_0"]**2
-        x6 = param["theta_1"] / param["r_1"]**2
+        x5 = param["theta_0"] / param["r_0"] ** 2
+        x6 = param["theta_1"] / param["r_1"] ** 2
         x7 = sin(phi)
-        x8 = param["m_3"] * param["r_3"]**2
+        x8 = param["m_3"] * param["r_3"] ** 2
         x9 = -param["r_1"]
         x10 = -param["r_0"] + x9
         x11 = sin(psi_0)
@@ -63,8 +63,14 @@ class DynamicModel(NBallDynamicModel):
         x29 = x14 * x25 + x28 * x3
         x30 = param["m_1"] * x27
         x31 = param["r_2"] * x28
-        x32 = -param["m_2"] * x31 - param["m_3"] * x31 - param["r_2"] * \
-            x27 * x6 - param["r_2"] * x30 + x19 * x23 - x20 * x27
+        x32 = (
+            -param["m_2"] * x31
+            - param["m_3"] * x31
+            - param["r_2"] * x27 * x6
+            - param["r_2"] * x30
+            + x19 * x23
+            - x20 * x27
+        )
         x33 = x10**2
         x34 = x11**2
         x35 = x33 * x34
@@ -72,8 +78,15 @@ class DynamicModel(NBallDynamicModel):
         x37 = x16**2
         x38 = x12 * x25
         x39 = x16 * x28
-        x40 = param["m_0"] * x10 * x27 + param["m_2"] * x38 + param["m_2"] * x39 + \
-            param["m_3"] * x38 + param["m_3"] * x39 + x16 * x30 + x18 * x23 * x5
+        x40 = (
+            param["m_0"] * x10 * x27
+            + param["m_2"] * x38
+            + param["m_2"] * x39
+            + param["m_3"] * x38
+            + param["m_3"] * x39
+            + x16 * x30
+            + x18 * x23 * x5
+        )
         x41 = x27**2
         x42 = x23**2
         x43 = x24**2 * x42
@@ -93,8 +106,16 @@ class DynamicModel(NBallDynamicModel):
         x57 = param["g"] * param["m_2"] - param["m_2"] * x53 - param["m_2"] * x54
         A = np.zeros((4, 4))
         b = np.zeros((4, 1))
-        A[0, 0] = param["m_0"] * x0 + param["m_1"] * x0 + param["m_2"] * \
-            x0 + param["m_3"] * x0 + param["theta_2"] + x0 * x5 + x0 * x6 + x4
+        A[0, 0] = (
+            param["m_0"] * x0
+            + param["m_1"] * x0
+            + param["m_2"] * x0
+            + param["m_3"] * x0
+            + param["theta_2"]
+            + x0 * x5
+            + x0 * x6
+            + x4
+        )
         A[0, 1] = param["theta_3"] + x1**2 * x8 + x4 + x7**2 * x8
         A[0, 2] = x17 + x22
         A[0, 3] = x29 + x32
@@ -104,18 +125,35 @@ class DynamicModel(NBallDynamicModel):
         A[1, 3] = 0
         A[2, 0] = x22
         A[2, 1] = x17
-        A[2, 2] = param["m_0"] * x33 + param["m_1"] * x37 + param["m_2"] * x35 + param["m_2"] * \
-            x37 + param["m_3"] * x35 + param["m_3"] * x37 - x10 * x34 * x36 + x18**2 * x5
+        A[2, 2] = (
+            param["m_0"] * x33
+            + param["m_1"] * x37
+            + param["m_2"] * x35
+            + param["m_2"] * x37
+            + param["m_3"] * x35
+            + param["m_3"] * x37
+            - x10 * x34 * x36
+            + x18**2 * x5
+        )
         A[2, 3] = x40
         A[3, 0] = x32
         A[3, 1] = x29
         A[3, 2] = x40
-        A[3, 3] = param["m_0"] * x41 + param["m_1"] * x41 + param["m_2"] * x43 + \
-            param["m_2"] * x44 + param["m_3"] * x43 + param["m_3"] * x44 + x41 * x6 + x42 * x5
+        A[3, 3] = (
+            param["m_0"] * x41
+            + param["m_1"] * x41
+            + param["m_2"] * x43
+            + param["m_2"] * x44
+            + param["m_3"] * x43
+            + param["m_3"] * x44
+            + x41 * x6
+            + x42 * x5
+        )
         b[0, 0] = -param["r_2"] * x47 + param["r_2"] * x50 + param["r_2"] * x56 - x13 * x55 - x2 * x56
         b[1, 0] = (alpha_dot_2 + omega_cmd - phi_dot) / param["tau"]
-        b[2, 0] = -x12 * x55 - x12 * x57 - x12 * \
-            (param["g"] * param["m_1"] - x36 * x52) + x16 * x47 - x16 * x50 - x16 * x56
+        b[2, 0] = (
+            -x12 * x55 - x12 * x57 - x12 * (param["g"] * param["m_1"] - x36 * x52) + x16 * x47 - x16 * x50 - x16 * x56
+        )
         b[3, 0] = -x25 * x55 - x25 * x57 - x28 * x50 - x28 * x56 + x30 * x46
         return np.linalg.solve(A, b)
 
@@ -156,18 +194,38 @@ class DynamicModel(NBallDynamicModel):
         x22 = sin(phi)
         x23 = phi_dot**2 * x20
         x24 = param["m_3"] * x16
-        x25 = param["m_3"] * x14 - param["m_3"] * x15 - param["m_3"] * \
-            x5 + param["m_3"] * x7 - x17 * x24 + x19 * x21 - x22 * x23
+        x25 = (
+            param["m_3"] * x14
+            - param["m_3"] * x15
+            - param["m_3"] * x5
+            + param["m_3"] * x7
+            - x17 * x24
+            + x19 * x21
+            - x22 * x23
+        )
         x26 = param["m_2"] * x14 - param["m_2"] * x15 - param["m_2"] * x5 + param["m_2"] * x7 - x16 * x18 + x25
         x27 = param["m_1"] * x4 - param["m_1"] * x5 + param["m_1"] * x7 - x11 * x9 + x26
         x28 = param["r_0"] + param["r_1"]
         x29 = x10 * x28 * x6
         x30 = x2 * x8
         x31 = x12 * x3
-        x32 = param["g"] * param["m_3"] - param["m_3"] * x17 * x31 - param["m_3"] * \
-            x29 + param["m_3"] * x30 + psi_ddot_1 * x24 + x19 * x23 + x21 * x22
-        x33 = param["g"] * param["m_2"] + param["m_2"] * psi_ddot_1 * \
-            x16 - param["m_2"] * x29 + param["m_2"] * x30 - x18 * x31 + x32
+        x32 = (
+            param["g"] * param["m_3"]
+            - param["m_3"] * x17 * x31
+            - param["m_3"] * x29
+            + param["m_3"] * x30
+            + psi_ddot_1 * x24
+            + x19 * x23
+            + x21 * x22
+        )
+        x33 = (
+            param["g"] * param["m_2"]
+            + param["m_2"] * psi_ddot_1 * x16
+            - param["m_2"] * x29
+            + param["m_2"] * x30
+            - x18 * x31
+            + x32
+        )
         x34 = param["g"] * param["m_1"] - param["m_1"] * x29 - psi_ddot_0 * x28 * x9 + x33
         F_0 = np.zeros((3, 1))
         F_1 = np.zeros((3, 1))
@@ -192,8 +250,13 @@ class DynamicModel(NBallDynamicModel):
         phi = x[StateIndex.PHI_IDX]
         psi_0 = x[StateIndex.PSI_0_IDX]
         psi_1 = x[StateIndex.PSI_1_IDX]
-        x0 = -alpha_2 * param["r_2"] - param["r_0"] * psi_0 - \
-            param["r_1"] * psi_0 + param["r_1"] * psi_1 + param["r_2"] * psi_1
+        x0 = (
+            -alpha_2 * param["r_2"]
+            - param["r_0"] * psi_0
+            - param["r_1"] * psi_0
+            + param["r_1"] * psi_1
+            + param["r_2"] * psi_1
+        )
         x1 = param["r_0"] + param["r_1"]
         x2 = x0 - x1 * sin(psi_0)
         x3 = param["r_0"] + x1 * cos(psi_0)

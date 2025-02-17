@@ -1,5 +1,6 @@
 """Script to compute LQR-controller gain for stabilizing the 2D N Ball Balancer, based on numerical parameter values.
 """
+
 import pickle
 
 import context  # noqa: F401
@@ -49,7 +50,7 @@ def computeControllerGains(N: int, verbose: bool = False):
 
     # eigenvalues
     if verbose:
-        print('open loop eigenvalues: \n{}'.format(np.linalg.eigvals(A)))
+        print("open loop eigenvalues: \n{}".format(np.linalg.eigvals(A)))
 
     # LQR controller:
     # https://en.wikipedia.org/wiki/Linear%E2%80%93quadratic_regulator
@@ -67,23 +68,23 @@ def computeControllerGains(N: int, verbose: bool = False):
     if verbose:
         # compute eigenvalues of closed loop system
         eig = np.linalg.eigvals(A - np.dot(B, K))
-        print('closed loop eigenvalues: \n{}'.format(eig))
+        print("closed loop eigenvalues: \n{}".format(eig))
 
         # find minimal damping coefficient
         zeta = [np.absolute(e.real) / np.absolute(e) for e in eig if e < 0]
-        print('minimal damping ratio: {}'.format(min(zeta)))
+        print("minimal damping ratio: {}".format(min(zeta)))
 
     return K, eig
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     K, eig = computeControllerGains(2, True)
 
     plt.figure()
-    plt.plot(eig.real, eig.imag, 'b*')
-    plt.xlabel('real')
-    plt.ylabel('imag')
-    plt.title('poles of closed loop system')
-    plt.axis('equal')
+    plt.plot(eig.real, eig.imag, "b*")
+    plt.xlabel("real")
+    plt.ylabel("imag")
+    plt.title("poles of closed loop system")
+    plt.axis("equal")
     plt.show(block=True)

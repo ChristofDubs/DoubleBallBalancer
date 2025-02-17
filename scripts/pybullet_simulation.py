@@ -1,5 +1,6 @@
 """Script for running pybullet simulation of 3D Double Ball Balancer
 """
+
 import time
 
 import context  # noqa: F401
@@ -32,12 +33,8 @@ class PyBulletSim:
 
         # load models from URDF
         p.setAdditionalSearchPath("..")
-        self.lower_ball_id = p.loadURDF(
-            "model_3d/urdf/lower_ball.urdf",
-            flags=p.URDF_USE_INERTIA_FROM_FILE)
-        self.robot_id = p.loadURDF(
-            "model_3d/urdf/robot.urdf",
-            flags=p.URDF_USE_INERTIA_FROM_FILE)
+        self.lower_ball_id = p.loadURDF("model_3d/urdf/lower_ball.urdf", flags=p.URDF_USE_INERTIA_FROM_FILE)
+        self.robot_id = p.loadURDF("model_3d/urdf/robot.urdf", flags=p.URDF_USE_INERTIA_FROM_FILE)
 
         p.changeDynamics(self.lower_ball_id, -1, linearDamping=0, angularDamping=0)
         p.changeDynamics(self.robot_id, -1, linearDamping=0, angularDamping=0)
@@ -51,8 +48,8 @@ class PyBulletSim:
         for i in range(p.getNumJoints(self.robot_id)):
             name_to_joint_idx.update({p.getJointInfo(self.robot_id, i)[1]: i})
 
-        self.motor_x_idx = name_to_joint_idx[b'lateral_rotation_axis']
-        self.motor_y_idx = name_to_joint_idx[b'primary_rotation_axis']
+        self.motor_x_idx = name_to_joint_idx[b"lateral_rotation_axis"]
+        self.motor_y_idx = name_to_joint_idx[b"primary_rotation_axis"]
 
         # add texture for better visualization
         texUid = p.loadTexture("model_3d/urdf/media/circles.png")
@@ -94,16 +91,14 @@ class PyBulletSim:
 
     def simulate_step(self, forward_cmd, forward_cmd_mode, steering_cmd):
         state = self.get_state()
-        omega_cmd = list(
-            self.controller.compute_ctrl_input(state, forward_cmd, forward_cmd_mode, steering_cmd))
+        omega_cmd = list(self.controller.compute_ctrl_input(state, forward_cmd, forward_cmd_mode, steering_cmd))
         p.setJointMotorControlArray(
             bodyUniqueId=self.robot_id,
-            jointIndices=[
-                self.motor_x_idx,
-                self.motor_y_idx],
+            jointIndices=[self.motor_x_idx, self.motor_y_idx],
             controlMode=p.VELOCITY_CONTROL,
             targetVelocities=omega_cmd,
-            velocityGains=[0.1, 0.1])
+            velocityGains=[0.1, 0.1],
+        )
 
         time_step = p.readUserDebugParameter(self.timestep_param_id)
         p.setTimeStep(time_step)
@@ -117,7 +112,8 @@ class PyBulletSim:
             cameraDistance=p.readUserDebugParameter(self.cam_dist_param_id),
             cameraYaw=p.readUserDebugParameter(self.cam_yaw_param_id) + camera_yaw_offset,
             cameraPitch=p.readUserDebugParameter(self.cam_pitch_param_id),
-            cameraTargetPosition=[state.pos[0], state.pos[1], 5])
+            cameraTargetPosition=[state.pos[0], state.pos[1], 5],
+        )
 
         transparency = p.readUserDebugParameter(self.upper_ball_transparency_id)
         p.changeVisualShape(objectUniqueId=self.robot_id, linkIndex=-1, rgbaColor=[0, 0, 1, transparency])
@@ -153,8 +149,9 @@ class PyBulletSim:
         # Note: one would expect that only checking getContactPoints would suffice here;
         # However, there are cases where getContactPoints(...) returns no points,
         # but getClosestPoints(..., distance=0) does.
-        contact = p.getContactPoints(bodyA=self.robot_id, bodyB=self.lower_ball_id) \
-            or p.getClosestPoints(bodyA=self.robot_id, bodyB=self.lower_ball_id, distance=0)
+        contact = p.getContactPoints(bodyA=self.robot_id, bodyB=self.lower_ball_id) or p.getClosestPoints(
+            bodyA=self.robot_id, bodyB=self.lower_ball_id, distance=0
+        )
 
         if not contact:
             return state
@@ -174,10 +171,8 @@ class PyBulletSim:
         R_IB2 = Quaternion(state.q2).rotation_matrix()
         state.omega_2 = np.dot(R_IB2.T, np.array(upper_ball_angular_vel))
 
-        state.phi_x, state.phi_x_dot, _, _ = p.getJointState(
-            bodyUniqueId=self.robot_id, jointIndex=self.motor_x_idx)
-        state.phi_y, state.phi_y_dot, _, _ = p.getJointState(
-            bodyUniqueId=self.robot_id, jointIndex=self.motor_y_idx)
+        state.phi_x, state.phi_x_dot, _, _ = p.getJointState(bodyUniqueId=self.robot_id, jointIndex=self.motor_x_idx)
+        state.phi_y, state.phi_y_dot, _, _ = p.getJointState(bodyUniqueId=self.robot_id, jointIndex=self.motor_y_idx)
 
         # e_s1S2 = np.array([sin(psi_y) * cos(psi_x), -sin(psi_x), cos(psi_x) * cos(psi_y)])
         r_S1S2 = np.array(upper_ball_pos) - np.array(lower_ball_pos)
@@ -193,15 +188,18 @@ class PyBulletSim:
         v_S1S2 = np.array(upper_ball_linear_vel) - np.array(lower_ball_linear_vel)
         v_e_s1S2 = v_S1S2 / d
 
-        state.psi_x_dot = np.dot(v_e_s1S2, np.array(
-            [-sin(state.psi_y) * sin(state.psi_x), -cos(state.psi_x), -sin(state.psi_x) * cos(state.psi_y)]))
-        state.psi_y_dot = np.dot(v_e_s1S2, np.array(
-            [cos(state.psi_y) * cos(state.psi_x), 0, -cos(state.psi_x) * sin(state.psi_y)]))
+        state.psi_x_dot = np.dot(
+            v_e_s1S2,
+            np.array([-sin(state.psi_y) * sin(state.psi_x), -cos(state.psi_x), -sin(state.psi_x) * cos(state.psi_y)]),
+        )
+        state.psi_y_dot = np.dot(
+            v_e_s1S2, np.array([cos(state.psi_y) * cos(state.psi_x), 0, -cos(state.psi_x) * sin(state.psi_y)])
+        )
 
         return state
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sim = PyBulletSim()
 
     sim_time = 40
