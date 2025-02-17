@@ -30,8 +30,8 @@ def blit_text(surface, text, pos, font, color=pygame.Color('white')):
 
 class KeyboardCommander:
     class Action(Enum):
-        NONE = 1,
-        QUIT = 2,
+        NONE = 1
+        QUIT = 2
         RESPAWN = 3
 
     def __init__(self):

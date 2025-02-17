@@ -8,15 +8,15 @@ from .dynamic_model_n import NBallDynamicModel
 
 
 class StateIndex(IntEnum):
-    ALPHA_2_IDX = 0,
-    PHI_IDX = 1,
-    PSI_0_IDX = 2,
-    PSI_1_IDX = 3,
-    ALPHA_DOT_2_IDX = 4,
-    PHI_DOT_IDX = 5,
-    PSI_DOT_0_IDX = 6,
-    PSI_DOT_1_IDX = 7,
-    NUM_STATES = 8,
+    ALPHA_2_IDX = 0
+    PHI_IDX = 1
+    PSI_0_IDX = 2
+    PSI_1_IDX = 3
+    ALPHA_DOT_2_IDX = 4
+    PHI_DOT_IDX = 5
+    PSI_DOT_0_IDX = 6
+    PSI_DOT_1_IDX = 7
+    NUM_STATES = 8
 
 
 class DynamicModel(NBallDynamicModel):

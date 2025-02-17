@@ -8,13 +8,13 @@ from .dynamic_model_n import NBallDynamicModel
 
 
 class StateIndex(IntEnum):
-    ALPHA_1_IDX = 0,
-    PHI_IDX = 1,
-    PSI_0_IDX = 2,
-    ALPHA_DOT_1_IDX = 3,
-    PHI_DOT_IDX = 4,
-    PSI_DOT_0_IDX = 5,
-    NUM_STATES = 6,
+    ALPHA_1_IDX = 0
+    PHI_IDX = 1
+    PSI_0_IDX = 2
+    ALPHA_DOT_1_IDX = 3
+    PHI_DOT_IDX = 4
+    PSI_DOT_0_IDX = 5
+    NUM_STATES = 6
 
 
 class DynamicModel(NBallDynamicModel):
