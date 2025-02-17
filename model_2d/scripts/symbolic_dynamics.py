@@ -5,8 +5,7 @@ Derivation of the rigid multi-body dynamics using the Projected Newton-Euler met
 
 import argparse
 
-from sympy import (Matrix, cos, cse, diff, expand, factor, simplify, sin,
-                   solve, symbols)
+from sympy import Matrix, cos, cse, diff, expand, factor, simplify, sin, solve, symbols
 
 
 def print_symbolic(mat, name, sub_list, func=lambda x: x, ignore_symmetry=True):

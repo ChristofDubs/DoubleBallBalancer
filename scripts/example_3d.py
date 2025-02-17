@@ -8,8 +8,7 @@ import time
 import context  # noqa: F401
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.mplot3d import \
-    Axes3D  # noqa: F401 needed for resolving projection='3d'
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 needed for resolving projection='3d'
 
 from model_3d.controller import ANGLE_MODE, Controller  # , VELOCITY_MODE
 from model_3d.dynamic_model import DynamicModel, ModelParam, ModelState
@@ -65,8 +64,7 @@ if enable_animation or args.gif:
     ax = fig.add_subplot(111, projection="3d")
     if args.gif:
         import imageio
-        from matplotlib.backends.backend_agg import \
-            FigureCanvasAgg as FigureCanvas
+        from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
         canvas = FigureCanvas(fig)
         images = []

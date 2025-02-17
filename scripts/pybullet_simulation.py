@@ -10,8 +10,7 @@ import pybullet_data
 from numpy import cos, sin
 from pyrotation import Quaternion
 
-from model_3d.controller import (ANGLE_MODE, VELOCITY_MODE, Controller,
-                                 projectModelState)
+from model_3d.controller import ANGLE_MODE, VELOCITY_MODE, Controller, projectModelState
 from model_3d.dynamic_model import ModelParam, ModelState
 
 ANGLE_MODE = ANGLE_MODE
