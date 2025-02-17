@@ -11,7 +11,7 @@ def saturate(x, limit):
 
 
 class LQRController(object):
-    def __init__(self,):
+    def __init__(self):
         self.K = np.array([2.67619260e-15, 1.03556079e+01, -4.73012271e+01,
                            3.23606798e+00, 6.05877477e-01, -3.53469304e+01])
         self.kp = 0.2

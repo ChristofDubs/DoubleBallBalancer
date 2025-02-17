@@ -41,7 +41,7 @@ class ModelParam(object):
         theta3z: Mass moment of inertia of lever arm wrt. its center of mass around z axis [kg*m^2]
     """
 
-    def __init__(self,):
+    def __init__(self):
         """Initializes the parameters to default values"""
         self.a = 0.1
         self.g = 9.81
@@ -60,7 +60,7 @@ class ModelParam(object):
         self.theta3y = 1.0
         self.theta3z = 1.0
 
-    def is_valid(self,):
+    def is_valid(self):
         """Checks validity of parameter configuration
 
         Returns:
